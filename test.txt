@@ -1,0 +1,46 @@
+0700-1500	X	X	Jenny	Jenny	Jennifer	Jenny	Jenny	X	X	Tina	Mengling	Phebe	Tina	Jenny
+0730-1530	X	X	Helen	Helen	Helen	Helen	Rubina	X	X	Jenny	Jenny	Mengling	Jenny	Phebe
+0800-1600	X	X	Jennifer	Rubina	Bokay	Jennifer	Phebe	X	X	Tim	Phebe	Shabeeka	Eldvina	Esther
+0800-1600	X	X	Tim	Katherine	Esther	Tim	Katherine	X	X	Millie	Millie	Millie	Millie	Millie
+0800-1600	Leon  Eldvina	Leon  Eldvina	Shabeeka	Shabeeka	Tim		Tina	Eldvina  Leon	Eldvina  Leon	Mengling	Eldvina	Tina	Linh	Mengling
+0830-1630	Mandy	Mandy		Esther	Tina	Esther	Esther	Bokay	TY	Nic	Shabeeka	Eldvina	Phebe	Nic
+0830-1630	X	X	Tina	Tim			Tim	X	X			Bokay		
+0900-1700	X	X	Caroline		Shabeeka	Caroline	Lourdes	X	X	Helen	Helen	Caroline	Caroline	Caroline
+0900-1700	X	X	Lourdes	Leon		Phebe		X	X	Lourdes				
+														
+														
+														
+10:00-6:00pm	Ning	NCR	X	X	X	X	X	Ning	KR	X	X	X	X	X
+														
+BDC / Breast														
+7:30-3:30			Rubina	Jennifer	Rubina	Rubina	Jennifer			Katherine	Katherine	Katherine	Katherine	Katherine
+8:00-4:00 			Sue	Sue	Sue	Sue	Sue			Esther	Esther	Esther	Bokay	Sue
+9:00- 5:00			Esther	Tina	Caroline	Eldvina	Caroline			Sue	Tina	Jenny	Mengling	Tina
+														
+1100-7:00pm	X	X	Eldvina	Eldvina	Eldvina	Eldvina  Nadine	Eldvina	X	X	Phebe	Tim	Tim	Tim	Tim
+"12:00-8:00pm
+On Call Shift"	X	X	Mengling	Mengling	Mengling	Mengling	Mengling	X	X	Jennifer	Jennifer	Jennifer	Jennifer	Jennifer
+3:00-11:00pm	X	X	Erica	Erica	Erica	Erica	Erica	X	X	Erica	Erica	Erica	Erica	Erica
+4:00-12:00am	Alona	Alleth	Nic	Nic	Nic	Nic	Nic	Mandy	EL	Leon	Leon	Leon	Leon	Leon
+4:00-12:00am	Ian	HL	Phebe	Phebe	Ivy	Ivy	Ivy	Hannah	PL 	Rubina	Rubina	Rubina	Rubina	Rubina
+														
+On-Call	Mengling	Mengling	Mengling	Mengling	Mengling	Mengling	Jennifer	Jennifer	Jennifer	Jennifer	Jennifer	Jennifer	Jennifer	Esther
+														
+OCSC  &														
+Consumers														
+0800-1600	X	X	X	X	Katherine	X	X	X	X	X	X	Sue	X	X
+0730-1530	X	X	Stana	Caroline	Stana	Katherine	X	X	X	Stana	Sue	Stana	Sue	X
+0730-1530	X	X	X	X	Leon	Leon	X	X	X	X	X	Nic	Nic	X
+														
+AVAILABLE	HL	HL	Shabeeka	Shabeeka	Bokay	Nadine		Bokay			Shabeeka	Bokay	Bokay	
+					Shabeeka			EL				Shabeeka		
+														
+VACATION			Leon w/e				Leon w/e			Eldvina w/e				Eldvina w/e
+			Sherri	Sherri	Sherri	Sherri	Sherri			Sherri	Sherri	Sherri	Sherri	Sherri
+			Millie	Millie	Millie	Millie	Millie			Caroline	Caroline	Helen	Helen	Helen
+			KR w/e		JJ	Tim	HL w/e				NCR w/e			
+					PL w/e	TY w/e								
+Not Available		PL SC							SC	SC				
+LIEU TIME														
+Absent														
+FLOAT														

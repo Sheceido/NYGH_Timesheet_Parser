@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>NYGH Timesheet Schedule Parser</title>
+    <link rel="stylesheet" href="./style.css">
+    <link rel="icon" href="./favicon.ico" type="image/x-icon">
+  </head>
+  <body>
+    <main>
+        <h1>NYGH Timesheet Schedule Parser</h1>  
+    </main>
+    <label for="employee">Choose Employee:</label>
+    <select name="employee" id="employee" class="employee">
+        <option value="Sue Santiago">Sue Santiago</option>
+        <option value="Sherri Linzon">Sherri Linzon</option>
+        <option value="Tim Dang">Tim Dang</option>
+        <option value="Ekaterina Romanov">Ekaterina Romanov</option>
+        <option value="Caroline Xie">Caroline Xie</option>
+        <option value="Rubina Shafiq">Rubina Shafiq</option>
+        <option value="Helen Lin">Helen Lin</option>
+        <option value="Millicent Brown">Millicent Brown</option>
+        <option value="Esther Lyew">Esther Lyew</option>
+        <option value="Justina Yoo">Justina Yoo</option>
+        <option value="Jenny Jiang">Jenny Jiang</option>
+        <option value="Leon Poon">Leon Poon</option>
+        <option value="Jennifer Wang">Jennifer Wang</option>
+        <option value="Eldvina Baraj">Eldvina Baraj</option>
+        <option value="Mengling Chen">Mengling Chen</option>
+        <option value="Nicolas Cordero-Ramirez">Nicolas Cordero-Ramirez</option>
+        <option value="Phebe Li">Phebe Li</option>
+        <option value="Erica Lee">Erica Lee</option>
+    </select> 
+    <br />
+    <br />
+    <div>
+        <textarea id="schedule" name="schedule" class="schedule" rows="20" cols="150" placeholder="Copy and Paste schedule grid here!"></textarea> 
+    </div>
+    <br />
+    <button type="button" class="submitBtn" onclick="parse()">Submit</button>
+    <br />
+    <br />
+    <br />
+    <br />
+    <table class="output">
+    </table>
+    <button class="copy">Copy</button>
+    <div class="errors">
+    </div>
+    <br />
+    <br />
+    <div class="execTime">
+    </div>
+    <script type="module">
+      import {parse} from "./index.js";
+      // attach functions to be accessible in browser.
+      window.parse = parse;
+    </script>
+  </body>
+</html>

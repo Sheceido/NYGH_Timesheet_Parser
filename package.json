@@ -1,0 +1,12 @@
+{
+  "name": "usscheduletimesheet",
+  "version": "0.0.1",
+  "description": "Program to parse tab-separated US schedule and output the time sheet for a given technologist",
+  "main": "parser.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "author": "Sheceido",
+  "license": "ISC"
+}
