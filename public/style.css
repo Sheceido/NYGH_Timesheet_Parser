@@ -52,9 +52,9 @@ img {
 
 .modalCloseBtn {
   background-color: white;
-  position: absolute;
+  position: sticky;
   top: 0;
-  right: 0;
+  left: 99%;
   border: 1px solid #ddd;
   border-radius: 100%;
   padding-inline: 10px;

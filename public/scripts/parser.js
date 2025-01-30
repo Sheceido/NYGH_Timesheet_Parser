@@ -142,14 +142,17 @@ export class ScheduleTimeSheetParser {
     * @returns boolean
     */
     matchEmployee(name) {
+        let finalName = name.trim();
         // Edge case for when multiple names are in a cell
         // naive approach to always match for the ending name in the cell
-        const multiNames = name.split(' ');
+        // match second-last name if last name is an empty string
+        const multiNames = name.trim().split(/\s+/);
+
         if (multiNames.length >= 2) {
-            name = multiNames[multiNames.length-1];
+            finalName = multiNames[multiNames.length-1];
         }
 
-        switch(name.toUpperCase()) {
+        switch(finalName.toUpperCase()) {
             case this.employee.first_name:
             case this.employee.str_alias:
             case this.employee.abbrev:

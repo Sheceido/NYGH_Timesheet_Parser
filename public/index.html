@@ -45,23 +45,23 @@
             <div class="flex-col flex-center">
               <ol>
                 <li>Copy Ultrasound Schedule from "0700-1500" (cell A4) to the last "FLOAT" (cell O48).</li>
-                <img src="./public/copyScheduleExample.png" alt="Copy US schedule region">
+                <img src="./images/copyScheduleExample.png" alt="Copy US schedule region">
                 <hr />
                 <li>Paste schedule into text are as prompted on this page.</li>
-                <div class="flex-row">
-                  <img src="./public/textareaPasteBefore.png" alt="Text area to paste schedule into before image">
-                  <p> >> </p>
-                  <img src="./public/textareaPasteAfter.png" alt="Text area to paste schedule into after image">
+                <div class="flex-row flex-center">
+                  <img src="./images/textareaPasteBefore.png" alt="Text area to paste schedule into before image">
+                  <p style="padding: 1em; border: 1px solid #ddd; border-radius: 3px;"> >> </p>
+                  <img src="./images/textareaPasteAfter.png" alt="Text area to paste schedule into after image">
                 </div>
                 <hr />
                 <li>Choose the employee you want generate a timesheet for, then click submit.</li>
-                <img src="./public/chooseEmployee.png" alt="Choose employee and submit">
+                <img src="./images/chooseEmployee.png" alt="Choose employee and submit">
                 <hr />
                 <li>Review the generated timesheet, and check to make sure the shifts correspond to the schedule in excel. Click the "Copy" button to copy the timesheet onto your browser clipboard when you are satisfied with the output.</li>
-                <img src="./public/timesheetCheck.png" alt="Check the generated timesheet output, then click copy to have values copied onto the browser clipboard">
+                <img src="./images/timesheetCheck.png" alt="Check the generated timesheet output, then click copy to have values copied onto the browser clipboard">
                 <hr />
                 <li>In the Excel Timesheet, click the first of the three rows allocated for that employee beside "Shift" (column C), then paste via Ctrl-V or Right-Click and selecting the "Paste" command. The timesheet values should now populate your rows accordingly.</li>
-                <img src="./public/pasteTimesheetValues.png" alt="Paste copied generated values into Excel Timesheet into Column C, first of the three rows allotted for the employee.">
+                <img src="./images/pasteTimesheetValues.png" alt="Paste copied generated values into Excel Timesheet into Column C, first of the three rows allotted for the employee.">
               </ol>
               <br />
               <hr style="width: 100%;"/>
@@ -92,7 +92,7 @@
     <br />
     <br />
     <script type="module">
-      import {parse} from "./index.js";
+      import {parse} from "./scripts/index.js";
       // attach functions to be accessible in browser.
       window.parse = parse;
     </script>
