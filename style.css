@@ -1,18 +1,48 @@
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+button {
+  padding-inline: 2em;
+  margin-inline: 1em;
+}
+
 table, tr {
   border: 1px solid;
 }
 th {
   padding-block: 0.5em;
+  font-size: 14px;
 }
 td {
   text-align: center;
   border: 1px solid #ddd;
   border-width: 1px;
-  min-width: 5em;
+  width: 5em;
   padding-block: 1.5em;
   padding-inline: 1em;
+  font-size: 12px;
 }
 
-.errors {
-  font-size: 1.2rem;
+.flex-row {
+  display: flex; 
+  flex-direction: row;
+  margin-block: 1em;
+}
+
+.timesheetTitle {
+  font-weight: bold;
+  margin: 0;
+}
+
+.errorsBox {
+  padding-inline: 1em;
+  margin-block: 0.5em;
+  border: 1px solid #FF5050;
+  border-radius: 5px;
+  background-color: #FF5050;
 }

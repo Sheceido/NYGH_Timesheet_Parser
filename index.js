@@ -4,8 +4,8 @@
 import { ScheduleTimeSheetParser } from "./parser.js";
 
 const outputTable = document.querySelector(".output");
-const outputErrors = document.querySelector(".errors");
 const copyBtn = document.querySelector(".copy");
+const employeeTimesheetTitle = document.querySelector(".timesheetTitle");
 let timesheet = "";
 
 copyBtn.addEventListener("click", () => { copyToClipboard(timesheet) });
@@ -24,9 +24,8 @@ export function parse() {
 
     const parser = new ScheduleTimeSheetParser(scheduleStr, employee);
     const shifts = parser.findShifts();
-
     /**
-     * @type {{map: Map<number, Shift>, errors: string[]}} regularShifts
+     * @type {{map: Map<number, Shift>, errors: Map<number, string[]>}} regularShifts
      */
     const regularShifts = parser.getRegularHoursMap(shifts);
 
@@ -35,8 +34,10 @@ export function parse() {
      */
     const onCallStandBy = parser.getStandbyHourMap(shifts);
 
+    employeeTimesheetTitle.innerHTML = `${employee}'s Timesheet`;
+    copyBtn.style.visibility = "visible";
     outputTable.innerHTML = getTableRowsByMapping(regularShifts.map, onCallStandBy);
-    outputErrors.innerHTML = getShiftErrors(regularShifts.errors);
+    outputTable.innerHTML += getShiftErrors(regularShifts.errors);
 
     timesheet = copyableTimesheet(regularShifts.map, onCallStandBy);
 }
@@ -44,6 +45,7 @@ export function parse() {
 /**
  * @param {Map<number, Shift>} regularShifts 
  * @param {Map<number, number>} onCallStandBy
+const employeeTimesheetTitle = document.querySelector(".timesheetTitle");
  * @returns {string} html table corresponding to the timesheet
  */
 function getTableRowsByMapping(regularShifts, onCallStandBy) {
@@ -94,19 +96,26 @@ function getTableRowsByMapping(regularShifts, onCallStandBy) {
 }
 
 /**
- * @param {string[]} errors 
- * @returns {string} concatenated string of errors as innerHTML
+ * @param {Map<number, string[]>} errors 
+ * @returns {string} HTML string that indicates any errors for a weekday column
  */
 function getShiftErrors(errors) {
-    let htmlErrors = ``;
+    let htmlErrors = `<tr><td style="color:#DC143C;">ERRORS:</td>`;
 
-    if (errors.length < 1) {
-        return `No errors found by parser.`;
+    if (errors.size < 1) {
+        return `<td style="background-color:#A1EE39;">No errors found by parser.</td>`;
     }
 
-    for (let i = 0; i < errors.length; i++) {
-        htmlErrors += `<p>${errors[i]}</p>\n`;
+    for (let i = 1; i <= 14; i++) {
+        if (errors.has(i)) {
+            const concatErrors = errors.get(i).reduce((prev, curr) => prev += curr + '\n');
+            htmlErrors += `<td>${concatErrors}</td>`;
+        } else {
+            htmlErrors += `<td></td>`;
+        }
     }
+    htmlErrors += `</tr>`;
+
     return htmlErrors;
 }
 
@@ -157,7 +166,7 @@ function copyToClipboard(tsvTimesheet) {
     } else {
         navigator.clipboard.writeText(tsvTimesheet).then(
             () => {
-                alert("Timesheet copied to your clipboard! You may now copy and paste into excel.");
+                alert("Timesheet copied to your clipboard! You may now paste into your timesheet row!");
             },
         );
     }

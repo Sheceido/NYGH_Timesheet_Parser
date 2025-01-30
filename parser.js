@@ -2,7 +2,6 @@
  * @typedef {import('./roster.js').Employee} Employee
  */
 import { roster } from "./roster.js";
-import { sTest } from "./test.js";
 
 /**
  * @typedef {Object} Shift 
@@ -179,7 +178,7 @@ export class ScheduleTimeSheetParser {
 
     /**
      * @param {Shift} shifts 
-     * @returns {{map: Map<number, Shift>, errors: string[]}}
+     * @returns {{map: Map<number, Shift>, errors: Map<number, string[]>}}
      */
     getRegularHoursMap(shifts) {
          /**
@@ -191,16 +190,25 @@ export class ScheduleTimeSheetParser {
         const regularHoursMap = new Map();
 
         /**
-         * @type {string[]} errors
+         * @type {Map<number, string[]>} errors
          */
-        const errors = [];
+        const errors = new Map();
 
         shifts.forEach(s => {
             if (s!== null && s.shiftTime !== "On-Call") {
                 // error log for when a name appears more than once on the same day
                 if (regularHoursMap.has(s.weekday)) {
                     const clashShift = regularHoursMap.get(s.weekday);
-                    errors.push(`<b>Shift Overlapping Error</b>: ${clashShift.shiftTime} at ${clashShift.location} clashes with ${s.shiftTime} at ${s.location} site.`);
+
+                    // const errorMsg = `${clashShift.shiftTime} at ${clashShift.location} clashes with ${s.shiftTime} at ${s.location} site.`;
+
+                    const errorMsg = `<div class="errorsBox"><p>${s.shiftTime}</p><p style="font-size: 10px;">${s.location}</p></div>`;
+
+                    if (errors.has(s.weekday)) {
+                        errors.get(s.weekday).push(errorMsg);
+                    } else {
+                        errors.set(s.weekday, [errorMsg]);
+                    }
                 } else {
                     regularHoursMap.set(s.weekday, s);
                 }
@@ -226,7 +234,13 @@ export class ScheduleTimeSheetParser {
                     case 7:
                     case 14:
                         // Friday on-call begins 7pm, till 12am, total 5 hours standby
-                        onCallStandby.set(s.weekday, 5);
+                        // Need to acount for if employee was also on-call since Thurs evening
+                        // sum any previous standby hour entry to the day
+                        if (onCallStandby.has(s.weekday)) {
+                            onCallStandby.set(s.weekday, (onCallStandby.get(s.weekday) + 5));
+                        } else {
+                            onCallStandby.set(s.weekday, 5);
+                        }
                         break;
 
                     case 1:
@@ -238,12 +252,14 @@ export class ScheduleTimeSheetParser {
                         break;
                 
                     case 6:
-                        // Thurs need to account for:
+                    case 13:
+                        // Thursdays (weekday #6 and #13) need to account for:
                         // 12am to 7am, 7 hours
                         // 8pm to 12am, 4 hours
-                       // 12am to 7am (of the Friday, not under employee name anymore), 7 hours
+                        // 12am to 7am (of the Friday, not under employee name anymore), 7 hours
                         // carry over the Friday 7 hours to a new entry
                         onCallStandby.set(s.weekday, 11);
+
                         const friday = s.weekday+1;
                         if (onCallStandby.has(friday)) {
                             onCallStandby.set(friday, (onCallStandby.get(friday) + 7));
@@ -264,21 +280,4 @@ export class ScheduleTimeSheetParser {
         });
         return onCallStandby;
     }
-}
-
-/**
- * DEBUG
- */
-function test() {
-    const employeeName = "Justina Yoo";
-    const parser = new ScheduleTimeSheetParser(sTest, employeeName);
-    console.log(parser.findShifts());
-}
-
-function getEmployeeNames() {
-    const selOptions = Object.keys(roster).map(name => {
-        return `<option value="${name}">${name}</option>`;
-    });
-
-    console.log(selOptions);
 }
