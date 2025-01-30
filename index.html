@@ -13,28 +13,68 @@
     <main>
         <h1 style="text-align: center;">NYGH Timesheet Schedule Parser</h1>  
     </main>
-    <select name="employee" id="employee" class="employee">
-        <option value="" disabled selected>Choose Employee...</option>
-        <option value="Sue Santiago">Sue Santiago</option>
-        <option value="Sherri Linzon">Sherri Linzon</option>
-        <option value="Tim Dang">Tim Dang</option>
-        <option value="Ekaterina Romanov">Ekaterina Romanov</option>
-        <option value="Caroline Xie">Caroline Xie</option>
-        <option value="Rubina Shafiq">Rubina Shafiq</option>
-        <option value="Helen Lin">Helen Lin</option>
-        <option value="Millicent Brown">Millicent Brown</option>
-        <option value="Esther Lyew">Esther Lyew</option>
-        <option value="Justina Yoo">Justina Yoo</option>
-        <option value="Jenny Jiang">Jenny Jiang</option>
-        <option value="Leon Poon">Leon Poon</option>
-        <option value="Jennifer Wang">Jennifer Wang</option>
-        <option value="Eldvina Baraj">Eldvina Baraj</option>
-        <option value="Mengling Chen">Mengling Chen</option>
-        <option value="Nicolas Cordero-Ramirez">Nicolas Cordero-Ramirez</option>
-        <option value="Phebe Li">Phebe Li</option>
-        <option value="Erica Lee">Erica Lee</option>
-    </select> 
-    <button type="button" class="submitBtn" onclick="parse()">Submit</button>
+    <div class="flex-row" style="justify-content: space-between;">
+        <div>
+          <select name="employee" id="employee" class="employee">
+          <option value="" disabled selected>Choose Employee...</option>
+          <option value="Sue Santiago">Sue Santiago</option>
+          <option value="Sherri Linzon">Sherri Linzon</option>
+          <option value="Tim Dang">Tim Dang</option>
+          <option value="Ekaterina Romanov">Ekaterina Romanov</option>
+          <option value="Caroline Xie">Caroline Xie</option>
+          <option value="Rubina Shafiq">Rubina Shafiq</option>
+          <option value="Helen Lin">Helen Lin</option>
+          <option value="Millicent Brown">Millicent Brown</option>
+          <option value="Esther Lyew">Esther Lyew</option>
+          <option value="Justina Yoo">Justina Yoo</option>
+          <option value="Jenny Jiang">Jenny Jiang</option>
+          <option value="Leon Poon">Leon Poon</option>
+          <option value="Jennifer Wang">Jennifer Wang</option>
+          <option value="Eldvina Baraj">Eldvina Baraj</option>
+          <option value="Mengling Chen">Mengling Chen</option>
+          <option value="Nicolas Cordero-Ramirez">Nicolas Cordero-Ramirez</option>
+          <option value="Phebe Li">Phebe Li</option>
+          <option value="Erica Lee">Erica Lee</option>
+          </select> 
+          <button type="button" class="submitBtn" onclick="parse()">Submit</button>
+        </div>
+        <dialog>
+          <button class="modalCloseBtn" autofocus>X</button>
+          <div>
+            <h1 style="text-align: center;">How to use NYGH Timesheet Schedule Parser:</h1>
+            <div class="flex-col flex-center">
+              <ol>
+                <li>Copy Ultrasound Schedule from "0700-1500" (cell A4) to the last "FLOAT" (cell O48).</li>
+                <img src="./public/copyScheduleExample.png" alt="Copy US schedule region">
+                <hr />
+                <li>Paste schedule into text are as prompted on this page.</li>
+                <div class="flex-row">
+                  <img src="./public/textareaPasteBefore.png" alt="Text area to paste schedule into before image">
+                  <p> >> </p>
+                  <img src="./public/textareaPasteAfter.png" alt="Text area to paste schedule into after image">
+                </div>
+                <hr />
+                <li>Choose the employee you want generate a timesheet for, then click submit.</li>
+                <img src="./public/chooseEmployee.png" alt="Choose employee and submit">
+                <hr />
+                <li>Review the generated timesheet, and check to make sure the shifts correspond to the schedule in excel. Click the "Copy" button to copy the timesheet onto your browser clipboard when you are satisfied with the output.</li>
+                <img src="./public/timesheetCheck.png" alt="Check the generated timesheet output, then click copy to have values copied onto the browser clipboard">
+                <hr />
+                <li>In the Excel Timesheet, click the first of the three rows allocated for that employee beside "Shift" (column C), then paste via Ctrl-V or Right-Click and selecting the "Paste" command. The timesheet values should now populate your rows accordingly.</li>
+                <img src="./public/pasteTimesheetValues.png" alt="Paste copied generated values into Excel Timesheet into Column C, first of the three rows allotted for the employee.">
+              </ol>
+              <br />
+              <hr style="width: 100%;"/>
+              <div style="width: 80%;">
+                <h4>Technical Notes:</h4>
+                <p>The parsing of the schedule does a naive approach to figuring out what name is in which cell: it will always take the <b>last</b> listed name within. Since copy-pasting the US schedule from Excel does not include any formatting, such as a crossout of a certain name, there is no ability to differentiate between a cell that contains two names because of switches, or multiple names because the shift is being covered by multiple people.</p>
+                <p>Name matching is based on the first name of the employee, or a name alias commonly used on the schedule, or by their initials, in that order. Hence, to match an employee Leon Poon, it will try to match "Leon" first, then "Leon" as the most often used alias on the schedule, and finally "LP" for the initials. To view the hard-coded roster list and the name matchings used, append the website url with "/roster.js"</p>
+              </div>
+            </div>
+          </div>
+        </dialog>
+        <button>Tutorial</button>
+    </div>
     <br />
     <br />
     <div>
@@ -42,12 +82,13 @@
     </div>
     <br />
     <br />
-    <div class="flex-row">
+    <div class="flex-row" style="margin-block: 1em;">
       <p class="timesheetTitle"></p>
       <button class="copy" style="visibility: hidden;">Copy</button>
     </div>
     <table class="output">
     </table>
+    <div class="comments"></div>
     <br />
     <br />
     <script type="module">

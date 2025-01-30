@@ -6,7 +6,12 @@ body {
   margin: 0;
 }
 
+select {
+  cursor: pointer;
+}
+
 button {
+  cursor: pointer;
   padding-inline: 2em;
   margin-inline: 1em;
 }
@@ -28,10 +33,53 @@ td {
   font-size: 12px;
 }
 
+dialog {
+  position: relative;
+  width: 60vw;
+  min-height: 80vh;
+}
+
+li {
+  margin-top: 1.5em;
+  font-size: 1.2em;
+  font-weight: 600;
+}
+
+img {
+  border: 2px solid #ddd;
+  margin: 1em;
+}
+
+.modalCloseBtn {
+  background-color: white;
+  position: absolute;
+  top: 0;
+  right: 0;
+  border: 1px solid #ddd;
+  border-radius: 100%;
+  padding-inline: 10px;
+  padding-block: 6px;
+  margin: 1em;
+}
+
+.modalCloseBtn:hover {
+  background-color: #ddd;
+  cursor: pointer;
+}
+
 .flex-row {
   display: flex; 
   flex-direction: row;
-  margin-block: 1em;
+}
+
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-center {
+  justify-content: center;
+  align-items: center;
 }
 
 .timesheetTitle {

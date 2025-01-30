@@ -3,11 +3,24 @@
  */
 import { ScheduleTimeSheetParser } from "./parser.js";
 
+const employeeTimesheetTitle = document.querySelector(".timesheetTitle");
 const outputTable = document.querySelector(".output");
 const copyBtn = document.querySelector(".copy");
-const employeeTimesheetTitle = document.querySelector(".timesheetTitle");
+const comments = document.querySelector(".comments");
 let timesheet = "";
 
+// Dialog element for tutorial
+const dialog = document.querySelector("dialog");
+const showBtn = document.querySelector("dialog + button");
+const closeBtn = document.querySelector("dialog button");
+showBtn.addEventListener("click", () => {
+    dialog.showModal();
+});
+closeBtn.addEventListener("click", () => {
+    dialog.close();
+});
+
+// Clipboard functionality
 copyBtn.addEventListener("click", () => { copyToClipboard(timesheet) });
 
 export function parse() {
@@ -38,6 +51,8 @@ export function parse() {
     copyBtn.style.visibility = "visible";
     outputTable.innerHTML = getTableRowsByMapping(regularShifts.map, onCallStandBy);
     outputTable.innerHTML += getShiftErrors(regularShifts.errors);
+    comments.innerHTML = getErrorComments(employee, regularShifts.map.size);
+
 
     timesheet = copyableTimesheet(regularShifts.map, onCallStandBy);
 }
@@ -100,10 +115,9 @@ function getTableRowsByMapping(regularShifts, onCallStandBy) {
  * @returns {string} HTML string that indicates any errors for a weekday column
  */
 function getShiftErrors(errors) {
-    let htmlErrors = `<tr><td style="color:#DC143C;">ERRORS:</td>`;
-
+    let htmlErrors = `<tr><td style="color: #FF5050;">CONFLICTS</td>`;
     if (errors.size < 1) {
-        return `<td style="background-color:#A1EE39;">No errors found by parser.</td>`;
+        return `<td style="background-color:#A1EE39;">No conflicts found for each day column.</td>`;
     }
 
     for (let i = 1; i <= 14; i++) {
@@ -118,6 +132,21 @@ function getShiftErrors(errors) {
 
     return htmlErrors;
 }
+
+/**
+ * @param {string} employee 
+ * @param {number} regularShiftsSize 
+ */
+function getErrorComments(employee, regularShiftsSize) {
+    if (regularShiftsSize > 10) {
+        return `<p style="color: red;">[ERROR?] ${employee} appears to have MORE THAN 10 shifts in the biweekly!</p>`;
+    }
+    else if (regularShiftsSize < 10) {
+        return `<p style="color: red;">[ERROR?] ${employee} appears to have LESS THAN 10 shifts in the biweekly!</p>`;
+    }
+    return "";
+}
+
 
 /**
  * @param {Map<number, Shift>} regularShifts 
