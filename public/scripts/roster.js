@@ -143,4 +143,11 @@ export const roster = {
         abbrev: "ELee",
         gender: "F",
     },
+    "Shabeeka Chandrabalasingam": {
+        first_name: "SHABEEKA",
+        last_name: "CHANDRABALASINGAM",
+        str_alias: "SHABEEKA",
+        abbrev: "SC",
+        gender: "F",
+    }
 };

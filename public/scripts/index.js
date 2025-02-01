@@ -3,13 +3,13 @@
  */
 import { ScheduleTimeSheetParser } from "./parser.js";
 
+// Timesheet output
 const employeeTimesheetTitle = document.querySelector(".timesheetTitle");
-const outputTable = document.querySelector(".output");
 const copyBtn = document.querySelector(".copy");
+const outputTable = document.querySelector(".output");
 const comments = document.querySelector(".comments");
-let timesheet = "";
 
-// Dialog element for tutorial
+// Dialog elements for tutorial
 const dialog = document.querySelector("dialog");
 const showBtn = document.querySelector("dialog + button");
 const closeBtn = document.querySelector("dialog button");
@@ -21,22 +21,33 @@ closeBtn.addEventListener("click", () => {
 });
 
 // Clipboard functionality
+let timesheet = ""; // will hold copy of timesheet to be passed to clipboard
 copyBtn.addEventListener("click", () => { copyToClipboard(timesheet) });
 
+/**
+ * Instantiates a ScheduleTimeSheetParser to generate both a tsv timesheet and an HTML table for the user to review.
+ */
 export function parse() {
+    resetTimesheet();
     /**
      * @type {HTMLTextAreaElement} scheduleStr
      */
     const scheduleTextArea = document.querySelector(".schedule");
     const scheduleStr = scheduleTextArea.value;
     /**
-     * @type {HTMLInputElement}
+     * @type {HTMLSelectElement}
      */
     const selectEmployee = document.querySelector(".employee");
     const employee = selectEmployee.value;
 
     const parser = new ScheduleTimeSheetParser(scheduleStr, employee);
     const shifts = parser.findShifts();
+
+    /**
+     * @type {string[]} weekdayHeaders
+     */
+    const weekdayHeaders = parser.getWeekdayHeader();
+
     /**
      * @type {{map: Map<number, Shift>, errors: Map<number, string[]>}} regularShifts
      */
@@ -47,62 +58,70 @@ export function parse() {
      */
     const onCallStandBy = parser.getStandbyHourMap(shifts);
 
-    employeeTimesheetTitle.innerHTML = `${employee}'s Timesheet`;
+    // Generate html timesheet + errors
+    employeeTimesheetTitle.innerHTML = (weekdayHeaders.length === 15)
+        ?`${employee}'s [${weekdayHeaders[0]} ${weekdayHeaders[1]}-${weekdayHeaders[weekdayHeaders.length-1]}] Timesheet`
+        : `${employee}'s Timesheet`;
+
     copyBtn.style.visibility = "visible";
-    outputTable.innerHTML = getTableRowsByMapping(regularShifts.map, onCallStandBy);
+    outputTable.innerHTML += getTableRows(weekdayHeaders, regularShifts.map, onCallStandBy);
     outputTable.innerHTML += getShiftErrors(regularShifts.errors);
     comments.innerHTML = getErrorComments(employee, regularShifts.map.size);
 
-
+    // define timesheet variable for clipboard copy
     timesheet = copyableTimesheet(regularShifts.map, onCallStandBy);
 }
 
 /**
  * @param {Map<number, Shift>} regularShifts 
  * @param {Map<number, number>} onCallStandBy
-const employeeTimesheetTitle = document.querySelector(".timesheetTitle");
- * @returns {string} html table corresponding to the timesheet
+ * @returns {string} html rows for a table corresponding to the timesheet
  */
-function getTableRowsByMapping(regularShifts, onCallStandBy) {
+function getTableRows(headers, regularShifts, onCallStandBy) {
     
+    const BIWEEKLY = 14;
     let htmlTableStr = `<tr><th></th>`;
 
     // Include weekday headers
     for (let i = 0; i < 2; i++) {
-        htmlTableStr += `<th>Saturday</th><th>Sunday</th><th>Monday</th><th>Tuesday</th><th>Wednesday</th><th>Thursday</th><th>Friday</th>`;
+        htmlTableStr += `<th>Sat</th><th>Sun</th><th>Mon</th><th>Tues</th><th>Wed</th><th>Thurs</th><th>Fri</th>`;
+    }
+    htmlTableStr += "</tr><tr>";
+    for (let i = 0; i < headers.length; i++) {
+        htmlTableStr += `<th>${headers[i]}</th>`;
     }
     htmlTableStr += "</tr>";
 
+    // Shift Times for first row
     htmlTableStr += `<tr><td>Shift Time</td>`;
-    // Find shift times for first row
-    for (let i = 1; i <= 14; i++) {
+    for (let i = 1; i <= BIWEEKLY; i++) {
         if (regularShifts.has(i)) {
             const shift = regularShifts.get(i);
             htmlTableStr += `<td>${shift.shiftTime}</td>`;
         } else {
-            htmlTableStr += `<td></td>`;
+            htmlTableStr += `<td> </td>`;
         }
     }
 
-    htmlTableStr += `</tr>\n<tr><td>Standby Hours</td>`;
-    // Find any on-call standby hours for second row
-    for (let i = 1; i <= 14; i++) {
+    // On-call standby hours for second row
+    htmlTableStr += `</tr>\n<tr><td>Standby Hrs</td>`;
+    for (let i = 1; i <= BIWEEKLY; i++) {
         if (onCallStandBy.has(i)) {
             const standByHours = onCallStandBy.get(i);
             htmlTableStr += `<td>${standByHours}</td>`;
         } else {
-            htmlTableStr += `<td></td>`;
+            htmlTableStr += `<td> </td>`;
         }
     }
 
+    // Location for each shift for third row
     htmlTableStr += `</tr>\n<tr><td>Location</td>`;
-    // Find location corresponding to the shift times of the first row
-    for (let i = 1; i <= 14; i++) {
+    for (let i = 1; i <= BIWEEKLY; i++) {
         if (regularShifts.has(i)) {
             const shift = regularShifts.get(i);
             htmlTableStr += `<td>${shift.location}</td>`;
         } else {
-            htmlTableStr += `<td></td>`;
+            htmlTableStr += `<td> </td>`;
         }
     }
     htmlTableStr += `</tr>\n`;
@@ -116,11 +135,13 @@ function getTableRowsByMapping(regularShifts, onCallStandBy) {
  */
 function getShiftErrors(errors) {
     let htmlErrors = `<tr><td style="color: #FF5050;">CONFLICTS</td>`;
+    const BIWEEKLY = 14;
+
     if (errors.size < 1) {
-        return `<td style="background-color:#A1EE39;">No conflicts found for each day column.</td>`;
+        return `<td style="background-color:#A1EE39;">No conflicts found.</td>`;
     }
 
-    for (let i = 1; i <= 14; i++) {
+    for (let i = 1; i <= BIWEEKLY; i++) {
         if (errors.has(i)) {
             const concatErrors = errors.get(i).reduce((prev, curr) => prev += curr + '\n');
             htmlErrors += `<td>${concatErrors}</td>`;
@@ -155,8 +176,9 @@ function getErrorComments(employee, regularShiftsSize) {
  */
 function copyableTimesheet(regularShifts, onCallStandBy) {
     let tsvTimesheet = ``;
+    const BIWEEKLY = 14;
 
-    for (let i = 1; i <= 14; i++) {
+    for (let i = 1; i <= BIWEEKLY; i++) {
         if (regularShifts.has(i)) {
             const shift = regularShifts.get(i);
             tsvTimesheet += `${shift.shiftTime}\t`;
@@ -166,7 +188,7 @@ function copyableTimesheet(regularShifts, onCallStandBy) {
     }
     tsvTimesheet += `\n`;
 
-    for (let i = 1; i <= 14; i++) {
+    for (let i = 1; i <= BIWEEKLY; i++) {
         if (onCallStandBy.has(i)) {
             const standByHours = onCallStandBy.get(i);
             tsvTimesheet += `${standByHours}\t`;
@@ -176,7 +198,7 @@ function copyableTimesheet(regularShifts, onCallStandBy) {
     }
     tsvTimesheet += `\n`;
 
-    for (let i = 1; i <= 14; i++) {
+    for (let i = 1; i <= BIWEEKLY; i++) {
         if (regularShifts.has(i)) {
             const shift = regularShifts.get(i);
             tsvTimesheet += `${shift.location}\t`;
@@ -189,14 +211,23 @@ function copyableTimesheet(regularShifts, onCallStandBy) {
     return tsvTimesheet;
 }
 
+/**
+ * Copies the tsv-formatted timesheet string onto browser clipboard if on HTTPS,
+ * else display it in an alert box.
+ */
 function copyToClipboard(tsvTimesheet) {
     if (!navigator.clipboard) {
+        // Navigator.clipboard is not available if not using HTTPS,
+        // fallback with alert containing the copyable text.
         alert(tsvTimesheet);
     } else {
         navigator.clipboard.writeText(tsvTimesheet).then(
-            () => {
-                alert("Timesheet copied to your clipboard! You may now paste into your timesheet row!");
-            },
+            () => alert("Timesheet copied to your clipboard!")
         );
     }
+}
+
+function resetTimesheet() {
+    timesheet = "";
+    outputTable.innerHTML = "";
 }

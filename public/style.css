@@ -35,14 +35,22 @@ td {
 
 dialog {
   position: relative;
-  width: 60vw;
-  min-height: 80vh;
+  width: 50vw;
+  height: 80vh;
 }
 
-li {
-  margin-top: 1.5em;
+ol {
+  margin-inline: 2em;
+}
+
+ol > li {
+  margin-top: 3em;
   font-size: 1.2em;
-  font-weight: 600;
+  font-weight: 500;
+}
+
+ul > li {
+  margin-top: 1em;
 }
 
 img {
@@ -83,7 +91,7 @@ img {
 }
 
 .timesheetTitle {
-  font-weight: bold;
+  font-weight: 500;
   margin: 0;
 }
 
@@ -93,4 +101,9 @@ img {
   border: 1px solid #FF5050;
   border-radius: 5px;
   background-color: #FF5050;
+}
+
+img {
+  width: 600px;
+  height: auto;
 }
