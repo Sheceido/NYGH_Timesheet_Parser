@@ -27,7 +27,7 @@ jobs:
           cp -r public/* gh-pages/
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           path: gh-pages
 
