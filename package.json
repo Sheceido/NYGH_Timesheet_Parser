@@ -1,6 +1,6 @@
 {
   "name": "usscheduletimesheet",
-  "version": "0.0.1",
+  "version": "0.5.3",
   "description": "Program to parse tab-separated US schedule and output the time sheet for a given technologist",
   "main": "parser.js",
   "scripts": {

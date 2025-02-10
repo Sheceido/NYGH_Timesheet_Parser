@@ -35,12 +35,50 @@ export class ScheduleTimeSheetParser {
     * Schedule[[row]][[0]] should always be the shift time column
     */
     parseScheduleToGrid(scheduleStr) {
-        const scheduleGrid = scheduleStr
-            .replace(`"12:00-8:00pm\nOn Call Shift"`, `12:00-8:00pm`)
+        const scheduleGrid = this.cleanSchedule(scheduleStr)
             .split("\n")
             .map(s => s.split("\t"));
 
         return scheduleGrid;
+    }
+
+    /**
+     * @param {string} scheduleStr 
+     * @returns {string} cleanedScheduleStr
+     *
+     * @comment
+     * Cleanses schedule string of abnormal copy and pasting issues from excel
+     * where cells that have multiple names within and possibly a user-entered newline
+     * between the names results in extra quotations surrounding the cell value
+     *
+     * - replaces any newlines within quotations as a space
+     * - removes quotations
+     * - replaces a specific shift time name to something more standard (12:00-8:00pm)
+     */
+    cleanSchedule(scheduleStr) {
+        const schedStrChars = [];
+
+        let insideQuotes = false;
+        for (let i = 0; i < scheduleStr.length; i++) {
+            const currChar = scheduleStr[i];
+
+            if (currChar === `"`) {
+                insideQuotes = !insideQuotes; 
+            }
+            // replace \n within quotations with \s
+            else if (currChar === `\n` && insideQuotes) {
+                schedStrChars.push(` `);
+            }
+            // push all other chars
+            else {
+                schedStrChars.push(currChar);
+            }
+        }
+
+        const cleanedScheduleStr = schedStrChars.join("")
+            .replace(`"12:00-8:00pm\nOn Call Shift"`, `12:00-8:00pm`);
+        
+        return cleanedScheduleStr;
     }
 
     getWeekdayHeader() {
