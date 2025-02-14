@@ -149,5 +149,12 @@ export const roster = {
         str_alias: "SHABEEKA",
         abbrev: "SC",
         gender: "F",
+    },
+    "Kelvin Tran": {
+        first_name: "KELVIN",
+        last_name: "TRAN",
+        str_alias: "KELVIN",
+        abbrev: "KT",
+        gender: "M",
     }
 };

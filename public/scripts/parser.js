@@ -74,11 +74,8 @@ export class ScheduleTimeSheetParser {
                 schedStrChars.push(currChar);
             }
         }
-
-        const cleanedScheduleStr = schedStrChars.join("")
-            .replace(`"12:00-8:00pm\nOn Call Shift"`, `12:00-8:00pm`);
         
-        return cleanedScheduleStr;
+        return schedStrChars.join("");
     }
 
     getWeekdayHeader() {
@@ -123,13 +120,13 @@ export class ScheduleTimeSheetParser {
         let shiftTimeName;
 
         for (let i = 0; i < this.schedule.length; i++) {
-            const row = this.schedule[i];
 
+            const row = this.schedule[i];
             /**
              * Assuming iteration of schedule is row by row from top to bottom, when a certain
              * row has a specific string, the location will be modified
              */
-            switch (row[0]) {
+            switch (row[0].trim()) {
                 case "BDC / Breast":
                     currLoc = "BDC";
                     break;
@@ -145,10 +142,52 @@ export class ScheduleTimeSheetParser {
             }
 
             /**
-             * Cascade shiftTime name from row above if current shift time is an empty value
+             * Modify shift time to be 24 hour clock based on specific string
              */
-            if (row[0] !== '') {
-                shiftTimeName = row[0];
+            switch (row[0].trim()) {
+                case "0700-1500":
+                    shiftTimeName = "07:00-15:00";
+                    break;
+                case "0730-1530":
+                case "7:30-3:30":
+                    shiftTimeName = "07:30-15:30";
+                    break;
+                case "0800-1600":
+                case "8:00-4:00":
+                    shiftTimeName = "08:00-16:00";
+                    break;
+                case "0830-1630":
+                    shiftTimeName = "08:30-16:30";
+                    break;
+                case "0900-1700":
+                case "9:00-5:00":
+                case "9:00- 5:00":
+                    shiftTimeName = "09:00-17:00";
+                    break;
+                case "10:00-6:00pm":
+                    shiftTimeName = "10:00-18:00";
+                    break;
+                case "1100-7:00pm":
+                    shiftTimeName = "11:00-19:00";
+                    break;
+                case "12:00-8:00pm":
+                case `12:00-8:00pm On Call Shift`:
+                    shiftTimeName = "12:00-20:00";
+                    break;
+                case "3:00-11:00pm":
+                    shiftTimeName = "15:00-23:00";
+                    break;
+                case "4:00-12:00am":
+                    shiftTimeName = "16:00-24:00";
+                    break;
+                case "On-Call":
+                    shiftTimeName = row[0].trim().toUpperCase();
+                    break;
+                case "":
+                    // shiftTimeName stays the same if row is empty, cascading from the row above it.
+                    break;
+                default:
+                    shiftTimeName = row[0].trim();
             }
 
             rowToShiftTime.set( i, {location: currLoc, shiftTime: shiftTimeName });
@@ -259,7 +298,7 @@ export class ScheduleTimeSheetParser {
 
         shifts.forEach(s => {
 
-            if (s!== null && s.shiftTime !== "On-Call") {
+            if (s!== null && s.shiftTime !== "ON-CALL") {
                 // error log for when a name appears more than once on the same day
                 if (regularHoursMap.has(s.weekday)) {
 
@@ -281,6 +320,7 @@ export class ScheduleTimeSheetParser {
 
     /**
      * @param {Shift} shifts 
+     * @returns {Map<number, number>} onCallStandby
      */
     getStandbyHourMap(shifts) {
         /**
@@ -291,7 +331,7 @@ export class ScheduleTimeSheetParser {
          */
         const onCallStandby = new Map();
         shifts.forEach(s => {
-            if (s !== null && s.shiftTime === "On-Call") {
+            if (s !== null && s.shiftTime === "ON-CALL") {
                 switch (s.weekday) {
                     case 7:
                     case 14:
