@@ -298,4 +298,5 @@ function copyToClipboard(tsvTimesheet) {
 function resetTimesheet() {
     timesheet = "";
     outputTable.innerHTML = "";
+    comments.innerHTML = "";
 }

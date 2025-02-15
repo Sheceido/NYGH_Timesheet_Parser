@@ -1,7 +1,7 @@
 {
   "name": "usscheduletimesheet",
-  "version": "0.5.3",
-  "description": "Program to parse tab-separated US schedule and output the time sheet for a given technologist",
+  "version": "0.6.0",
+  "description": "Program to parse tab-separated US schedule and output the time sheet for a given technologist, and to check for errors in the schedule",
   "main": "parser.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
