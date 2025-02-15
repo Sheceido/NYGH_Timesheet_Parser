@@ -19,19 +19,27 @@ toggle.addEventListener("click", () => {
     if (toggle.checked) {
         // disable + clear dropdown for predefined employees, enable custom input fields
         employeeDropdown.disabled = true;
+        employeeDropdown.classList.remove("errorHighlight");
         employeeDropdown.value = "";
+
         customName.disabled = false;
         customAbbrev.disabled = false;
         customGender.disabled = false;
     } else {
         // disable + clear custom input fields, enable predefined employees dropdown
         employeeDropdown.disabled = false;
+
         customName.disabled = true;
-        customAbbrev.disabled = true;
-        customGender.disabled = true;
         customName.value = "";
+        customName.classList.remove("errorHighlight");
+
         customAbbrev.value = ""; 
+        customAbbrev.disabled = true;
+        customAbbrev.classList.remove("errorHighlight");
+
         customGender.value = "";
+        customGender.disabled = true;
+        customGender.classList.remove("errorHighlight");
     }
 });
 
@@ -78,6 +86,12 @@ export function parse() {
     };
 
     if (!isCustomInput) {
+        if (employeeDropdown.value === "") {
+            employeeDropdown.classList.add("errorHighlight");
+            return;
+        }
+        employeeDropdown.classList.remove("errorHighlight");
+
         employee = roster[employeeDropdown.value];
     }
     else {
@@ -128,9 +142,10 @@ export function parse() {
         ?`${capitalize(employee.first_name)}'s [${weekdayHeaders[0]} ${weekdayHeaders[1]}-${weekdayHeaders[weekdayHeaders.length-1]}] Timesheet`
         : `${capitalize(employee.first_name)}'s Timesheet`;
 
+    const outputValues = `<table>${getTableRows(weekdayHeaders, regularShifts.map, onCallStandBy)}${getShiftErrors(regularShifts.errors)}</table>`
+
     copyBtn.style.visibility = "visible";
-    outputTable.innerHTML += getTableRows(weekdayHeaders, regularShifts.map, onCallStandBy);
-    outputTable.innerHTML += getShiftErrors(regularShifts.errors);
+    outputTable.innerHTML = outputValues;
     comments.innerHTML = getErrorComments(
         capitalize(employee.first_name),
         regularShifts.map.size
@@ -297,6 +312,8 @@ function copyToClipboard(tsvTimesheet) {
 
 function resetTimesheet() {
     timesheet = "";
+    employeeTimesheetTitle.innerHTML = "";
+    copyBtn.style.visibility = "hidden";
     outputTable.innerHTML = "";
     comments.innerHTML = "";
 }

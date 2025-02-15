@@ -96,11 +96,21 @@
     <br />
 
     <div class="flex-row" style="margin-block: 1em;">
-      <p class="timesheetTitle"></p>
-      <button class="copy" style="visibility: hidden;">Copy</button>
+      <h3 class="timesheetTitle"></h3>
+        <button class="copy" style="visibility: hidden;">
+          <!-- Copy SVG -->
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+            fill="currentColor"
+          >
+            <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm4 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h12v14z"/>
+          </svg>
+        </button>
     </div>
-    <table class="output">
-    </table>
+    <div class="output"></div>
     <div class="comments"></div>
     <br />
     <br />
