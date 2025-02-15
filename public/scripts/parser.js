@@ -18,10 +18,10 @@ export class ScheduleTimeSheetParser {
 
     /**
      * @param {string} scheduleStr
-     * @param {string} employee 
+     * @param {Employee} employee 
     */
-    constructor(scheduleStr, employeeName) {
-        this.employee = roster[employeeName];
+    constructor(scheduleStr, employee) {
+        this.employee = employee;
         this.schedule = this.parseScheduleToGrid(scheduleStr);
         this.shiftTimes = this.getShiftTimeRows();
     }

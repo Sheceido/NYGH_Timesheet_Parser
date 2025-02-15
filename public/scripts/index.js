@@ -1,7 +1,39 @@
+import { roster } from "./roster.js";
+import { ScheduleTimeSheetParser } from "./parser.js";
+import { capitalize } from "./utils.js";
+/**
+ * @typedef {import('./roster.js').Employee} Employee
+ */
 /**
  * @typedef {import('./parser.js').Shift} Shift
  */
-import { ScheduleTimeSheetParser } from "./parser.js";
+
+// Toggle User Input functionality
+const toggle = document.querySelector(".toggleSwitch");
+const employeeDropdown = document.querySelector(".employee");
+const customName = document.querySelector(".customName");
+const customAbbrev = document.querySelector(".customAbbrev");
+const customGender = document.querySelector(".customGender");
+
+toggle.addEventListener("click", () => {
+    if (toggle.checked) {
+        // disable + clear dropdown for predefined employees, enable custom input fields
+        employeeDropdown.disabled = true;
+        employeeDropdown.value = "";
+        customName.disabled = false;
+        customAbbrev.disabled = false;
+        customGender.disabled = false;
+    } else {
+        // disable + clear custom input fields, enable predefined employees dropdown
+        employeeDropdown.disabled = false;
+        customName.disabled = true;
+        customAbbrev.disabled = true;
+        customGender.disabled = true;
+        customName.value = "";
+        customAbbrev.value = ""; 
+        customGender.value = "";
+    }
+});
 
 // Timesheet output
 const employeeTimesheetTitle = document.querySelector(".timesheetTitle");
@@ -22,23 +54,56 @@ closeBtn.addEventListener("click", () => {
 
 // Clipboard functionality
 let timesheet = ""; // will hold copy of timesheet to be passed to clipboard
-copyBtn.addEventListener("click", () => { copyToClipboard(timesheet) });
+copyBtn.addEventListener("click", () => {
+    copyToClipboard(timesheet)
+});
 
 /**
  * Instantiates a ScheduleTimeSheetParser to generate both a tsv timesheet and an HTML table for the user to review.
  */
 export function parse() {
     resetTimesheet();
-    /**
-     * @type {HTMLTextAreaElement} scheduleStr
-     */
+
     const scheduleTextArea = document.querySelector(".schedule");
     const scheduleStr = scheduleTextArea.value;
-    /**
-     * @type {HTMLSelectElement}
-     */
-    const selectEmployee = document.querySelector(".employee");
-    const employee = selectEmployee.value;
+
+    const isCustomInput = toggle.checked;
+
+    let employee = {
+        first_name: "",
+        last_name: "",
+        str_alias: "",
+        abbrev: "",
+        gender: "",
+    };
+
+    if (!isCustomInput) {
+        employee = roster[employeeDropdown.value];
+    }
+    else {
+        if (customName.value === "") {
+            customName.classList.add("errorHighlight");
+            return;
+        }
+        customName.classList.remove("errorHighlight");
+
+        if (customAbbrev.value === "") {
+            customAbbrev.classList.add("errorHighlight");
+            return;
+        }
+        customAbbrev.classList.remove("errorHighlight");
+
+        if (customGender.value === "") {
+            customGender.classList.add("errorHighlight");
+            return;
+        }
+        customGender.classList.remove("errorHighlight");
+
+        employee.first_name = customName.value.trim().toUpperCase();
+        employee.str_alias = customName.value.trim().toUpperCase(); 
+        employee.abbrev = customAbbrev.value.trim().toUpperCase();
+        employee.gender = customGender.value.trim().toUpperCase();
+    }
 
     const parser = new ScheduleTimeSheetParser(scheduleStr, employee);
     const shifts = parser.findShifts();
@@ -60,13 +125,16 @@ export function parse() {
 
     // Generate html timesheet + errors
     employeeTimesheetTitle.innerHTML = (weekdayHeaders.length === 15)
-        ?`${employee}'s [${weekdayHeaders[0]} ${weekdayHeaders[1]}-${weekdayHeaders[weekdayHeaders.length-1]}] Timesheet`
-        : `${employee}'s Timesheet`;
+        ?`${capitalize(employee.first_name)}'s [${weekdayHeaders[0]} ${weekdayHeaders[1]}-${weekdayHeaders[weekdayHeaders.length-1]}] Timesheet`
+        : `${capitalize(employee.first_name)}'s Timesheet`;
 
     copyBtn.style.visibility = "visible";
     outputTable.innerHTML += getTableRows(weekdayHeaders, regularShifts.map, onCallStandBy);
     outputTable.innerHTML += getShiftErrors(regularShifts.errors);
-    comments.innerHTML = getErrorComments(employee, regularShifts.map.size);
+    comments.innerHTML = getErrorComments(
+        capitalize(employee.first_name),
+        regularShifts.map.size
+    );
 
     // define timesheet variable for clipboard copy
     timesheet = copyableTimesheet(regularShifts.map, onCallStandBy);
@@ -78,7 +146,7 @@ export function parse() {
  * @returns {string} html rows for a table corresponding to the timesheet
  */
 function getTableRows(headers, regularShifts, onCallStandBy) {
-    
+
     const BIWEEKLY = 14;
     let htmlTableStr = `<tr><th></th>`;
 

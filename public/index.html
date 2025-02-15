@@ -17,32 +17,46 @@
       <textarea id="schedule" name="schedule" class="schedule" rows="20" cols="190" placeholder="Copy and Paste schedule grid here!"></textarea> 
     </div>
     <br />
-    <br />
     <div class="flex-row" style="justify-content: space-between;">
-        <div>
-          <select name="employee" id="employee" class="employee">
-          <option value="" disabled selected>Choose Employee...</option>
-          <option value="Sue Santiago">Sue Santiago</option>
-          <option value="Sherri Linzon">Sherri Linzon</option>
-          <option value="Tim Dang">Tim Dang</option>
-          <option value="Ekaterina Romanov">Ekaterina Romanov</option>
-          <option value="Caroline Xie">Caroline Xie</option>
-          <option value="Rubina Shafiq">Rubina Shafiq</option>
-          <option value="Helen Lin">Helen Lin</option>
-          <option value="Millicent Brown">Millicent Brown</option>
-          <option value="Esther Lyew">Esther Lyew</option>
-          <option value="Justina Yoo">Justina Yoo</option>
-          <option value="Jenny Jiang">Jenny Jiang</option>
-          <option value="Leon Poon">Leon Poon</option>
-          <option value="Jennifer Wang">Jennifer Wang</option>
-          <option value="Eldvina Baraj">Eldvina Baraj</option>
-          <option value="Mengling Chen">Mengling Chen</option>
-          <option value="Nicolas Cordero-Ramirez">Nicolas Cordero-Ramirez</option>
-          <option value="Phebe Li">Phebe Li</option>
-          <option value="Erica Lee">Erica Lee</option>
-          <option value="Shabeeka Chandrabalasingam">Shabeeka Chandrabalasingam</option>
-          <option value="Kelvin Tran">Kelvin Tran</option>
-          </select> 
+        <div class="flex-row">
+          <div>
+            <select name="employee" id="employee" class="employee">
+              <option value="" disabled selected>Choose Employee...</option>
+              <option value="Sue Santiago">Sue Santiago</option>
+              <option value="Sherri Linzon">Sherri Linzon</option>
+              <option value="Tim Dang">Tim Dang</option>
+              <option value="Ekaterina Romanov">Ekaterina Romanov</option>
+              <option value="Caroline Xie">Caroline Xie</option>
+              <option value="Rubina Shafiq">Rubina Shafiq</option>
+              <option value="Helen Lin">Helen Lin</option>
+              <option value="Millicent Brown">Millicent Brown</option>
+              <option value="Esther Lyew">Esther Lyew</option>
+              <option value="Justina Yoo">Justina Yoo</option>
+              <option value="Jenny Jiang">Jenny Jiang</option>
+              <option value="Leon Poon">Leon Poon</option>
+              <option value="Jennifer Wang">Jennifer Wang</option>
+              <option value="Eldvina Baraj">Eldvina Baraj</option>
+              <option value="Mengling Chen">Mengling Chen</option>
+              <option value="Nicolas Cordero-Ramirez">Nicolas Cordero-Ramirez</option>
+              <option value="Phebe Li">Phebe Li</option>
+              <option value="Erica Lee">Erica Lee</option>
+              <option value="Shabeeka Chandrabalasingam">Shabeeka Chandrabalasingam</option>
+              <option value="Kelvin Tran">Kelvin Tran</option>
+            </select> 
+          </div>
+          <label class="switch">
+            <input type="checkbox" class="toggleSwitch">
+            <span class="slider round"></span>
+          </label>
+          <div class="flex-row flex-center">
+            <input type="text" class="customName" maxlength="256" placeholder="Name" disabled />
+            <input type="text" class="customAbbrev" maxlength="256" placeholder="Initials" disabled />
+            <select name="customGender" id="customGender" class="customGender" disabled>
+              <option value="" disabled selected>Choose Gender...</option>
+              <option value="F">Female</option>
+              <option value="M">Male</option>
+            </select>
+          </div>
           <button type="button" class="submitBtn" onclick="parse()">Generate Timesheet</button>
         </div>
         <dialog>
