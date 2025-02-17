@@ -122,19 +122,13 @@ export function parse() {
     const parser = new ScheduleTimeSheetParser(scheduleStr, employee);
     const shifts = parser.findShifts();
 
-    /**
-     * @type {string[]} weekdayHeaders
-     */
+    /** @type {string[]} weekdayHeaders */
     const weekdayHeaders = parser.getWeekdayHeader();
 
-    /**
-     * @type {{map: Map<number, Shift>, errors: Map<number, string[]>}} regularShifts
-     */
+    /** @type {{map: Map<number, Shift>, errors: Map<number, string[]>}} regularShifts */
     const regularShifts = parser.getRegularHoursMap(shifts);
 
-    /**
-     * @type {Map<number, number>} onCallStandBy
-     */
+    /* @type {Map<number, number>} onCallStandBy */
     const onCallStandBy = parser.getStandbyHourMap(shifts);
 
     // Generate html timesheet + errors
@@ -154,6 +148,8 @@ export function parse() {
     // define timesheet variable for clipboard copy
     timesheet = copyableTimesheet(regularShifts.map, onCallStandBy);
 }
+
+// TODO: refactor to use warnings instance within the parser to display issues with shifts
 
 /**
  * @param {Map<number, Shift>} regularShifts 

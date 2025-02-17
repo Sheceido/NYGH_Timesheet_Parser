@@ -1,8 +1,8 @@
+import { Warnings } from './warnings.js';
+
 /**
  * @typedef {import('./roster.js').Employee} Employee
  */
-import { roster } from "./roster.js";
-
 /**
  * @typedef {Object} Shift 
  * @property {number} weekday - column index of the weekday.
@@ -16,6 +16,8 @@ export class ScheduleTimeSheetParser {
     schedule;
     shiftTimes;
 
+    warnings;
+
     /**
      * @param {string} scheduleStr
      * @param {Employee} employee 
@@ -24,6 +26,14 @@ export class ScheduleTimeSheetParser {
         this.employee = employee;
         this.schedule = this.parseScheduleToGrid(scheduleStr);
         this.shiftTimes = this.getShiftTimeRows();
+        this.warnings = new Warnings();
+    }
+
+    /**
+     * @returns clone of the schedule grid (`string[][]`), indexed by: schedule[[row]][[day]].
+     */
+    getScheduleGrid() {
+        return structuredClone(this.schedule);
     }
 
     /**
@@ -100,23 +110,18 @@ export class ScheduleTimeSheetParser {
     }
 
     /**
-    * @typedef {Map<number, { shiftTime: string, location: string }>} ShiftTimes
+    * @typedef {Map<number, Shift>} ShiftTimes
     */
 
     /**
-    * @returns {Map<number, {weekday: number, location: string, shiftTime: string}>} rowToShiftTime
+    * @returns {Map<number, Shift>} rowToShiftTime, where the key is the day index
     */
     getShiftTimeRows() {
         let currLoc = "GENERAL"; 
 
-        /**
-         * @type {ShiftTimes}
-         */
+        /** @type {ShiftTimes} */
         const rowToShiftTime = new Map();
-
-        /**
-         * @type {string}
-         */
+        /** @type {string} */
         let shiftTimeName;
 
         for (let i = 0; i < this.schedule.length; i++) {
@@ -184,13 +189,17 @@ export class ScheduleTimeSheetParser {
                     shiftTimeName = row[0].trim().toUpperCase();
                     break;
                 case "":
-                    // shiftTimeName stays the same if row is empty, cascading from the row above it.
+                    // stays the same if row is empty, cascading from row above it
                     break;
                 default:
                     shiftTimeName = row[0].trim();
             }
 
-            rowToShiftTime.set( i, {location: currLoc, shiftTime: shiftTimeName });
+            rowToShiftTime.set( i, {
+                weekday: i,
+                location: currLoc,
+                shiftTime: shiftTimeName
+            });
         }
         return rowToShiftTime;
     }
@@ -201,18 +210,17 @@ export class ScheduleTimeSheetParser {
      * @returns {Array<Shift | null>}
      */
     findShifts() {
-        /**
-         * @type {Array<Shift>}
-         */
+        /** @type {Array<Shift>} */
         const shifts = [];
 
         for (const [rowNum, row] of this.schedule.entries()) {
 
             for (const [colNum, name] of row.entries()) {
 
-                if (this.matchEmployee(name)) {
+                const st = this.shiftTimes.get(rowNum);
+                const nameTrimmed = name.trim();
 
-                    const st = this.shiftTimes.get(rowNum)
+                if (this.matchEmployee(nameTrimmed)) {
 
                     // Skip over specific shift times that aren't relevant to the timesheet
                     switch (st.shiftTime) {
@@ -229,6 +237,18 @@ export class ScheduleTimeSheetParser {
                         shiftTime: st.shiftTime,
                     });
                 }
+
+                // Add multiple names warning if cell contains >= 2 names
+                const { isMulti, names } = this.multiNameCell(nameTrimmed);
+
+                if (isMulti && this.warnings.hasMultipleNames(this.employee, names)) {
+                    const shift = {
+                        weekday: colNum,
+                        location: this.isOcscOrConsumer(st.location),
+                        shiftTime: st.shiftTime
+                    };
+                    this.warnings.addMultipleNamesEntry(shift, names);
+                }
             }
         }
         return shifts.sort((a, b) => a.weekday - b.weekday);
@@ -239,12 +259,13 @@ export class ScheduleTimeSheetParser {
     * @returns boolean
     */
     matchEmployee(name) {
-        let finalName = name.trim();
+        let finalName = name;
         // Edge case for when multiple names are in a cell
         //   - naive always match for the last listed name in the cell
-        const multiNames = name.trim().split(/\s+/);
-        if (multiNames.length >= 2) {
-            finalName = multiNames[multiNames.length-1];
+        const multiNames = this.multiNameCell(finalName);
+
+        if (multiNames.isMulti) {
+            finalName = multiNames.names[multiNames.names.length-1];
         }
 
         switch(finalName.toUpperCase()) {
@@ -255,6 +276,26 @@ export class ScheduleTimeSheetParser {
             default:
                 return false;
         }
+    }
+
+    /**
+    * @param {string} name 
+    * @returns {{ isMulti: boolean, names: string[] }} An object containing:
+    * - `isMulti`: A boolean indicating whether the name has multiple names.
+    * - `names`: An array of individual words from the name
+    */
+    multiNameCell(name) {
+        const names = name.trim().toUpperCase().split(/\s+/);
+
+        if (names.includes("W/E") ||
+            names.includes("STAT")
+        ) {
+            return { isMulti: false, names: names };
+        }
+        return {
+            isMulti: (name.trim().split(/\s+/).length >= 2),
+            names: names
+        };
     }
 
     /**
@@ -270,14 +311,14 @@ export class ScheduleTimeSheetParser {
             return "CONSUMER";
         } else if (this.employee.gender === "F") {
             return "OCSC";
+        } else {
+            return location;
         }
     }
 
     /**
      * @param {Shift} shifts 
-     * @returns {{map: Map<number, Shift>, errors: Map<number, string[]>}}
-     * @comment
-     * Returns both a mapping of shifts to their weekday index, and a mapping of errors to their weekday index
+     * @returns {{map: Map<number, Shift>, errors: Map<number, string[]>}} both a mapping of shifts to their weekday index, and a mapping of errors to their weekday index
      */
     getRegularHoursMap(shifts) {
          /**
