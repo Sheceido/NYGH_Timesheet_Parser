@@ -200,7 +200,7 @@ export class TimesheetTable extends HTMLElement {
 
                     td.appendChild(
                         this.addImageSymbolWithContext(
-                            "../../images/icons8-error-48.png",
+                            "./images/icons8-error-48.png",
                             "error",
                             [headerP, ...pElements],
                             "red",
@@ -221,7 +221,7 @@ export class TimesheetTable extends HTMLElement {
                     p.textContent = `${multiNamed.names.join(" | ")}`;
 
                     const imgWithCtx = this.addImageSymbolWithContext(
-                        "../../images/icons8-question-mark-48.png",
+                        "./images/icons8-question-mark-48.png",
                         "question",
                         [h3, p],
                         "#2196F3", // light blue matching ? icon
