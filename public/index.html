@@ -83,7 +83,6 @@
                 <ul>
                   <li>The <b>last</b> listed name within the cell will always be the one taking the shift. Since copy-pasting the US schedule from Excel does not include any formatting, such as a crossout of a certain name, there is no ability to differentiate between a cell that contains two names because of switches, or multiple names because the shift is covered by multiple people.</li>
                   <li>The program will check for duplicates names on the same day, and display a conflict box under the day it occurred in.</li>
-                  <li>Currently the program cannot tell whether a biweekly has STAT / holidays, and will naively check whether there are 10 shifts in the biweekly, and <span style="color: red;">[ERROR?]</span> flag the generated timesheet.</li>
                   <li>Name matching is based on: first name, name alias, or by initials, in that order. To view the hard-coded roster list and the name matchings used, append the website url with "<em>/scripts/roster.js</em>"</li>
                 </ul>
               </div>
@@ -94,30 +93,11 @@
     </div>
     <br />
     <br />
-
-    <div class="flex-row" style="margin-block: 1em;">
-      <h3 class="timesheetTitle"></h3>
-        <button class="copy" style="visibility: hidden;">
-          <!-- Copy SVG -->
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            width="20"
-            height="20"
-            fill="currentColor"
-          >
-            <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm4 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h12v14z"/>
-          </svg>
-        </button>
-    </div>
-    <div class="output"></div>
+    <timesheet-table></timesheet-table>
     <div class="comments"></div>
-    <br />
-    <br />
     <script type="module">
       import {parse} from "./scripts/index.js";
-      // attach functions to be accessible in browser.
-      window.parse = parse;
+      window.parse = parse; // attach functions to be accessible in browser.
     </script>
     </div>
   </body>

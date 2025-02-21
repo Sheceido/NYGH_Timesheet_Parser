@@ -1,14 +1,13 @@
 import { Warnings } from './warnings.js';
 
 /**
- * @typedef {import('./roster.js').Employee} Employee
- */
-/**
  * @typedef {Object} Shift 
  * @property {number} weekday - column index of the weekday.
  * @property {string} location - location of the shift.
  * @property {string} shiftTime - time that which the shift takes place at.
  */
+/** @typedef {import('./roster.js').Employee} Employee */
+/** @typedef {Map<number, Shift>} ShiftMap */
 
 export class ScheduleTimeSheetParser {
 
@@ -55,8 +54,6 @@ export class ScheduleTimeSheetParser {
     /**
      * @param {string} scheduleStr 
      * @returns {string} cleanedScheduleStr
-     *
-     * @comment
      * Cleanses schedule string of abnormal copy and pasting issues from excel
      * where cells that have multiple names within and possibly a user-entered newline
      * between the names results in extra quotations surrounding the cell value
@@ -76,7 +73,7 @@ export class ScheduleTimeSheetParser {
                 insideQuotes = !insideQuotes; 
             }
             // replace \n within quotations with \s
-            else if (currChar === `\n` && insideQuotes) {
+        else if (currChar === `\n` && insideQuotes) {
                 schedStrChars.push(` `);
             }
             // push all other chars
@@ -88,6 +85,9 @@ export class ScheduleTimeSheetParser {
         return schedStrChars.join("");
     }
 
+    /**
+     * Public method to parse headers values of the schedule.
+     */
     getWeekdayHeader() {
         /**
          * @type {string[]} weekdayHeader
@@ -110,17 +110,13 @@ export class ScheduleTimeSheetParser {
     }
 
     /**
-    * @typedef {Map<number, Shift>} ShiftTimes
-    */
-
-    /**
-    * @returns {Map<number, Shift>} rowToShiftTime, where the key is the day index
+    * @returns {ShiftMap} shiftMapping, where the key is the day index
     */
     getShiftTimeRows() {
         let currLoc = "GENERAL"; 
 
-        /** @type {ShiftTimes} */
-        const rowToShiftTime = new Map();
+        /** @type {ShiftMap} */
+        const shiftMapping = new Map();
         /** @type {string} */
         let shiftTimeName;
 
@@ -195,18 +191,19 @@ export class ScheduleTimeSheetParser {
                     shiftTimeName = row[0].trim();
             }
 
-            rowToShiftTime.set( i, {
+            shiftMapping.set( i, {
                 weekday: i,
                 location: currLoc,
                 shiftTime: shiftTimeName
             });
         }
-        return rowToShiftTime;
+        return shiftMapping;
     }
     
 
 
     /**
+     * Public method for traversing schedule to find all shifts by selected name.
      * @returns {Array<Shift | null>}
      */
     findShifts() {
@@ -317,60 +314,47 @@ export class ScheduleTimeSheetParser {
     }
 
     /**
+     * Public method to get a mapping of shifts by their weekdays.
      * @param {Shift} shifts 
-     * @returns {{map: Map<number, Shift>, errors: Map<number, string[]>}} both a mapping of shifts to their weekday index, and a mapping of errors to their weekday index
+     * @returns {ShiftMap} a mapping of shifts to their weekday index
+     * Any duplicates found are logged in the parsers warning property.
      */
     getRegularHoursMap(shifts) {
          /**
-         * @type {Map<number, Shift>} regularHoursMap
+         * @type {ShiftMap} regularHoursMap
          * @comment
          * key      - weekday numeration
          * value    - Shift object
          */
         const regularHoursMap = new Map();
 
-        /**
-         * @type {Map<number, string[]>} errors
-         * @comment
-         * key      - weekday index 
-         * value    - array of innerHTML strings
-         */
-        const errors = new Map();
-
         shifts.forEach(s => {
 
             if (s!== null && s.shiftTime !== "ON-CALL") {
-                // error log for when a name appears more than once on the same day
                 if (regularHoursMap.has(s.weekday)) {
-
-                    const errorMsg = `<div class="errorsBox"><p>${s.shiftTime}</p><p style="font-size: 10px;">${s.location}</p></div>`;
-
-                    if (errors.has(s.weekday)) {
-                        errors.get(s.weekday).push(errorMsg);
-                    } else {
-                        errors.set(s.weekday, [errorMsg]);
-                    }
-                }
-                else {
+                    // add warning/error entry for any duplicate names found on same day
+                    this.warnings.addDuplicateNamesEntry(s);
+                } else {
                     regularHoursMap.set(s.weekday, s);
                 }
             }
         });
-        return {map: regularHoursMap, errors: errors};
+        return regularHoursMap;
     }
 
     /**
+     * Public method to get the predetermined stand by hours by the day for selected employee.
      * @param {Shift} shifts 
-     * @returns {Map<number, number>} onCallStandby
+     * @returns {Map<number, number>} standbyHours
      */
     getStandbyHourMap(shifts) {
         /**
-         * @type {Map<number, number>} onCallStandby
+         * @type {Map<number, number>} standbyHours
          * @comment
          * key      - weekday index 
          * value    - standby hours
          */
-        const onCallStandby = new Map();
+        const standbyHours = new Map();
         shifts.forEach(s => {
             if (s !== null && s.shiftTime === "ON-CALL") {
                 switch (s.weekday) {
@@ -379,10 +363,10 @@ export class ScheduleTimeSheetParser {
                         // Friday on-call begins 7pm, day ends at 12am, total 5 hours standby
                         // Need to account for if employee was also on-call since Thurs evening
                         // sum any previous standby hour entry to the day
-                        if (onCallStandby.has(s.weekday)) {
-                            onCallStandby.set(s.weekday, (onCallStandby.get(s.weekday) + 5));
+                        if (standbyHours.has(s.weekday)) {
+                            standbyHours.set(s.weekday, (standbyHours.get(s.weekday) + 5));
                         } else {
-                            onCallStandby.set(s.weekday, 5);
+                            standbyHours.set(s.weekday, 5);
                         }
                         break;
 
@@ -391,7 +375,7 @@ export class ScheduleTimeSheetParser {
                     case 8:
                     case 9:
                         // Weekends total 24 hours standby per day
-                        onCallStandby.set(s.weekday, 24);
+                        standbyHours.set(s.weekday, 24);
                         break;
                 
                     case 6:
@@ -399,14 +383,14 @@ export class ScheduleTimeSheetParser {
                         // Thursdays (weekday #6 and #13) need to account for:
                         // 12am to 7am, 7 hours
                         // 8pm to 12am, 4 hours  - Thursdays total 11 like other weekdays
-                        onCallStandby.set(s.weekday, 11);
+                        standbyHours.set(s.weekday, 11);
 
                         // 12am to 7am (of the Friday morning), 7 hours
                         const friday = s.weekday+1;
-                        if (onCallStandby.has(friday)) {
-                            onCallStandby.set(friday, (onCallStandby.get(friday) + 7));
+                        if (standbyHours.has(friday)) {
+                            standbyHours.set(friday, (standbyHours.get(friday) + 7));
                         } else {
-                            onCallStandby.set(friday, 7);
+                            standbyHours.set(friday, 7);
                         }
                         break;
 
@@ -415,11 +399,27 @@ export class ScheduleTimeSheetParser {
                         // continues from 12am to 7am, 7 hours
                         // continues from 8pm to 12am, 4 hours
                         // total 11 hours standby
-                        onCallStandby.set(s.weekday, 11);
+                        standbyHours.set(s.weekday, 11);
                         break;
                 }
             }
         });
-        return onCallStandby;
+        return standbyHours;
+    }
+
+    getDuplicateWarnings() {
+        return this.warnings.duplicate;
+    }
+
+    getMultiNameWarnings() {
+        return this.warnings.multipleNames;
+    }
+
+    getMaleTechEveningWarnings() {
+        return this.warnings.eveningMalesTechs; 
+    }
+
+    getWarningsGroup() {
+        return this.warnings.warningsGroup;
     }
 }
