@@ -37,6 +37,10 @@ export class TimesheetTable extends HTMLElement {
             padding-inline: 1em;
             font-size: 12px;
         }
+        p {
+            font-family: sans-serif;
+            font-size: small;
+        }
         img {
             position: absolute;
             cursor: pointer;
@@ -47,9 +51,10 @@ export class TimesheetTable extends HTMLElement {
             display: none;
             visibility: hidden;
             z-index: -999;
+            pointer-events: none;
         }
         img:hover + div.context {
-            display: block;
+            display: flex;
             visibility: visible;
             z-index: 999;
         }
@@ -61,29 +66,40 @@ export class TimesheetTable extends HTMLElement {
         }
         div.context {
             position:absolute;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             left: -50px;
-            width: 200px;
+            min-height: 120px;
+            min-width: 150px;
+            max-width: fit-content;
             border: 1px solid #bbb;
             border-radius: 3px;
             background-color: white;
             box-shadow: 5px 5px 5px #ccc;
-            padding: 2em;
+            padding: 1em;
         }
         div.context h3 {
             font-family: sans-serif;
-            font-size: large;
-            margin: 0;
-            margin-bottom: 1em;
-        }
-        div.context p {
-            margin-block: 2px;
-            padding: 0.5em;
-            padding-block: 1.0em;
             font-size: medium;
-            background-color: #f1f1f1;
-            border-radius: 5px;
+            margin: 0;
+            margin-top: 0.5em;
         }
-    `;
+        .multiNameContainer {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+        }
+        .multiNameContainer p {
+            padding-inline: 1.5em;
+            padding-block: 1em;
+            margin-inline: 0.5em;
+            background-color: #eee;
+            border-radius: 3px;
+        }
+`;
     
     timesheet = "";
 
@@ -109,11 +125,11 @@ export class TimesheetTable extends HTMLElement {
      * @param {WarningsGroup} warnings 
      */
     constructTable(employee, headers, regShiftsMap, standbyHrs, warnings) {
-        if (!employee) { console.log("missing employee parameter"); return; }
-        if (!headers) { console.log("missing headers parameter"); return; }
-        if (!regShiftsMap) { console.log("missing regShiftsMap parameter"); return; }
-        if (!standbyHrs) { console.log("missing standbyHrs parameter"); return; }
-        if (!warnings) { console.log("missing warnings parameter"); return; }
+        if (!employee) { console.error("missing employee parameter"); return; }
+        if (!headers) { console.error("missing headers parameter"); return; }
+        if (!regShiftsMap) { console.error("missing regShiftsMap parameter"); return; }
+        if (!standbyHrs) { console.error("missing standbyHrs parameter"); return; }
+        if (!warnings) { console.error("missing warnings parameter"); return; }
 
         this.headerCopyBtn.setAttribute('header', this.generateHeader(employee, headers));
         this.headerCopyBtn.setAttribute('timesheet', this.generateTimesheet(regShiftsMap, standbyHrs));
@@ -170,7 +186,7 @@ export class TimesheetTable extends HTMLElement {
         }
         table.appendChild(headerRow);
 
-        // Shift Times for first row
+        // Shift Times for first row, generate warning icons if errors found
         const shiftTimeRow = document.createElement("tr");
         const stColumnTitle = document.createElement("td");
         stColumnTitle.textContent = "Shift Time";
@@ -180,17 +196,18 @@ export class TimesheetTable extends HTMLElement {
             td = document.createElement("td");
 
             if (regShiftsMap.has(i)) {
-                const shift = regShiftsMap.get(i);
-                td.textContent = shift.shiftTime;
 
+                const shift = regShiftsMap.get(i);
                 let hasError = false;
+
+                td.textContent = shift.shiftTime;
 
                 // Add warnings icon with context if duplicate shifts found in day
                 if (warnings.duplicate.has(i)) {
                     hasError = true;
 
                     const headerP = document.createElement("h3");
-                    headerP.textContent = `?Duplicate Scheduling`;
+                    headerP.textContent = `?Duplicate Error`;
 
                     const pElements = warnings.duplicate.get(i).map(shift => {
                         const p = document.createElement("p");
@@ -201,7 +218,6 @@ export class TimesheetTable extends HTMLElement {
                     td.appendChild(
                         this.addImageSymbolWithContext(
                             "./images/icons8-error-48.png",
-                            "error",
                             [headerP, ...pElements],
                             "red",
                             "top"
@@ -210,41 +226,49 @@ export class TimesheetTable extends HTMLElement {
                 }
 
                 // Add question icon with context if multiple names were in cell
-                const multiNamed = Warnings.shiftInMultipleNames(
-                    warnings.multipleNames, shift
-                );
-                if (multiNamed) {
-                    const h3 = document.createElement("h3");
-                    h3.textContent = `Multiple names in Cell`;
+                const matchingShiftsWithWarning = warnings.multipleNames.filter(warning => {
+                    return (warning.shift.weekday === shift.weekday &&
+                            warning.shift.shiftTime === shift.shiftTime &&
+                            warning.shift.location === shift.location);
+                });
 
-                    const p = document.createElement("p");
-                    p.textContent = `${multiNamed.names.join(" | ")}`;
+                if (matchingShiftsWithWarning.length >= 1) {
+                    const multiNamed = matchingShiftsWithWarning[0];
+                    const lightBlue = "#72C0FF";
+
+                    const h3 = document.createElement("h3");
+                    h3.textContent = `Multiple Names Found!`;
+
+                    const namesContainer = this.generateMultiNameContainer(
+                        multiNamed.names,
+                        lightBlue
+                    );
 
                     const imgWithCtx = this.addImageSymbolWithContext(
                         "./images/icons8-question-mark-48.png",
-                        "question",
-                        [h3, p],
-                        "#2196F3", // light blue matching ? icon
+                        [h3, namesContainer],
+                        lightBlue,
                         "top"
                     );
 
+                    // Augment position of "?" icon left of error icon if present as well
                     if (hasError) {
                         imgWithCtx.querySelector("img").style.right = "15px";
                     }
-
                     td.appendChild(imgWithCtx);
                 }
-
             }
             shiftTimeRow.appendChild(td);
         }
         table.appendChild(shiftTimeRow);
 
-        // On-call standby hours for second row
+        // On-call standby hours for second row, generate warning icon if errors found
         const standbyRow = document.createElement("tr");
         const standbyColumnTitle = document.createElement("td");
         standbyColumnTitle.textContent = "Standby Hrs";
         standbyRow.appendChild(standbyColumnTitle);
+
+        const standbyMultiNameWarnings = warnings.multipleNames.filter(o => o.shift.shiftTime === "ON-CALL");
 
         for (let i = 1, td; i <= BIWEEKLY; i++) {
             td = document.createElement("td");
@@ -252,6 +276,31 @@ export class TimesheetTable extends HTMLElement {
             if (standbyHrs.has(i)) {
                 const standByHours = standbyHrs.get(i);
                 td.textContent = standByHours;
+
+                const vibrantYellow = "#FFF075";
+
+                // Search through On-Call shifts with multiple names, add warning icon with context
+                for (let j = 0; j < standbyMultiNameWarnings.length; j++) {
+                    const dayIndex = standbyMultiNameWarnings[j].shift.weekday;
+                    if (i === dayIndex) {
+                        const h3 = document.createElement("h3");
+                        h3.textContent = `Multiple Names Found!`;
+
+                        const namesContainer = this.generateMultiNameContainer(
+                            standbyMultiNameWarnings[j].names,
+                            vibrantYellow
+                        );
+
+                        const imgWithCtx = this.addImageSymbolWithContext(
+                            "./images/icons8-warning-48.png",
+                            [h3, namesContainer],
+                            vibrantYellow,
+                            "top"
+                        );
+                        td.appendChild(imgWithCtx);
+                        break;
+                    }
+                }
             }
             standbyRow.appendChild(td);
         }
@@ -317,28 +366,46 @@ export class TimesheetTable extends HTMLElement {
     }
 
     /**
+     * @param {string[]} multiNames 
+     * @returns {HTMLDivElement} multiNameContainer, holding a list of names in HTMLParagraphElements
+     */
+    generateMultiNameContainer(multiNames, colorCode) {
+        const multiNameContainer = document.createElement("div");
+        multiNameContainer.classList.add("multiNameContainer");
+
+        multiNames.forEach(name => {
+            const p = document.createElement("p");
+            p.textContent = name;
+            p.style.backgroundColor = colorCode;
+            multiNameContainer.appendChild(p);
+        });
+
+        return multiNameContainer;
+    }
+
+    /**
      * @param {HTMLElement[]} ctxChildEl 
      * @returns {HTMLDivElement} user-defined symbol with added context on hover
      **/
-    addImageSymbolWithContext(src, className, ctxChildEl, colorCode, direction) {
+    addImageSymbolWithContext(src, ctxChildEl, colorCode, direction) {
         const imgCtxContainer = document.createElement("div");
         imgCtxContainer.classList.add("ctxContainer");
 
         const img = new Image(20, 20);
         img.src = src;
-        img.classList.add(className);
         
         const context = document.createElement("div");
         context.classList.add("context");
         if (colorCode !== "") {
             context.style.borderColor = colorCode;
+            context.style.boxShadow = `0px 0px 4px ${colorCode}`;
         }
         switch(direction) {
             case "top":
                 context.style.bottom = `${context.offsetHeight + 5}px`;
                 break;
             case "bottom":
-                context.style.top = "-30px";
+                context.style.top = `-${context.offsetHeight - 5}px`;
                 break;
         }
 

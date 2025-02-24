@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Timesheet Schedule Parser</title>
     <link rel="stylesheet" href="./style.css">
     <link rel="icon" href="./icons8-timesheet-favicon.ico" type="image/x-icon">
@@ -14,7 +17,7 @@
         <h1 style="text-align: center;">Timesheet Schedule Parser</h1>  
     </main>
     <div>
-      <textarea id="schedule" name="schedule" class="schedule" rows="20" cols="190" placeholder="Copy and Paste schedule grid here!"></textarea> 
+      <textarea id="schedule" name="schedule" class="schedule" rows="10" cols="190" placeholder="Copy and Paste schedule grid here!"></textarea> 
     </div>
     <br />
     <div class="flex-row" style="justify-content: space-between;">
@@ -50,12 +53,13 @@
           </label>
           <div class="flex-row flex-center">
             <input type="text" class="customName" maxlength="256" placeholder="Name" disabled />
-            <input type="text" class="customAbbrev" maxlength="256" placeholder="Initials" disabled />
+            <input type="text" class="customAbbrev" maxlength="5" size="5" placeholder="Initials" disabled />
             <select name="customGender" id="customGender" class="customGender" disabled>
               <option value="" disabled selected>Gender</option>
-              <option value="F">Female</option>
-              <option value="M">Male</option>
+              <option value="F">F</option>
+              <option value="M">M</option>
             </select>
+            <input type="text" class="holidays" maxlength="2" size="6" placeholder="Holidays"/>
           </div>
           <button type="button" class="submitBtn" onclick="parse()">Generate Timesheet</button>
         </div>

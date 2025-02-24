@@ -28,8 +28,6 @@ export class Warnings {
     _duplicate;
     /** @type {MultipleNames} */
     _multipleNames;
-    /** @type {MultipleNames} */
-    _standbyMultipleNames;
     /** @type {EveningMaleTechs} */
     _eveningMaleTechs;
 
@@ -45,7 +43,6 @@ export class Warnings {
         return {
             duplicate: this.duplicate,
             multipleNames: this.multipleNames,
-            standbyMultipleNames: this.standbyMultipleNames,
             evening: this.eveningMalesTechs,
         }
     }
@@ -57,10 +54,6 @@ export class Warnings {
     /** @returns {MultipleNames} a deep copy of multiple names found warning */
     get multipleNames() {
         return structuredClone(this._multipleNames);
-    }
-    /** @returns {MultipleNames} a deep copy of standby multiple names warning */
-    get standbyMultipleNames() {
-        return structuredClone(this._standbyMultipleNames);
     }
     /** @returns {EveningMaleTechs} a deep copy of evening male techs warning */
     get eveningMalesTechs() {
@@ -94,25 +87,6 @@ export class Warnings {
         return nameCheck.has(employee.first_name) ||
                nameCheck.has(employee.str_alias) ||
                nameCheck.has(employee.abbrev);
-    }
-
-    /**
-     * Static method to check whether a shift is contained within a MultipleNames warning list.
-     * @param {MultipleNames} multiNameWarning
-     * @param {Shift} shift 
-     * @returns {{ shift: Shift; names: string[]; } | null} warning object with the shift and the different names written in the shift, or null if not found
-     */
-    static shiftInMultipleNames(multiNameWarning, shift) {
-        for (let i = 0; i < multiNameWarning.length; i++) {
-            const warning = multiNameWarning[i];
-            if (warning.shift.weekday === shift.weekday &&
-                warning.shift.shiftTime === shift.shiftTime &&
-                warning.shift.location === shift.location)
-            {
-                return warning;
-            }
-        }
-        return null;
     }
 
     /**

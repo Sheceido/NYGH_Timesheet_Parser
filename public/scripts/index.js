@@ -13,6 +13,7 @@ const employeeDropdown = document.querySelector(".employee");
 const customName = document.querySelector(".customName");
 const customAbbrev = document.querySelector(".customAbbrev");
 const customGender = document.querySelector(".customGender");
+const stats = document.querySelector(".holidays");
 
 toggle.addEventListener("click", () => {
     if (toggle.checked) {
@@ -69,6 +70,13 @@ export function parse() {
         abbrev: "",
         gender: "",
     };
+    let statHolidays = 0;
+    
+    if (scheduleStr === "") {
+        scheduleTextArea.classList.add("errorHighlight");
+        return;
+    }
+    scheduleTextArea.classList.remove("errorHighlight");
 
     if (!isCustomInput) {
         if (employeeDropdown.value === "") {
@@ -104,6 +112,17 @@ export function parse() {
         employee.gender = customGender.value.trim().toUpperCase();
     }
 
+    if (stats.value !== "") {
+        const numInput = Number(stats.value);
+        if (!isNaN(numInput) || numInput >= 0 && numInput <= 14) {
+            statHolidays = numInput;
+        } else {
+            stats.classList.add("errorHighlight");
+            return;
+        }
+    }
+    stats.classList.remove("errorHighlight");
+
     const parser = new ScheduleTimeSheetParser(scheduleStr, employee);
     const shifts = parser.findShifts();
     if (!shifts) {
@@ -132,7 +151,7 @@ export function parse() {
     );
 
     const comments = document.querySelector(".comments");
-    comments.appendChild(getErrorComments(employee, shifts.length));
+    comments.appendChild(getShiftCountError(employee, regularShifts.size, statHolidays, !isCustomInput));
 }
 
 /**
@@ -140,15 +159,34 @@ export function parse() {
  * @param {number} regularShiftsSize 
  * @returns {HTMLParagraphElement} p
  */
-function getErrorComments(employee, regularShiftsSize) {
+function getShiftCountError(employee, regularShiftsSize, statsCount, isFTR) {
     const p = document.createElement("p");
-    p.style.color = "red";
 
-    if (regularShiftsSize > 10) {
-        p.textContent = `[ERROR?] ${capitalize(employee.first_name)} appears to have MORE THAN 10 shifts in the biweekly!`;
+    const successSpan = document.createElement("span");
+    successSpan.textContent = " ✅ ";
+
+    const errorSpan = document.createElement("span");
+    errorSpan.textContent = " ❌ ";
+
+    const promptSpan = document.createElement("span");
+    promptSpan.style.fontFamily = "sans-serif";
+    promptSpan.style.fontSize = "small";
+
+    const expectedShiftCount = 10 - statsCount;
+    
+    if (!isFTR || regularShiftsSize === expectedShiftCount) {
+        p.appendChild(successSpan);
+        promptSpan.textContent = `${capitalize(employee.first_name)} has ${regularShiftsSize} shifts in this biweekly schedule (ignoring any duplicate errors), with (${statsCount}) stat holidays noted.`;
     }
-    else if (regularShiftsSize < 10) {
-        p.textContent `[ERROR?] ${capitalize(employee.first_name)} appears to have LESS THAN 10 shifts in the biweekly!`;
+    else if (regularShiftsSize > expectedShiftCount) {
+        p.appendChild(errorSpan);
+        promptSpan.textContent = `${capitalize(employee.first_name)} appears to have MORE THAN (${expectedShiftCount}) shifts in the biweekly, (${statsCount}) of which would be stat holiday(s).`;
     }
+    else if (regularShiftsSize < expectedShiftCount) {
+        p.appendChild(errorSpan);
+        promptSpan.textContent = `${capitalize(employee.first_name)} appears to have LESS THAN (${expectedShiftCount}) shifts in the biweekly, (${statsCount}) of which would be stat holiday(s).`;
+    }
+    p.appendChild(promptSpan);
+
     return p;
 }

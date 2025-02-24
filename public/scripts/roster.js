@@ -17,7 +17,7 @@
  */
 export const roster = {
     "Sue Santiago": {
-        first_name: "SUSAN",
+        first_name: "SUE",
         last_name: "SANTIAGO",
         str_alias: "SUE",
         abbrev: "SS",
