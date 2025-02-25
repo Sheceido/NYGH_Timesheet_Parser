@@ -12,6 +12,25 @@ textarea {
   margin-block: 0.5em;
 }
 
+.textareaContainer {
+  position: relative;
+}
+
+.textareaPaste {
+  position: absolute;
+  bottom: 20px;
+  right: 30px;
+  border: none;
+  margin: 0;
+  padding: 0.5em;
+  color: #aaa;
+  background-color: white;
+  transition: 300ms;
+}
+.textareaPaste:hover {
+  color: #555;
+}
+
 select {
   padding: 4px;
   cursor: pointer;
@@ -29,7 +48,22 @@ button {
   margin-inline: 1em;
 }
 
+.icon {
+  position: absolute;
+  top: -5px;
+}
+
+.tabContainer {
+  position: relative;
+  width: 170px;
+  height: 43px;
+}
+
 .tab {
+  position: absolute;
+  top: 1px;
+  width: 100%;
+  height: 100%;
   border: none;
   border-top: 1px solid #ddd;
   border-inline: 1px solid #ddd;
@@ -41,11 +75,18 @@ button {
 .tab:hover {
   background-color: #eee; 
 }
+.tab:focus {
+  background-color: white;
+}
 
-.timesheetContainer {
+.timesheetContainer, .scheduleCheckContainer {
+  display: none;
+  position: relative;
   border: 1px solid #ddd;
+  background-color: white;
   min-height: 80%;
   padding: 1em;
+  z-index: 1;
 }
 
 .copy {
@@ -101,11 +142,6 @@ ul > li {
   margin-top: 1em;
 }
 
-img {
-  border: 2px solid #ddd;
-  margin: 1em;
-}
-
 .modalCloseBtn {
   background-color: white;
   position: sticky;
@@ -149,7 +185,9 @@ img {
   outline: 1px red solid;
 }
 
-img {
+.imgTutorial {
+  border: 2px solid #ddd;
+  margin: 1em;
   width: 600px;
   height: auto;
 }

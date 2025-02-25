@@ -13,16 +13,33 @@
   </head>
   <body>
     <div>
-      <main>
-        <h1 style="text-align: center;">Timesheet Schedule Parser</h1>  
+      <main style="position: relative;">
+        <h1 style="text-align: center;">Timesheet Schedule Parser
+          <span style="margin-inline: 0.2em;">
+            <img class="icon" src="icons8-timesheet-favicon.png" width="32" height="32"/>
+          </span>
+        </h1>  
       </main>
-      <div>
+      <div class="textareaContainer">
         <textarea id="schedule" name="schedule" class="schedule" rows="10" cols="190" placeholder="Copy and Paste schedule grid here!"></textarea> 
+        <button class="textareaPaste">
+          <?xml version="1.0" encoding="UTF-8"?>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="25" height="25" fill="currentColor">
+            <path d="M16 2h-4c0-1.1-.9-2-2-2S8 .9 8 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6l-6-4zm-6 0c.55 0 1 .45 1 1h-2c0-.55.45-1 1-1zm6 20H4V4h4v4h8V4h4v16z"/>
+            <path d="M9 14h6v2H9zm0-4h6v2H9z"/>
+          </svg>
+        </button>
       </div>
-      <button class="tab">Timesheet Maker</button>
-      <button class="tab">Schedule Checker</button>
+      <div class="flex-row">
+        <div class="tabContainer">
+          <button class="tab timesheetTab" value="0">Timesheet Maker</button>
+        </div>
+        <div class="tabContainer">
+          <button class="tab scheduleCheckTab" value="1">Schedule Checker</button>
+        </div>
+      </div>
       <div class="timesheetContainer">
-        <div class="flex-row" style="justify-content: space-between;">
+        <div class="flex-row" style="justify-content: space-between; margin-top: 1em;">
           <div class="flex-row">
             <div>
               <select-ftr></select-ftr>
@@ -50,15 +67,15 @@
               <div class="flex-col flex-center">
                 <ol>
                   <li>Copy Ultrasound Schedule from the most top-left cell to the last "FLOAT" cell</li>
-                  <img class="cpSchedule" src="./gifs/cpSchedule.gif" alt="Copy US schedule region">
+                  <img class="imgTutorial" src="./gifs/cpSchedule.gif" alt="Copy US schedule region">
                   <li>Paste schedule into text area.</li>
-                  <img src="./gifs/pasteSchedule.gif" alt="Paste schedule into text area.">
+                  <img class="imgTutorial" src="./gifs/pasteSchedule.gif" alt="Paste schedule into text area.">
                   <li>Choose the employee you want generate a timesheet for, then click "Generate Timesheet".</li>
-                  <img src="./images/chooseEmployee.png" alt="Choose employee and submit">
+                  <img class="imgTutorial" src="./images/chooseEmployee.png" alt="Choose employee and submit">
                   <li>Review the generated timesheet - then click "Copy".</li>
-                  <img src="./images/timesheetCheck.png" alt="Check the generated timesheet output, then click copy to have values copied onto the browser clipboard">
+                  <img class="imgTutorial" src="./images/timesheetCheck.png" alt="Check the generated timesheet output, then click copy to have values copied onto the browser clipboard">
                   <li>In the Excel Timesheet, paste (Ctrl-V) the copied values into the first empty cell in your row (column C).</li>
-                  <img src="./gifs/pasteTimesheet.gif" alt="Paste copied generated values into Excel Timesheet into Column C, first of the three rows allotted for the employee.">
+                  <img class="imgTutorial" src="./gifs/pasteTimesheet.gif" alt="Paste copied generated values into Excel Timesheet into Column C, first of the three rows allotted for the employee.">
                   <li>Double check your timesheet to make sure the values correctly reflect your biweekly shifts.</li>
                 </ol>
                 <hr style="width: 100%; margin-top: 3em;"/>
@@ -77,12 +94,13 @@
         </div>
         <timesheet-table></timesheet-table>
       </div>
-    <br />
-    <br />
-    <script type="module">
+      <div class="scheduleCheckContainer">
+        🏗️🚧 Under Construction 🚧🧱
+      </div>
+      <script type="module">
       import {parse} from "./scripts/index.js";
       window.parse = parse; // attach functions to be accessible in browser.
-    </script>
+      </script>
     </div>
   </body>
 </html>

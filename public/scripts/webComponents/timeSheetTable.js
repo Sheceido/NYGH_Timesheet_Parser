@@ -232,9 +232,8 @@ export class TimesheetTable extends HTMLElement {
 
                 // Add question icon with context if multiple names were in cell
                 const matchingShiftsWithWarning = warnings.multipleNames.filter(warning => {
-                    return (warning.shift.weekday === shift.weekday &&
-                            warning.shift.shiftTime === shift.shiftTime &&
-                            warning.shift.location === shift.location);
+                    return (warning.shift.coordinate.row === shift.coordinate.row &&
+                            warning.shift.coordinate.col === shift.coordinate.col);
                 });
 
                 if (matchingShiftsWithWarning.length >= 1) {
@@ -256,7 +255,7 @@ export class TimesheetTable extends HTMLElement {
                         "top"
                     );
 
-                    // Augment position of "?" icon left of error icon if present as well
+                    // Augment position of "?" icon left of "x" error icon if present as well
                     if (hasError) {
                         imgWithCtx.querySelector("img").style.right = "15px";
                     }
@@ -273,7 +272,9 @@ export class TimesheetTable extends HTMLElement {
         standbyColumnTitle.textContent = "Standby Hrs";
         standbyRow.appendChild(standbyColumnTitle);
 
-        const standbyMultiNameWarnings = warnings.multipleNames.filter(o => o.shift.shiftTime === "ON-CALL");
+        const standbyMultiNameWarnings = warnings.multipleNames.filter(o => {
+            return (o.shift.shiftTime === "ON-CALL");
+        });
 
         for (let i = 1, td; i <= BIWEEKLY; i++) {
             td = document.createElement("td");

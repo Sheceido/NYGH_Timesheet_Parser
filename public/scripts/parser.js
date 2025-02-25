@@ -2,6 +2,7 @@ import { Warnings } from './warnings.js';
 
 /**
  * @typedef {Object} Shift 
+ * @property {{row: number, col: number}} coordinate - [row][col] identifier
  * @property {number} weekday - column index of the weekday.
  * @property {string} location - location of the shift.
  * @property {string} shiftTime - time that which the shift takes place at.
@@ -191,6 +192,10 @@ export class ScheduleTimeSheetParser {
             }
 
             shiftMapping.set( i, {
+                coordinate: {
+                    row: i,
+                    col: 0,
+                },
                 weekday: i,
                 location: currLoc,
                 shiftTime: shiftTimeName
@@ -228,6 +233,10 @@ export class ScheduleTimeSheetParser {
 
                     // Add valid shift into shifts array
                     shifts.push({
+                        coordinate: {
+                            row: rowNum,
+                            col: colNum
+                        },
                         weekday: colNum,
                         location: this.isOcscOrConsumer(st.location),
                         shiftTime: st.shiftTime,
@@ -238,7 +247,12 @@ export class ScheduleTimeSheetParser {
                 const { isMulti, names } = this.multiNameCell(nameTrimmed);
 
                 if (isMulti && this.warnings.hasMultipleNames(this.employee, names)) {
+                    /** @type {Shift} shift */
                     const shift = {
+                        coordinate: {
+                            row: rowNum,
+                            col: colNum
+                        },
                         weekday: colNum,
                         location: this.isOcscOrConsumer(st.location),
                         shiftTime: st.shiftTime

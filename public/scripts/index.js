@@ -2,12 +2,42 @@ import { roster } from "./roster.js";
 import { ScheduleTimeSheetParser } from "./parser.js";
 import { SelectFTR } from "./webComponents/selectFTR.js";
 import { TimesheetTable } from "./webComponents/timeSheetTable.js";
-import { addDialogEventListener, addToggleEventListener } from "./timesheetEventListeners.js";
+import {
+    textareaEventListener,
+    tabEventListener,
+    addToggleEventListener,
+    addDialogEventListener,
+} from "./timesheetEventListeners.js";
 /** @typedef {import('./roster.js').Employee} Employee */
 /** @typedef {import('./parser.js').Shift} Shift */
 /** @typedef {import('./parser.js').ShiftMap} ShiftMap */
 /** @typedef {import('./warnings.js').WarningsGroup} WarningsGroup */
 /** @typedef {import('./warnings.js').ShiftCountError} ShiftCountError */
+
+/** @type {HTMLButtonElement} */
+const textareaPasteBtn = document.querySelector(".textareaPaste");
+textareaEventListener(textareaPasteBtn);
+
+// Tab functionality to change between timesheet | schedule checker
+/** @type {HTMLButtonElement} */
+const timesheetTab = document.querySelector(".timesheetTab");
+/** @type {HTMLDivElement} */
+const timesheetContainer = document.querySelector(".timesheetContainer");
+/** @type {HTMLButtonElement} */
+const scheduleCheckTab = document.querySelector(".scheduleCheckTab");
+/** @type {HTMLDivElement} */
+const schedCheckContainer = document.querySelector(".scheduleCheckContainer");
+
+let tabSelected = timesheetTab.value;
+const setTab = (v) => { tabSelected = v };
+// Update screen on tab clicks to show diff containers
+tabEventListener(
+    timesheetTab,
+    scheduleCheckTab,
+    setTab,
+    timesheetContainer,
+    schedCheckContainer
+);
 
 // Toggle functionality for choosing FTR vs. custom name input
 const toggle = document.querySelector(".toggleSwitch");
@@ -131,4 +161,8 @@ export function parse() {
         standbyHours,
         parsedWarnings
     );
+}
+
+export function generateScheduleChecker() {
+    
 }

@@ -1,6 +1,67 @@
 import { SelectFTR } from "./webComponents/selectFTR.js";
 
 /**
+ * @param {HTMLButtonElement} pasteBtn 
+ * @param {HTMLButtonElement} clearBtn
+ */
+export function textareaEventListener(pasteBtn) {
+    /** @type {HTMLTextAreaElement} */
+    const txtarea = document.querySelector(".schedule");
+
+    pasteBtn.addEventListener("click", () => {
+        if (!navigator.clipboard) {
+            // Navigator.clipboard is not available if not using HTTPS,
+            // fallback with alert to notify user
+            alert("Current site not running HTTPS, use [Ctrl-V] to paste!");
+        } else {
+            navigator.clipboard
+                .readText()
+                .then((clipText) => txtarea.value = clipText);
+        }
+    });
+}
+
+/**
+ * @param {HTMLButtonElement} timesheetTab 
+ * @param {HTMLButtonElement} scheduleCheckTab
+ * @param {() => void} setTab 
+ * @param {HTMLDivElement} timesheetContainer 
+ * @param {HTMLDivElement} schedCheckContainer 
+ */
+export function tabEventListener(
+    timesheetTab,
+    scheduleCheckTab,
+    setTab,
+    timesheetContainer,
+    schedCheckContainer
+) {
+    // initialize timesheetTab as the default tab selected
+    timesheetTab.style.zIndex = 10;
+    // show timesheetContainer, hide schedule checker container
+    timesheetContainer.style.display = "block";
+    schedCheckContainer.style.display = "none";
+
+    timesheetTab.addEventListener("click", () => {
+        setTab(timesheetTab.value);
+
+        timesheetTab.style.zIndex = 10;
+        scheduleCheckTab.style.zIndex = 0;
+
+        timesheetContainer.style.display = "block";
+        schedCheckContainer.style.display = "none";
+    });
+    scheduleCheckTab.addEventListener("click", () => {
+        setTab(scheduleCheckTab.value);
+
+        scheduleCheckTab.style.zIndex = 10;
+        timesheetTab.style.zIndex = 0;
+
+        schedCheckContainer.style.display = "block";
+        timesheetContainer.style.display = "none";
+    });
+}
+
+/**
  * @param {HTMLInputElement} toggle 
  * @param {SelectFTR} employeeDropdown 
  * @param {HTMLInputElement} customName 
