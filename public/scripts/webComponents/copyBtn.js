@@ -5,7 +5,8 @@ export class HeaderWithCopyBtn extends HTMLElement {
         div {
             display: flex; 
             flex-direction: row;
-            margin-block: 1em;
+            margin-top: 3em;
+            margin-bottom: 1em;
             visiblity: hidden;
         }
         h3 {
@@ -26,8 +27,6 @@ export class HeaderWithCopyBtn extends HTMLElement {
         button:hover {
             color: #111;
             cursor: pointer;
-        }
-
         }
     `;
 

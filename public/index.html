@@ -13,92 +13,72 @@
   </head>
   <body>
     <div>
-    <main>
+      <main>
         <h1 style="text-align: center;">Timesheet Schedule Parser</h1>  
-    </main>
-    <div>
-      <textarea id="schedule" name="schedule" class="schedule" rows="10" cols="190" placeholder="Copy and Paste schedule grid here!"></textarea> 
-    </div>
-    <br />
-    <div class="flex-row" style="justify-content: space-between;">
-        <div class="flex-row">
-          <div>
-            <select name="employee" id="employee" class="employee">
-              <option value="" disabled selected>Choose Employee...</option>
-              <option value="Sue Santiago">Sue Santiago</option>
-              <option value="Sherri Linzon">Sherri Linzon</option>
-              <option value="Tim Dang">Tim Dang</option>
-              <option value="Ekaterina Romanov">Ekaterina Romanov</option>
-              <option value="Caroline Xie">Caroline Xie</option>
-              <option value="Rubina Shafiq">Rubina Shafiq</option>
-              <option value="Helen Lin">Helen Lin</option>
-              <option value="Millicent Brown">Millicent Brown</option>
-              <option value="Esther Lyew">Esther Lyew</option>
-              <option value="Justina Yoo">Justina Yoo</option>
-              <option value="Jenny Jiang">Jenny Jiang</option>
-              <option value="Leon Poon">Leon Poon</option>
-              <option value="Jennifer Wang">Jennifer Wang</option>
-              <option value="Eldvina Baraj">Eldvina Baraj</option>
-              <option value="Mengling Chen">Mengling Chen</option>
-              <option value="Nicolas Cordero-Ramirez">Nicolas Cordero-Ramirez</option>
-              <option value="Phebe Li">Phebe Li</option>
-              <option value="Erica Lee">Erica Lee</option>
-              <option value="Shabeeka Chandrabalasingam">Shabeeka Chandrabalasingam</option>
-              <option value="Kelvin Tran">Kelvin Tran</option>
-            </select> 
+      </main>
+      <div>
+        <textarea id="schedule" name="schedule" class="schedule" rows="10" cols="190" placeholder="Copy and Paste schedule grid here!"></textarea> 
+      </div>
+      <button class="tab">Timesheet Maker</button>
+      <button class="tab">Schedule Checker</button>
+      <div class="timesheetContainer">
+        <div class="flex-row" style="justify-content: space-between;">
+          <div class="flex-row">
+            <div>
+              <select-ftr></select-ftr>
+            </div>
+            <label class="switch">
+              <input type="checkbox" class="toggleSwitch">
+              <span class="slider round"></span>
+            </label>
+            <div class="flex-row flex-center">
+              <input type="text" class="customName" maxlength="256" placeholder="Non-FTR Name" disabled />
+              <input type="text" class="customAbbrev" maxlength="5" size="5" placeholder="Initials" disabled />
+              <select name="customGender" id="customGender" class="customGender" disabled>
+                <option value="" disabled selected>Gender</option>
+                <option value="F">F</option>
+                <option value="M">M</option>
+              </select>
+              <input type="text" class="holidays" maxlength="2" size="6" placeholder="Holidays"/>
+            </div>
+            <button type="button" class="submitBtn" onclick="parse()">Generate Timesheet</button>
           </div>
-          <label class="switch">
-            <input type="checkbox" class="toggleSwitch">
-            <span class="slider round"></span>
-          </label>
-          <div class="flex-row flex-center">
-            <input type="text" class="customName" maxlength="256" placeholder="Name" disabled />
-            <input type="text" class="customAbbrev" maxlength="5" size="5" placeholder="Initials" disabled />
-            <select name="customGender" id="customGender" class="customGender" disabled>
-              <option value="" disabled selected>Gender</option>
-              <option value="F">F</option>
-              <option value="M">M</option>
-            </select>
-            <input type="text" class="holidays" maxlength="2" size="6" placeholder="Holidays"/>
-          </div>
-          <button type="button" class="submitBtn" onclick="parse()">Generate Timesheet</button>
-        </div>
-        <dialog>
-          <button class="modalCloseBtn" style="position: sticky;" autofocus>X</button>
-          <div>
-            <h1 style="text-align: center;">How to Use:</h1>
-            <div class="flex-col flex-center">
-              <ol>
-                <li>Copy Ultrasound Schedule from the most top-left cell to the last "FLOAT" cell</li>
-                <img class="cpSchedule" src="./gifs/cpSchedule.gif" alt="Copy US schedule region">
-                <li>Paste schedule into text area.</li>
-                <img src="./gifs/pasteSchedule.gif" alt="Paste schedule into text area.">
-                <li>Choose the employee you want generate a timesheet for, then click "Generate Timesheet".</li>
-                <img src="./images/chooseEmployee.png" alt="Choose employee and submit">
-                <li>Review the generated timesheet - then click "Copy".</li>
-                <img src="./images/timesheetCheck.png" alt="Check the generated timesheet output, then click copy to have values copied onto the browser clipboard">
-                <li>In the Excel Timesheet, paste (Ctrl-V) the copied values into the first empty cell in your row (column C).</li>
-                <img src="./gifs/pasteTimesheet.gif" alt="Paste copied generated values into Excel Timesheet into Column C, first of the three rows allotted for the employee.">
-                <li>Double check your timesheet to make sure the values correctly reflect your biweekly shifts.</li>
-              </ol>
-              <hr style="width: 100%; margin-top: 3em;"/>
-              <div style="width: 80%; margin-top: 3em;">
-                <h4>Technical Notes:</h4>
-                <ul>
-                  <li>The <b>last</b> listed name within the cell will always be the one taking the shift. Since copy-pasting the US schedule from Excel does not include any formatting, such as a crossout of a certain name, there is no ability to differentiate between a cell that contains two names because of switches, or multiple names because the shift is covered by multiple people.</li>
-                  <li>The program will check for duplicates names on the same day, and display a conflict box under the day it occurred in.</li>
-                  <li>Name matching is based on: first name, name alias, or by initials, in that order. To view the hard-coded roster list and the name matchings used, append the website url with "<em>/scripts/roster.js</em>"</li>
-                </ul>
+          <dialog>
+            <button class="modalCloseBtn" style="position: sticky;" autofocus>X</button>
+            <div>
+              <h1 style="text-align: center;">How to Use:</h1>
+              <div class="flex-col flex-center">
+                <ol>
+                  <li>Copy Ultrasound Schedule from the most top-left cell to the last "FLOAT" cell</li>
+                  <img class="cpSchedule" src="./gifs/cpSchedule.gif" alt="Copy US schedule region">
+                  <li>Paste schedule into text area.</li>
+                  <img src="./gifs/pasteSchedule.gif" alt="Paste schedule into text area.">
+                  <li>Choose the employee you want generate a timesheet for, then click "Generate Timesheet".</li>
+                  <img src="./images/chooseEmployee.png" alt="Choose employee and submit">
+                  <li>Review the generated timesheet - then click "Copy".</li>
+                  <img src="./images/timesheetCheck.png" alt="Check the generated timesheet output, then click copy to have values copied onto the browser clipboard">
+                  <li>In the Excel Timesheet, paste (Ctrl-V) the copied values into the first empty cell in your row (column C).</li>
+                  <img src="./gifs/pasteTimesheet.gif" alt="Paste copied generated values into Excel Timesheet into Column C, first of the three rows allotted for the employee.">
+                  <li>Double check your timesheet to make sure the values correctly reflect your biweekly shifts.</li>
+                </ol>
+                <hr style="width: 100%; margin-top: 3em;"/>
+                <div style="width: 80%; margin-top: 3em;">
+                  <h4>Technical Notes:</h4>
+                  <ul>
+                    <li>The <b>last</b> listed name within the cell will always be the one taking the shift. Since copy-pasting the US schedule from Excel does not include any formatting, such as a crossout of a certain name, there is no ability to differentiate between a cell that contains two names because of switches, or multiple names because the shift is covered by multiple people.</li>
+                    <li>The program will check for duplicates names on the same day, and display a conflict box under the day it occurred in.</li>
+                    <li>Name matching is based on: first name, name alias, or by initials, in that order. To view the hard-coded roster list and the name matchings used, append the website url with "<em>/scripts/roster.js</em>"</li>
+                  </ul>
+                </div>
               </div>
             </div>
-          </div>
-        </dialog>
-        <button>Video Clip Tutorial</button>
-    </div>
+          </dialog>
+          <button>Video Clip Tutorial</button>
+        </div>
+        <timesheet-table></timesheet-table>
+      </div>
     <br />
     <br />
-    <timesheet-table></timesheet-table>
-    <div class="comments"></div>
     <script type="module">
       import {parse} from "./scripts/index.js";
       window.parse = parse; // attach functions to be accessible in browser.

@@ -9,9 +9,11 @@ body {
 textarea {
   border: 1px solid #ddd;
   border-radius: 5px;
+  margin-block: 0.5em;
 }
 
 select {
+  padding: 4px;
   cursor: pointer;
   margin-inline: 0.5em;
 }
@@ -25,6 +27,25 @@ button {
   padding-block: 4px;
   padding-inline: 2em;
   margin-inline: 1em;
+}
+
+.tab {
+  border: none;
+  border-top: 1px solid #ddd;
+  border-inline: 1px solid #ddd;
+  border-radius: 10px 10px 0 0;
+  padding-block: 1em;
+  margin: 0;
+  background-color: #fff;
+}
+.tab:hover {
+  background-color: #eee; 
+}
+
+.timesheetContainer {
+  border: 1px solid #ddd;
+  min-height: 80%;
+  padding: 1em;
 }
 
 .copy {
@@ -124,15 +145,6 @@ img {
   text-align: center;
 }
 
-.errorsBox {
-  font-family: sans-serif;
-  padding-inline: 1em;
-  margin-block: 0.5em;
-  border: 1px solid #FF5050;
-  border-radius: 5px;
-  background-color: #FF5050;
-}
-
 .errorHighlight {
   outline: 1px red solid;
 }
@@ -140,10 +152,6 @@ img {
 img {
   width: 600px;
   height: auto;
-}
-
-select {
-  padding: 4px;
 }
 
 input {

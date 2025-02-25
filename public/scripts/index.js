@@ -1,57 +1,33 @@
 import { roster } from "./roster.js";
 import { ScheduleTimeSheetParser } from "./parser.js";
+import { SelectFTR } from "./webComponents/selectFTR.js";
 import { TimesheetTable } from "./webComponents/timeSheetTable.js";
-import { capitalize } from "./utils.js";
+import { addDialogEventListener, addToggleEventListener } from "./timesheetEventListeners.js";
 /** @typedef {import('./roster.js').Employee} Employee */
 /** @typedef {import('./parser.js').Shift} Shift */
 /** @typedef {import('./parser.js').ShiftMap} ShiftMap */
 /** @typedef {import('./warnings.js').WarningsGroup} WarningsGroup */
+/** @typedef {import('./warnings.js').ShiftCountError} ShiftCountError */
 
-// Toggle User Input functionality
+// Toggle functionality for choosing FTR vs. custom name input
 const toggle = document.querySelector(".toggleSwitch");
-const employeeDropdown = document.querySelector(".employee");
+
+/** @type {SelectFTR} employeeDropdown */
+const employeeDropdown = document.querySelector("select-ftr");
 const customName = document.querySelector(".customName");
 const customAbbrev = document.querySelector(".customAbbrev");
 const customGender = document.querySelector(".customGender");
 const stats = document.querySelector(".holidays");
+addToggleEventListener(toggle, employeeDropdown, customName, customAbbrev, customGender);
 
-toggle.addEventListener("click", () => {
-    if (toggle.checked) {
-        // disable + clear dropdown for predefined employees, enable custom input fields
-        employeeDropdown.disabled = true;
-        employeeDropdown.classList.remove("errorHighlight");
-        employeeDropdown.value = "";
-
-        customName.disabled = false;
-        customAbbrev.disabled = false;
-        customGender.disabled = false;
-    } else {
-        // disable + clear custom input fields, enable predefined employees dropdown
-        employeeDropdown.disabled = false;
-
-        customName.disabled = true;
-        customName.value = "";
-        customName.classList.remove("errorHighlight");
-
-        customAbbrev.value = ""; 
-        customAbbrev.disabled = true;
-        customAbbrev.classList.remove("errorHighlight");
-
-        customGender.value = "";
-        customGender.disabled = true;
-        customGender.classList.remove("errorHighlight");
-    }
-});
-
-/** @type {TimesheetTable} timesheetTable */
-const timesheetTable = document.querySelector("timesheet-table");
-
-// Dialog elements for tutorial
+// // Dialog elements for tutorial
 const dialog = document.querySelector("dialog");
 const showBtn = document.querySelector("dialog + button");
 const closeBtn = document.querySelector("dialog button");
-showBtn.addEventListener("click", () => { dialog.showModal() });
-closeBtn.addEventListener("click", () => { dialog.close() });
+addDialogEventListener(dialog, showBtn, closeBtn);
+
+/** @type {TimesheetTable} timesheetTable */
+const timesheetTable = document.querySelector("timesheet-table");
 
 /**
  * Instantiates a ScheduleTimeSheetParser to generate both a tsv timesheet and an HTML table for the user to review.
@@ -61,6 +37,8 @@ export function parse() {
 
     const scheduleTextArea = document.querySelector(".schedule");
     const scheduleStr = scheduleTextArea.value;
+
+    /** @type {boolean} isCustomInput */
     const isCustomInput = toggle.checked;
 
     let employee = {
@@ -80,10 +58,10 @@ export function parse() {
 
     if (!isCustomInput) {
         if (employeeDropdown.value === "") {
-            employeeDropdown.classList.add("errorHighlight");
+            employeeDropdown.addErrorHighlight();
             return;
         }
-        employeeDropdown.classList.remove("errorHighlight");
+        employeeDropdown.removeErrorHighlight();
 
         employee = roster[employeeDropdown.value];
     }
@@ -139,54 +117,18 @@ export function parse() {
     /* @type {Map<number, number>} standbyHours */
     const standbyHours = parser.getStandbyHourMap(shifts);
 
+    // evaluate shift count to generate {ShiftCountError} into WarningsGroup
+    parser.shiftCountCheck(!isCustomInput, regularShifts.size, statHolidays);
+
     /* @type {WarningsGroup} parsedWarnings */
     const parsedWarnings = parser.getWarningsGroup();
 
     timesheetTable.constructTable(
         employee,
         weekdayHeaders,
+        statHolidays,
         regularShifts,
         standbyHours,
         parsedWarnings
     );
-
-    const comments = document.querySelector(".comments");
-    comments.appendChild(getShiftCountError(employee, regularShifts.size, statHolidays, !isCustomInput));
-}
-
-/**
- * @param {Employee} employee 
- * @param {number} regularShiftsSize 
- * @returns {HTMLParagraphElement} p
- */
-function getShiftCountError(employee, regularShiftsSize, statsCount, isFTR) {
-    const p = document.createElement("p");
-
-    const successSpan = document.createElement("span");
-    successSpan.textContent = " ✅ ";
-
-    const errorSpan = document.createElement("span");
-    errorSpan.textContent = " ❌ ";
-
-    const promptSpan = document.createElement("span");
-    promptSpan.style.fontFamily = "sans-serif";
-    promptSpan.style.fontSize = "small";
-
-    const expectedShiftCount = 10 - statsCount;
-    
-    if (!isFTR || regularShiftsSize === expectedShiftCount) {
-        p.appendChild(successSpan);
-        promptSpan.textContent = `${capitalize(employee.first_name)} has ${regularShiftsSize} shifts in this biweekly schedule (ignoring any duplicate errors), with (${statsCount}) stat holidays noted.`;
-    }
-    else if (regularShiftsSize > expectedShiftCount) {
-        p.appendChild(errorSpan);
-        promptSpan.textContent = `${capitalize(employee.first_name)} appears to have MORE THAN (${expectedShiftCount}) shifts in the biweekly, (${statsCount}) of which would be stat holiday(s).`;
-    }
-    else if (regularShiftsSize < expectedShiftCount) {
-        p.appendChild(errorSpan);
-        promptSpan.textContent = `${capitalize(employee.first_name)} appears to have LESS THAN (${expectedShiftCount}) shifts in the biweekly, (${statsCount}) of which would be stat holiday(s).`;
-    }
-    p.appendChild(promptSpan);
-
-    return p;
 }

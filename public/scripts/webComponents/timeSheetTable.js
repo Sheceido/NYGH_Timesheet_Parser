@@ -1,11 +1,11 @@
 import { capitalize } from "../utils.js";
 import { HeaderWithCopyBtn } from "../webComponents/copyBtn.js";
-import { Warnings } from "../warnings.js";
 /** @typedef {import('../parser.js').Shift} Shift */
 /** @typedef {import('../parser.js').ShiftMap} ShiftMap */
 /** @typedef {import('../roster.js').Employee} Employee */
 /** @typedef {import("../warnings.js").WarningsGroup} WarningsGroup */
 /** @typedef {import("../warnings.js").MultipleNames} MultipleNames */
+/** @typedef {import("../warnings.js").ShiftCountError} ShiftCountError */
 
 export class TimesheetTable extends HTMLElement {
 
@@ -84,7 +84,7 @@ export class TimesheetTable extends HTMLElement {
             font-family: sans-serif;
             font-size: medium;
             margin: 0;
-            margin-top: 0.5em;
+            margin-top: 1.5em;
         }
         .multiNameContainer {
             display: flex;
@@ -120,11 +120,12 @@ export class TimesheetTable extends HTMLElement {
      * Appends the web component's shadow root with a newly generated HTMLTableElement containing provided data.
      * @param {Employee} employee
      * @param {string[]} headers 
+     * @param {number} stats 
      * @param {ShiftMap} regShiftsMap 
      * @param {string | number} standbyHrs 
      * @param {WarningsGroup} warnings 
      */
-    constructTable(employee, headers, regShiftsMap, standbyHrs, warnings) {
+    constructTable(employee, headers, stats, regShiftsMap, standbyHrs, warnings) {
         if (!employee) { console.error("missing employee parameter"); return; }
         if (!headers) { console.error("missing headers parameter"); return; }
         if (!regShiftsMap) { console.error("missing regShiftsMap parameter"); return; }
@@ -137,6 +138,10 @@ export class TimesheetTable extends HTMLElement {
 
         this.#shadowRoot.appendChild(
             this.generateTable(headers, regShiftsMap, standbyHrs, warnings)
+        );
+
+        this.#shadowRoot.appendChild(
+            this.generateShiftCountErrorComment(employee, warnings.shiftCount, stats)
         );
     }
 
@@ -322,7 +327,44 @@ export class TimesheetTable extends HTMLElement {
             locationRow.appendChild(td);
         }
         table.appendChild(locationRow);
+
         return table;
+    }
+
+    /**
+     * @param {Employee} employee 
+     * @param {ShiftCountError} shiftCount 
+     * @param {number} statsCount 
+     * @returns {HTMLParagraphElement} p html tag containing prompt regarding the correct/incorrect number of shifts counted in this biweekly for the employee.
+     */
+    generateShiftCountErrorComment(employee, shiftCount, statsCount) {
+        const p = document.createElement("p");
+        p.classList.add("comments");
+
+        const successSpan = document.createElement("span");
+        successSpan.textContent = " ✅ ";
+
+        const errorSpan = document.createElement("span");
+        errorSpan.textContent = " ❌ ";
+
+        const promptSpan = document.createElement("span");
+        promptSpan.style.fontFamily = "sans-serif";
+        promptSpan.style.fontSize = "small";
+    
+        if (shiftCount.found === 0) {
+            p.appendChild(successSpan);
+            promptSpan.textContent = `${capitalize(employee.first_name)} has ${shiftCount.expected} shifts in this biweekly schedule (ignoring any duplicate errors), with (${statsCount}) stat holidays noted.`;
+
+        } else if (shiftCount.found > 0) {
+            p.appendChild(errorSpan);
+            promptSpan.textContent = `${capitalize(employee.first_name)} appears to have MORE THAN (${shiftCount.expected}) shifts in the biweekly, (${statsCount}) of which would be stat holiday(s).`;
+        } else {
+            p.appendChild(errorSpan);
+            promptSpan.textContent = `${capitalize(employee.first_name)} appears to have LESS THAN (${shiftCount.expected}) shifts in the biweekly, (${statsCount}) of which would be stat holiday(s).`;
+        }
+        p.appendChild(promptSpan);
+
+        return p;
     }
 
     /**
@@ -422,11 +464,14 @@ export class TimesheetTable extends HTMLElement {
     */
     reset() {
         this.headerCopyBtn.hide();
-        document.querySelector(".comments").textContent = "";
 
         const prevTable = this.#shadowRoot.querySelector("table");
         if (prevTable) {
             this.#shadowRoot.removeChild(prevTable);
+        }
+        const errorComments = this.#shadowRoot.querySelector(".comments");
+        if (errorComments) {
+            this.#shadowRoot.removeChild(errorComments);
         }
     }
 }

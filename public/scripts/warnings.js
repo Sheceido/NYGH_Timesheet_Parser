@@ -16,12 +16,22 @@
  * - The key (`number`) corresponds to a weekday column index.
  * - The value (`string[]`) is an array of strings of male names in both evening slots
  */
-/** @typedef {{
+/**
+ * @typedef {{
  *      duplicate: Duplicates,
  *      multipleNames: MultipleNames,
- *      evening: EveningMaleTechs
+ *      evening: EveningMaleTechs,
+ *      shiftCount: ShiftCountError,
  *  }} WarningsGroup
  * */
+/**
+ * @typedef {{expected: number, found: number}} ShiftCountError
+ * expected: number of expected shifts for the FTR, taking into account stat holidays
+ * found: error value by +/0/- integer value:
+ *   (+) is greater than the expected shifts
+ *   (0) accounts for the proper number of shifts
+ *   (-) less than the expected shifts
+ */
 
 export class Warnings {
     /** @type {Duplicates} */
@@ -30,6 +40,10 @@ export class Warnings {
     _multipleNames;
     /** @type {EveningMaleTechs} */
     _eveningMaleTechs;
+    /** @type {number} */
+    _shiftCountError;
+    /** @type {number} */
+    _expectedShiftCount;
 
 
     constructor() {
@@ -44,6 +58,7 @@ export class Warnings {
             duplicate: this.duplicate,
             multipleNames: this.multipleNames,
             evening: this.eveningMalesTechs,
+            shiftCount: this.shiftCountError,
         }
     }
 
@@ -59,22 +74,37 @@ export class Warnings {
     get eveningMalesTechs() {
         return structuredClone(this._eveningMaleTechs);
     }
+    /** @returns {ShiftCountError} */
+    get shiftCountError() {
+        return {
+            expected: this._expectedShiftCount,
+            found: this._shiftCountError,
+        }
+    }
 
     /**
      * @param {string} employeeStatus 
      * @param {number} shiftCount 
      * @param {number} statHolidays 
      */
-    shiftCountEval(employeeStatus, shiftCount, statHolidays) {
+    shiftCountEval(isFTR, shiftCount, statCount) {
         const FTR_HRS = 10;
+        this._expectedShiftCount = FTR_HRS - statCount;
 
-        switch(employeeStatus) {
-            case "FTR":
-                return (FTR_HRS - statHolidays) - shiftCount;
-            case "PTR0.2":
-                break;
+        if (!isFTR) {
+            this._expectedShiftCount = shiftCount;
+            this._shiftCountError = 0;
+            return;
+        }
+
+        if (shiftCount === this._expectedShiftCount) {
+            this._shiftCountError = 0;
+        } else {
+            this._shiftCountError = shiftCount - this._expectedShiftCount;
         }
     }
+
+
 
     /**
      * @param {Employee} employee 

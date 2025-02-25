@@ -14,7 +14,6 @@ export class ScheduleTimeSheetParser {
     employee;
     schedule;
     shiftTimes;
-
     warnings;
 
     /**
@@ -407,16 +406,13 @@ export class ScheduleTimeSheetParser {
         return standbyHours;
     }
 
-    getDuplicateWarnings() {
-        return this.warnings.duplicate;
-    }
-
-    getMultiNameWarnings() {
-        return this.warnings.multipleNames;
-    }
-
-    getMaleTechEveningWarnings() {
-        return this.warnings.eveningMalesTechs; 
+    /**
+    * @param {boolean} isFTR 
+    * @param {number} shiftCount 
+    * @param {number} statCount 
+    */
+    shiftCountCheck(isFTR, shiftCount, statCount) {
+        this.warnings.shiftCountEval(isFTR, shiftCount, statCount);
     }
 
     getWarningsGroup() {
