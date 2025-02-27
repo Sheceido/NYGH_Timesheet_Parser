@@ -7,12 +7,14 @@ body {
 }
 
 textarea {
+  width: 100%;
   border: 1px solid #ddd;
   border-radius: 5px;
   margin-block: 0.5em;
 }
 
 .textareaContainer {
+  width: 90vw;
   position: relative;
 }
 
@@ -85,6 +87,7 @@ button {
   border: 1px solid #ddd;
   background-color: white;
   min-height: 80%;
+  width: 90vw;
   padding: 1em;
   z-index: 1;
 }

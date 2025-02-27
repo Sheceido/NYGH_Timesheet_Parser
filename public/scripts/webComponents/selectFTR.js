@@ -22,16 +22,6 @@ export class SelectFTR extends HTMLElement {
         this.#shadowRoot.appendChild(style);
 
         this.select = document.createElement("select");
-        this.select.name = "employeeFTR";
-        this.select.id = "employeeFTR";
-        
-        const disabledPrompt = document.createElement("option");
-        disabledPrompt.value = "";
-        disabledPrompt.disabled = true;
-        disabledPrompt.selected = true;
-        disabledPrompt.textContent = "Choose FTR...";
-        
-        this.select.appendChild(disabledPrompt);
 
         for (const [key, _] of Object.entries(roster)) {
             const option = document.createElement("option");
@@ -45,6 +35,26 @@ export class SelectFTR extends HTMLElement {
 
     get value() {
         return this.select.value;
+    }
+
+    addDisabledOption() {
+        const disabledPrompt = document.createElement("option");
+        disabledPrompt.id = "disabledOption";
+        disabledPrompt.value = "";
+        disabledPrompt.disabled = true;
+        disabledPrompt.selected = true;
+        disabledPrompt.textContent = "Choose FTR...";
+
+        this.select.prepend(disabledPrompt);
+    }
+
+    addShowAllOption() {
+        const showAllOption = document.createElement("option");
+        showAllOption.value = "ALL";
+        showAllOption.selected = true;
+        showAllOption.textContent = "View All Employees";
+
+        this.select.prepend(showAllOption);
     }
 
     addErrorHighlight() {

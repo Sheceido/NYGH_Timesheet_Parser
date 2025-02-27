@@ -18,10 +18,10 @@
           <span style="margin-inline: 0.2em;">
             <img class="icon" src="icons8-timesheet-favicon.png" width="32" height="32"/>
           </span>
-        </h1>  
+        </h1>
       </main>
       <div class="textareaContainer">
-        <textarea id="schedule" name="schedule" class="schedule" rows="10" cols="190" placeholder="Copy and Paste schedule grid here!"></textarea> 
+        <textarea id="schedule" name="schedule" class="schedule" rows="10" placeholder="Copy and Paste schedule grid here!"></textarea> 
         <button class="textareaPaste">
           <?xml version="1.0" encoding="UTF-8"?>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="25" height="25" fill="currentColor">
@@ -42,7 +42,7 @@
         <div class="flex-row" style="justify-content: space-between; margin-top: 1em;">
           <div class="flex-row">
             <div>
-              <select-ftr></select-ftr>
+              <select-ftr id="timesheetSelectFTR"></select-ftr>
             </div>
             <label class="switch">
               <input type="checkbox" class="toggleSwitch">
@@ -58,7 +58,7 @@
               </select>
               <input type="text" class="holidays" maxlength="2" size="6" placeholder="Holidays"/>
             </div>
-            <button type="button" class="submitBtn" onclick="parse()">Generate Timesheet</button>
+            <button type="button" class="submitBtn" onclick="window.parse()">Generate Timesheet</button>
           </div>
           <dialog>
             <button class="modalCloseBtn" style="position: sticky;" autofocus>X</button>
@@ -95,11 +95,19 @@
         <timesheet-table></timesheet-table>
       </div>
       <div class="scheduleCheckContainer">
-        🏗️🚧 Under Construction 🚧🧱
+        <div class="flex-row" style="margin-top: 1em;">
+          <input type="text" class="schedCheckHolidays" maxlength="2" size="6" placeholder="Holidays"/>
+          <button type="button" class="checkBtn" onclick="window.checkSchedule()">Check Schedule</button>
+          <select-ftr id="schedCheckSelectFTR"></select-ftr>
+        </div>
+        <schedule-checker></schedule-checker>
       </div>
       <script type="module">
-      import {parse} from "./scripts/index.js";
-      window.parse = parse; // attach functions to be accessible in browser.
+      import {parse} from "./scripts/timesheet.js";
+      import {checkSchedule} from "./scripts/schedCheck.js";
+      // attach functions to be accessible in browser.
+      window.parse = parse; 
+      window.checkSchedule = checkSchedule;
       </script>
     </div>
   </body>

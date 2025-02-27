@@ -171,7 +171,7 @@ export class TimesheetTable extends HTMLElement {
 
         // Include name for days of the week in header
         const daysOfWeekRow = document.createElement("tr");
-        daysOfWeekRow.appendChild(document.createElement("th"));
+        daysOfWeekRow.appendChild(document.createElement("th")); //empty first element
         for (let i = 0; i < 2; i++) {
 
             for (let j = 0, th; j < DAYS_OF_THE_WEEK.length; j++) {

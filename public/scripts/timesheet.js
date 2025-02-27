@@ -43,7 +43,9 @@ tabEventListener(
 const toggle = document.querySelector(".toggleSwitch");
 
 /** @type {SelectFTR} employeeDropdown */
-const employeeDropdown = document.querySelector("select-ftr");
+const employeeDropdown = document.querySelector("#timesheetSelectFTR");
+employeeDropdown.addDisabledOption();
+
 const customName = document.querySelector(".customName");
 const customAbbrev = document.querySelector(".customAbbrev");
 const customGender = document.querySelector(".customGender");
@@ -161,8 +163,4 @@ export function parse() {
         standbyHours,
         parsedWarnings
     );
-}
-
-export function generateScheduleChecker() {
-    
 }
