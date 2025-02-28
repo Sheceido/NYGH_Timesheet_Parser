@@ -1,5 +1,7 @@
 import { capitalize } from "../../utils.js";
+import { roster } from "../../roster.js";
 /** @typedef {import("../../parser.js").ShiftMap} ShiftMap */
+/** @typedef {import("../../warnings.js").WarningsGroup} WarningsGroup */
 /** @typedef {import("../../schedCheck.js").EmployeeShiftsAndWarnings} EmployeeShiftsAndWarnings */
 
 export class ScheduleChecker extends HTMLElement {
@@ -14,6 +16,7 @@ export class ScheduleChecker extends HTMLElement {
         }
         th {
             position: relative;
+            border: 1px solid #ddd;
             padding-block: 0.5em;
             font-size: 14px;
         }
@@ -26,10 +29,11 @@ export class ScheduleChecker extends HTMLElement {
             border: 1px solid #ddd;
             border-width: 1px;
             width: 5em;
-            height: 30px; 
+            height: 15px; 
             padding-block: 0.5em;
             padding-inline: 1em;
             font-size: 12px;
+            font-family: sans-serif;
         }
         p {
             font-family: sans-serif;
@@ -57,6 +61,7 @@ export class ScheduleChecker extends HTMLElement {
             top: 0;
             left: 0;
             width: 100%;
+            height: 1px;
         }
         div.context {
             position:absolute;
@@ -64,7 +69,6 @@ export class ScheduleChecker extends HTMLElement {
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            left: -50px;
             min-height: 120px;
             min-width: 150px;
             max-width: fit-content;
@@ -85,6 +89,7 @@ export class ScheduleChecker extends HTMLElement {
             flex-direction: row;
             justify-content: center;
             align-items: center;
+            z-index: 100;
         }
         .multiNameContainer p {
             padding-inline: 1.5em;
@@ -96,6 +101,7 @@ export class ScheduleChecker extends HTMLElement {
     `;
 
     shiftTimes;
+    /** @type {HTMLTableElement} */
     scheduleTable;
 
     constructor() {
@@ -111,9 +117,10 @@ export class ScheduleChecker extends HTMLElement {
     * @param {string[][]} grid 
     * @param {string[]} headers 
     * @param {ShiftMap} shiftTimes 
+    * @param {WarningsGroup} globalWarnings 
     * @param {EmployeeShiftsAndWarnings} employeeShiftsWarnings 
     */
-    createScheduleTable(grid, headers, shiftTimes, employeeShiftsWarnings) {
+    createScheduleTable(grid, headers, shiftTimes, globalWarnings, employeeShiftsWarnings) {
         const DAYS_OF_THE_WEEK = ["Sat", "Sun", "Mon", "Tues", "Wed", "Thurs", "Fri"];
 
         this.shiftTimes = shiftTimes;
@@ -139,11 +146,37 @@ export class ScheduleChecker extends HTMLElement {
         for (let i = 0, th; i < headers.length; i++) {
             th = document.createElement("th");
             th.textContent = headers[i];
+
+            // Add global warnings into header:
+            if (globalWarnings.evening.has(i)) {
+                const names = globalWarnings.evening.get(i);
+
+                const h3 = document.createElement("h3");
+                h3.textContent = `Multiple Male Techs in Evening!`;
+
+                const namesContainer = this.generateMultiNameContainer(
+                    names,
+                    "#F44336"
+                );
+
+                const imgWithCtx = this.addImageSymbolWithContext(
+                    "./images/icons8-male-24.png",
+                    [h3, namesContainer],
+                    "#F44336",
+                    "bottom"
+                );
+                imgWithCtx.id = `eveningMaleError`;
+
+                th.appendChild(imgWithCtx);
+            }
+
+
+
             daysNumRow.appendChild(th);
         }
         this.scheduleTable.append(daysNumRow);
 
-        // Go through all FTR employees and place the shifts parsed into grid
+        // Go through all FTR employees and place the corrected names into grid
         for (const [name, e] of employeeShiftsWarnings.entries()) {
             e.shifts.forEach(shift => {
                 grid[shift.coordinate.row][shift.coordinate.col] = capitalize(name);
@@ -161,7 +194,14 @@ export class ScheduleChecker extends HTMLElement {
                 const name = grid[rowIndex][colIndex];
 
                 const td = document.createElement("td");
-                td.id = `row${rowIndex}col${colIndex}`;
+                if (colIndex === 0) {
+                    td.id = `shiftTime`; // important for qs'ing for warnings
+                } else {
+                    td.id = `row${rowIndex}col${colIndex}`; // important for qs'ing for warnings
+                }
+                td.setAttribute("row", rowIndex);
+                td.setAttribute("col", colIndex);
+
                 td.textContent = name;
                 td.style.backgroundColor = this.applyCellColor(
                     rowIndex + firstRow, // offset from the splice done above
@@ -180,12 +220,12 @@ export class ScheduleChecker extends HTMLElement {
     /**
      * @param {EmployeeShiftsAndWarnings} employeeShiftsWarnings 
      */
-    applyWarnings(employeeShiftsWarnings) {
-
-        // Constructing table resulted in splicing away rows prior to 7am shift,
+    applyEmployeeWarnings(employeeShiftsWarnings) {
+        // Constructed table resulted in splicing away rows prior to 7am shift,
         // use firstRow index as offset to find true coordinate
         const firstRow = this.findFirstShiftTimeRow("07:00-15:00", "GENERAL");
 
+        // Go through all FTR employees and render any warnings for the shift
         for (const [_, shifts] of employeeShiftsWarnings.entries()) {
 
             const duplicateIterable = shifts.warnings.duplicate.entries();
@@ -247,9 +287,10 @@ export class ScheduleChecker extends HTMLElement {
                     );
 
                     // If there is another error img, shift this warning away from right corner
-                    console.log(cell.querySelector(`.ctxContainer#dupError`));
-                    if (cell.querySelector(`.ctxContainer#dupError`)) {
-                        imgWithCtx.querySelector("img").style.right = "15px";
+                    const priorErrors = cell.querySelectorAll(`.ctxContainer#dupError`);
+                    if (priorErrors.length > 0) {
+                        const offsetPosition = `${15 * priorErrors.length}px`;
+                        imgWithCtx.querySelector("img").style.right = offsetPosition;
                     }
 
                     cell.appendChild(imgWithCtx);
@@ -279,11 +320,13 @@ export class ScheduleChecker extends HTMLElement {
         }
         switch(direction) {
             case "top":
-                context.style.bottom = `${context.offsetHeight + 5}px`;
+                context.style.bottom = `5px`;
                 break;
             case "bottom":
-                context.style.top = `-${context.offsetHeight - 5}px`;
+                context.style.top = `25px`; //TODO: incorrect offset
                 break;
+            case "right":
+                context.style.right = `${context.offsetWidth}px`;
         }
 
         ctxChildEl.forEach(element => context.appendChild(element));
@@ -408,6 +451,51 @@ export class ScheduleChecker extends HTMLElement {
                 break;
         }
         return cellColor;
+    }
+
+    fadeAllCellsExcept(name) {
+        const employee = roster[name];
+        if (!employee) {
+            console.error(`${name} was not found in roster!`);
+            return;
+        }
+
+        const allCells = this.scheduleTable.querySelectorAll("td");
+        for (let i = 0, cell; i < allCells.length; i++) {
+            cell = allCells[i];
+
+            if (cell.id === "shiftTime") {
+                continue;
+            }
+
+            if (cell.innerText.toUpperCase() === employee.first_name ||
+                cell.innerText.toUpperCase() === employee.abbrev) {
+                this.applyOpacity(cell, 1);
+            } else {
+                this.applyOpacity(cell, 0.05);
+            }
+        }
+    }
+
+    unfadeAllCells() {
+        const allCells = this.scheduleTable.querySelectorAll("td");
+        allCells.forEach(cell => {
+            this.applyOpacity(cell, 1);
+        });
+    }
+
+    /**
+     * @param {HTMLElement} el 
+     * @param {number} fp 
+     */
+    applyOpacity(el, fp) {
+        el.style.opacity = fp;
+    }
+
+    reset() {
+        if (this.scheduleTable) {
+            this.#shadowRoot.removeChild(this.scheduleTable);
+        }
     }
 }
 

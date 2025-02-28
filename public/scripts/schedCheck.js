@@ -7,15 +7,25 @@ import { ScheduleChecker } from "./webComponents/scheduleCheck/ScheduleChecker.j
 
 /** @typedef {Map<string, {shifts: Shift[], warnings: WarningsGroup}>} EmployeeShiftsAndWarnings */
 
-/** @type {SelectFTR} */
-const selectFTR = document.querySelector("#schedCheckSelectFTR");
-selectFTR.addShowAllOption();
-
 /** @type {ScheduleChecker} */
 const scheduleCheckTable = document.querySelector("schedule-checker");
 
+function onSelectChangeCallback(rosterName) {
+    if (rosterName === "ALL") {
+        scheduleCheckTable.unfadeAllCells();
+    } else {
+        scheduleCheckTable.fadeAllCellsExcept(rosterName);
+    }
+}
+/** @type {SelectFTR} */
+const selectFTR = document.querySelector("#schedCheckSelectFTR");
+selectFTR.addShowAllOption();
+selectFTR.addOnChangeFn(onSelectChangeCallback);
+selectFTR.disableSelect();
 
 export function checkSchedule() {
+    scheduleCheckTable.reset(); // remove old table
+
     const schedTextArea = document.querySelector(".schedule");
     const scheduleStr = schedTextArea.value;
 
@@ -44,18 +54,23 @@ export function checkSchedule() {
     const scheduleGrid = schedParse.getScheduleGrid();
     const headers = schedParse.getWeekdayHeader();
     const shiftTimes = schedParse.getShiftTimeRows();
+    
+    // Global warnings
+    schedParse.checkEveningShiftGenders();
+    const globalWarnings = schedParse.getWarningsGroup();
 
     /** @type {EmployeeShiftsAndWarnings} */
     const ftrEmployeeShiftsWarnings = new Map();
     
-    for (const [name, employee] of Object.entries(roster)) {
+    for (const [_, employee] of Object.entries(roster)) {
         const parser = new ScheduleTimeSheetParser(scheduleStr, employee);
         const shifts = parser.findShifts();
 
         const regularShifts = parser.getRegularHoursMap(shifts);
         parser.shiftCountCheck(true, regularShifts.size, holidayCount);
-        const warnings = parser.getWarningsGroup();
 
+        // get warnings specific to each employee
+        const warnings = parser.getWarningsGroup();
         ftrEmployeeShiftsWarnings.set(employee.first_name, {
             shifts: shifts,
             warnings: warnings,
@@ -66,8 +81,10 @@ export function checkSchedule() {
         scheduleGrid,
         headers,
         shiftTimes,
+        globalWarnings,
         ftrEmployeeShiftsWarnings
     );
 
-    scheduleCheckTable.applyWarnings(ftrEmployeeShiftsWarnings);
+    scheduleCheckTable.applyEmployeeWarnings(ftrEmployeeShiftsWarnings);
+    selectFTR.enableSelect(); // enable for filtering once schedule is generated
 }

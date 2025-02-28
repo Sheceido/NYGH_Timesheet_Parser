@@ -37,6 +37,13 @@ export class SelectFTR extends HTMLElement {
         return this.select.value;
     }
 
+    /**
+    * @param {() => void} callback 
+    */
+    addOnChangeFn(callback) {
+        this.select.onchange = () => callback(this.select.value);
+    }
+
     addDisabledOption() {
         const disabledPrompt = document.createElement("option");
         disabledPrompt.id = "disabledOption";
@@ -68,11 +75,13 @@ export class SelectFTR extends HTMLElement {
     disableSelect() {
         this.select.disabled = true;
         this.removeErrorHighlight();
+        this.select.style.cursor = "default";
         this.select.value = "";
     }
 
     enableSelect() {
         this.select.disabled = false;
+        this.select.style.cursor = "pointer";
     }
 }
 

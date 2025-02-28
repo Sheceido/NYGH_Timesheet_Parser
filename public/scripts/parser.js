@@ -1,4 +1,5 @@
 import { Warnings } from './warnings.js';
+import { roster } from './roster.js';
 
 /**
  * @typedef {Object} Shift 
@@ -289,6 +290,36 @@ export class ScheduleTimeSheetParser {
     }
 
     /**
+     * @param {string} name 
+     * @returns {Employee | null}
+     */
+    matchEmployeeByRoster(name) {
+        for (const [_, employee] of Object.entries(roster)) {
+            if (employee.first_name === name ||
+                employee.str_alias === name ||
+                employee.abbrev === name
+            ) {
+                return employee;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @param {string} st 
+     */
+    getRowByShiftTime(st) {
+        const foundRows = [];
+
+        for (const [row, shift] of this.shiftTimes.entries()) {
+            if (shift.shiftTime.toUpperCase() === st.toUpperCase()) {
+                foundRows.push(row);
+            }
+        }
+        return foundRows;
+    }
+
+    /**
     * @param {string} name 
     * @returns {{ isMulti: boolean, names: string[] }} An object containing:
     * - `isMulti`: A boolean indicating whether the name has multiple names.
@@ -427,6 +458,68 @@ export class ScheduleTimeSheetParser {
     */
     shiftCountCheck(isFTR, shiftCount, statCount) {
         this.warnings.shiftCountEval(isFTR, shiftCount, statCount);
+    }
+
+    checkNotAvailables() {
+        if (!this.schedule || !this.shiftTimes) {
+            console.error("parser's schedule and shift time must be defined before calling this checkNotAvailables().");
+            return;
+        }
+        const notAvailRows = this.getRowByShiftTime("NOT AVAILABLE");
+        // TODO:
+    }
+    /**
+     * Identifying the evening rows in the schedule,
+     * iterate through these rows and push entries to a Map of dayIndex to Sets of names
+     * for each male name found; then finally add warning if any sets have size > 1
+     */
+    checkEveningShiftGenders() {
+        if (!this.schedule || !this.shiftTimes) {
+            console.error("parser's schedule and shift time must be defined before calling this checkEveningShiftGenders().");
+            return;
+        }
+        const eveningRows = this.getRowByShiftTime("16:00-24:00");
+        /** @type {Map<number, Set<string>>} */
+        const eveningHasMaleTech = new Map();
+
+        for (let i = 0; i < eveningRows.length; i++) {
+            let currRow = eveningRows[i];
+
+            for (let day = 0; day < this.schedule[currRow].length; day++) {
+
+                let name = this.schedule[currRow][day].trim().toUpperCase();
+
+                const {isMulti, names} = this.multiNameCell(name);
+                if (isMulti) {
+                    // use last listed name if multiple names in cell
+                    name = names[names.length-1].trim();
+                }
+
+                const employee = this.matchEmployeeByRoster(name);
+                if (!employee) {
+                    continue;
+                }
+
+                if (employee.gender === "M") {
+                    if (!eveningHasMaleTech.has(day)) {
+                        eveningHasMaleTech.set(
+                            day,
+                            new Set([employee.first_name]),
+                        );
+                    } else {
+                        eveningHasMaleTech
+                            .get(day)
+                            .add(employee.first_name);
+                    }
+                }
+            }
+        }
+
+        for (const [day, set] of eveningHasMaleTech.entries()) {
+            if (set.size > 1) {
+                this.warnings.addEveningMaleTechEntry(day, Array.from(set));
+            }
+        }
     }
 
     getWarningsGroup() {

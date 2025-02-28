@@ -17,10 +17,15 @@
  * - The value (`string[]`) is an array of strings of male names in both evening slots
  */
 /**
+ * @typedef {Map<string, any>} NotAvailable
+ * //TODO: 
+ */
+/**
  * @typedef {{
  *      duplicate: Duplicates,
  *      multipleNames: MultipleNames,
  *      evening: EveningMaleTechs,
+ *      notAvailable: NotAvailable,
  *      shiftCount: ShiftCountError,
  *  }} WarningsGroup
  * */
@@ -104,8 +109,6 @@ export class Warnings {
         }
     }
 
-
-
     /**
      * @param {Employee} employee 
      * @param {string[]} names 
@@ -138,6 +141,19 @@ export class Warnings {
             this._duplicate.get(shift.weekday).push(shift);
         } else {
             this._duplicate.set(shift.weekday, [shift]);
+        }
+    }
+
+    /**
+    * @param {number} dayIndex 
+    * @param {string[]} names 
+    */
+    addEveningMaleTechEntry(dayIndex, names) {
+        if (this._eveningMaleTechs.has(dayIndex)) {
+            const newNameList = this._eveningMaleTechs.get(dayIndex).concat(names);
+            this._eveningMaleTechs.set(dayIndex, newNameList);
+        } else {
+            this._eveningMaleTechs.set(dayIndex, names);
         }
     }
 }
