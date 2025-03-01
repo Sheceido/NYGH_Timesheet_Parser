@@ -25,6 +25,7 @@ selectFTR.disableSelect();
 
 export function checkSchedule() {
     scheduleCheckTable.reset(); // remove old table
+    selectFTR.selectFirstChild();
 
     const schedTextArea = document.querySelector(".schedule");
     const scheduleStr = schedTextArea.value;
@@ -64,6 +65,7 @@ export function checkSchedule() {
     
     for (const [_, employee] of Object.entries(roster)) {
         const parser = new ScheduleTimeSheetParser(scheduleStr, employee);
+        parser.warnings.unavailableMapping = schedParse.warnings.unavailableMapping;
         const shifts = parser.findShifts();
 
         const regularShifts = parser.getRegularHoursMap(shifts);
@@ -71,7 +73,7 @@ export function checkSchedule() {
 
         // get warnings specific to each employee
         const warnings = parser.getWarningsGroup();
-        ftrEmployeeShiftsWarnings.set(employee.first_name, {
+        ftrEmployeeShiftsWarnings.set(employee.str_alias, {
             shifts: shifts,
             warnings: warnings,
         });

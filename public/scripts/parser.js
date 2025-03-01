@@ -27,6 +27,7 @@ export class ScheduleTimeSheetParser {
         this.schedule = this.parseScheduleToGrid(scheduleStr);
         this.shiftTimes = this.getShiftTimeRows();
         this.warnings = new Warnings();
+        this.findUnavailables();
     }
 
     /**
@@ -205,22 +206,40 @@ export class ScheduleTimeSheetParser {
         return shiftMapping;
     }
     
-
+    /**
+     * @param {string} st 
+     * @return {number[]} index of each row with the shiftTime name
+     */
+    findAllShiftTimeRows(st) {
+        if (!this.shiftTimes) {
+            console.error("shifttimes is not defined for the operation findAllShiftTimeRows()");
+        }
+        const rows = [];
+        this.shiftTimes.forEach((s, i) => {
+            if (s.shiftTime === st) {
+                rows.push(i);
+            }
+        });
+        return rows;
+    }
 
     /**
      * Public method for traversing schedule to find all shifts by selected name.
      * @returns {Array<Shift | null>}
      */
     findShifts() {
+        if (!this.warnings._unavailableMapping) {
+            console.error("warnings.unavailableMapping must be defined prior to calling findShifts().");
+            return;
+        }
         /** @type {Array<Shift>} */
         const shifts = [];
 
         for (const [rowNum, row] of this.schedule.entries()) {
-
             for (const [colNum, name] of row.entries()) {
 
                 const st = this.shiftTimes.get(rowNum);
-                const nameTrimmed = name.trim();
+                const nameTrimmed = name.trim().toUpperCase();
 
                 if (this.matchEmployee(nameTrimmed)) {
 
@@ -232,8 +251,8 @@ export class ScheduleTimeSheetParser {
                             continue;
                     }
 
-                    // Add valid shift into shifts array
-                    shifts.push({
+                    /** @type {Shift} shiftData */
+                    const shiftData = {
                         coordinate: {
                             row: rowNum,
                             col: colNum
@@ -241,12 +260,19 @@ export class ScheduleTimeSheetParser {
                         weekday: colNum,
                         location: this.isOcscOrConsumer(st.location),
                         shiftTime: st.shiftTime,
-                    });
+                    };
+
+                    // Add valid shift into shifts array
+                    shifts.push(shiftData);
+
+                    // Add Unavailable warning if name showeed up in unavailableMapping
+                    if (this.warnings.isUnavailable(colNum, nameTrimmed)) {
+                        this.warnings.addNotAvailableEntry(shiftData);
+                    }
                 }
 
                 // Add multiple names warning if cell contains >= 2 names
                 const { isMulti, names } = this.multiNameCell(nameTrimmed);
-
                 if (isMulti && this.warnings.hasMultipleNames(this.employee, names)) {
                     /** @type {Shift} shift */
                     const shift = {
@@ -329,9 +355,10 @@ export class ScheduleTimeSheetParser {
         const names = name.trim().toUpperCase().split(/\s+/);
 
         if (names.includes("W/E") ||
-            names.includes("STAT")
+            names.includes("STAT") ||
+            names[names.length-1].length < 2 // for same first names and only 1st letter of last name is used as the differentiator
         ) {
-            return { isMulti: false, names: names };
+            return { isMulti: false, names: [name.trim().toUpperCase()] };
         }
         return {
             isMulti: (name.trim().split(/\s+/).length >= 2),
@@ -359,7 +386,7 @@ export class ScheduleTimeSheetParser {
 
     /**
      * Public method to get a mapping of shifts by their weekdays.
-     * @param {Shift} shifts 
+     * @param {Shift[]} shifts 
      * @returns {ShiftMap} a mapping of shifts to their weekday index
      * Any duplicates found are logged in the parsers warning property.
      */
@@ -373,10 +400,9 @@ export class ScheduleTimeSheetParser {
         const regularHoursMap = new Map();
 
         shifts.forEach(s => {
-
             if (s!== null && s.shiftTime !== "ON-CALL") {
+                // add duplicate warning entry for any duplicate names found on same day
                 if (regularHoursMap.has(s.weekday)) {
-                    // add warning/error entry for any duplicate names found on same day
                     this.warnings.addDuplicateNamesEntry(s);
                 } else {
                     regularHoursMap.set(s.weekday, s);
@@ -460,14 +486,6 @@ export class ScheduleTimeSheetParser {
         this.warnings.shiftCountEval(isFTR, shiftCount, statCount);
     }
 
-    checkNotAvailables() {
-        if (!this.schedule || !this.shiftTimes) {
-            console.error("parser's schedule and shift time must be defined before calling this checkNotAvailables().");
-            return;
-        }
-        const notAvailRows = this.getRowByShiftTime("NOT AVAILABLE");
-        // TODO:
-    }
     /**
      * Identifying the evening rows in the schedule,
      * iterate through these rows and push entries to a Map of dayIndex to Sets of names
@@ -504,12 +522,12 @@ export class ScheduleTimeSheetParser {
                     if (!eveningHasMaleTech.has(day)) {
                         eveningHasMaleTech.set(
                             day,
-                            new Set([employee.first_name]),
+                            new Set([employee.str_alias]),
                         );
                     } else {
                         eveningHasMaleTech
                             .get(day)
-                            .add(employee.first_name);
+                            .add(employee.str_alias);
                     }
                 }
             }
@@ -519,6 +537,33 @@ export class ScheduleTimeSheetParser {
             if (set.size > 1) {
                 this.warnings.addEveningMaleTechEntry(day, Array.from(set));
             }
+        }
+    }
+
+    findUnavailables() {
+        const unavailableRows = this.findAllShiftTimeRows("Not Available");
+
+        unavailableRows.forEach(row => {
+            for (let day = 1; day < this.schedule[row].length; day++) {
+                const nameTrimmed = this.schedule[row][day].trim();
+                const cell = this.multiNameCell(nameTrimmed);
+                
+                cell.names.forEach(name => {
+                    if (name !== "") {
+                        const employee = this.matchEmployeeByRoster(name);
+                        if (employee) {
+                            this.warnings.populateUnavailableMap(day, employee.str_alias);
+                        } else {
+                            this.warnings.populateUnavailableMap(day, name);
+                        }
+                    }
+                });
+            }
+        });
+
+        // Create empty map if no unavailable employees were noted.
+        if (!this.warnings.unavailableMapping) {
+            this.warnings.unavailableMapping = new Map();
         }
     }
 

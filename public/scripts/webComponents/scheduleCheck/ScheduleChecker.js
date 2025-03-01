@@ -169,9 +169,6 @@ export class ScheduleChecker extends HTMLElement {
 
                 th.appendChild(imgWithCtx);
             }
-
-
-
             daysNumRow.appendChild(th);
         }
         this.scheduleTable.append(daysNumRow);
@@ -182,11 +179,11 @@ export class ScheduleChecker extends HTMLElement {
                 grid[shift.coordinate.row][shift.coordinate.col] = capitalize(name);
             });
         }
-
         /** Remove all rows above the first row starting at a specified time */
         const firstRow = this.findFirstShiftTimeRow("07:00-15:00", "GENERAL");
         grid.splice(0, firstRow);
-
+        
+        // Create table from grid of data
         for (let rowIndex = 0; rowIndex < grid.length; rowIndex++) {
             const tr = document.createElement("tr");
 
@@ -213,7 +210,6 @@ export class ScheduleChecker extends HTMLElement {
             }
             this.scheduleTable.appendChild(tr);
         }
-        
         this.#shadowRoot.appendChild(this.scheduleTable);
     }
 
@@ -226,90 +222,141 @@ export class ScheduleChecker extends HTMLElement {
         const firstRow = this.findFirstShiftTimeRow("07:00-15:00", "GENERAL");
 
         // Go through all FTR employees and render any warnings for the shift
-        for (const [_, shifts] of employeeShiftsWarnings.entries()) {
+        for (const [str_alias, shifts] of employeeShiftsWarnings.entries()) {
 
             const duplicateIterable = shifts.warnings.duplicate.entries();
+            const lightRed = "#F78F8F";
+            const red = "#FF0000";
+            const unavailRows = this.findAllShiftTimeRow("Not Available", "GENERAL");
+
+            // Apply "x" duplicate warning
             for (const [_, sh] of duplicateIterable) {
+
                 sh.forEach(s => {
-                    const row = s.coordinate.row - firstRow;
+                    const row = s.coordinate.row - firstRow; //offset for row index post-splice
                     const col = s.coordinate.col;
-                    const cell = this.#shadowRoot.querySelector(`#row${row}col${col}`);
 
-                    if (cell) {
-                        const h3 = document.createElement("h3");
-                        h3.textContent = `?Duplicate Error`;
+                    const h3 = document.createElement("h3");
+                    h3.textContent = `?Duplicate Error`;
 
-                        const p = document.createElement("p");
-                        p.textContent = `Another shift found in this same column!`;
+                    const p = document.createElement("p");
+                    p.textContent = `Another shift found in this same column!`;
 
-                        const imgWithCtx = this.addImageSymbolWithContext(
-                            "./images/icons8-error-48.png",
-                            [h3, p],
-                            "red",
-                            "top"
-                        );
-                        imgWithCtx.id = `dupError`;
-
-                        cell.appendChild(imgWithCtx);
-                    }
+                    this.applyWarningToCell(
+                        row,
+                        col,
+                        "warningDup",
+                        "./images/icons8-error-48.png",
+                        [h3, p],
+                        (unavailRows.includes(s.coordinate.row) ? lightRed : red),
+                        "top"
+                    );
                 });
             }
 
-            // Generate "?" and "!" warnings on schedule
+            // Apply "?" and "!" multi-name warnings on schedule
             shifts.warnings.multipleNames.forEach(s => {
                 const row = s.shift.coordinate.row - firstRow;
                 const col = s.shift.coordinate.col;
-                const cell = this.#shadowRoot.querySelector(`#row${row}col${col}`);
+                const onCall = (s.shift.shiftTime === "ON-CALL");
 
-                if (cell) {
-                    const lightBlue = "#72C0FF";
-                    const vibrantYellow = "#FFF075";
+                const lightBlue = "#72C0FF";
+                const vibrantYellow = "#FFF075";
+                const color = onCall ? vibrantYellow : lightBlue;
 
-                    const h3 = document.createElement("h3");
-                    h3.textContent = `Multiple Names Found!`;
+                const h3 = document.createElement("h3");
+                h3.textContent = `Multiple Names Found!`;
 
-                    const isOnCall = s.shift.shiftTime === "ON-CALL";
-                    const color = isOnCall ? vibrantYellow : lightBlue;
-                    const img = isOnCall
-                        ? "./images/icons8-warning-48.png"
-                        : "./images/icons8-question-mark-48.png"
-                    ;
+                const namesContainer = this.generateMultiNameContainer(
+                    s.names,
+                    color
+                );
 
-                    const namesContainer = this.generateMultiNameContainer(
-                        s.names,
-                        color
-                    );
-                    const imgWithCtx = this.addImageSymbolWithContext(
-                        img,
-                        [h3, namesContainer],
-                        (isOnCall ? vibrantYellow : lightBlue),
-                        "top"
-                    );
-
-                    // If there is another error img, shift this warning away from right corner
-                    const priorErrors = cell.querySelectorAll(`.ctxContainer#dupError`);
-                    if (priorErrors.length > 0) {
-                        const offsetPosition = `${15 * priorErrors.length}px`;
-                        imgWithCtx.querySelector("img").style.right = offsetPosition;
-                    }
-
-                    cell.appendChild(imgWithCtx);
-                }
+                this.applyWarningToCell(
+                    row,
+                    col,
+                    "warningMulti",
+                    (onCall ? "./images/icons8-warning-48.png" : "./images/icons8-question-mark-48.png"),
+                    [h3, namesContainer],
+                    color,
+                    "top"
+                );
             });
-                
+            
+            // Apply Not Available warning
+            for (let i = 0; i < shifts.warnings.notAvailable.length; i++) {
+                const s = shifts.warnings.notAvailable[i];
+                const row = s.coordinate.row - firstRow;
+                const col = s.coordinate.col;
+                const lightRed = "#F78F8F";
 
+                const h3 = document.createElement("h3");
+                h3.textContent = `Unavailable!`;
+
+                const p = document.createElement("p");
+                p.textContent = `Employee was marked as unavailable to work today!`;
+
+                this.applyWarningToCell(
+                    row,
+                    col,
+                    "warningNotAvail",
+                    "./images/icons8-unavailable-30.png",
+                    [h3, p],
+                    lightRed,
+                    "top",
+                    {x: 18, y: 18}
+                );
+            }
         }
     }
 
     /**
+     * @param {number} row 
+     * @param {number} col 
+     * @param {string} id 
+     * @param {string} imgPath 
+     * @param {HTMLElement[]} elements 
+     * @param {string} color 
+     * @param {string} direction 
+     * @param {{x: number, y: number} | undefined} dimensions 
+     */
+    applyWarningToCell(row, col, id, imgPath, elements, color, direction, dimensions) {
+        const cell = this.#shadowRoot.querySelector(`#row${row}col${col}`);
+        const priorWarnings = cell.querySelectorAll(`#${id}`);
+
+        if (cell && priorWarnings.length === 0) {
+            const imgWithCtx = this.addImageSymbolWithContext(
+                imgPath,
+                [...elements],
+                color,
+                direction,
+                dimensions
+            );
+            imgWithCtx.id = id;
+            
+            cell.appendChild(imgWithCtx);
+            imgWithCtx.querySelector("img").style.right = `${this.getIconOffset(cell)}px`;
+        }
+    }
+
+    /**
+     * @param {string} src
      * @param {HTMLElement[]} ctxChildEl 
+     * @param {string} colorCode 
+     * @param {string} direction 
+     * @param {{x: number, y: number}} dimensions 
      * @returns {HTMLDivElement} user-defined symbol with added context on hover
      **/
-    addImageSymbolWithContext(src, ctxChildEl, colorCode, direction) {
+    addImageSymbolWithContext(src, ctxChildEl, colorCode, direction, dimensions) {
         const imgCtxContainer = document.createElement("div");
         imgCtxContainer.classList.add("ctxContainer");
 
-        const img = new Image(20, 20);
+        let img;
+        if (dimensions) {
+            img = new Image(dimensions.x, dimensions.y);
+        } else {
+            img = new Image(20, 20);
+        }
         img.src = src;
         
         const context = document.createElement("div");
@@ -355,8 +402,6 @@ export class ScheduleChecker extends HTMLElement {
         return multiNameContainer;
     }
 
-
-
     /**
     * @param {ShiftMap} shiftTimes 
     * @param {string} time 
@@ -389,7 +434,17 @@ export class ScheduleChecker extends HTMLElement {
         return rows;
     }
 
-
+    /**
+     * @param {Element} cell
+     * @returns {number} offset pixels based on number of warnings already populated in element
+     * */
+    getIconOffset(cell) {
+        const priorErrors = cell.querySelectorAll(`#warningDup, #warningMulti, #warningNotAvail`);
+        if (priorErrors.length > 0) {
+            return (15 * priorErrors.length) - 18;
+        }
+        return -1;
+    }
 
     /**
      * @param {number} rowIndex 
@@ -397,6 +452,7 @@ export class ScheduleChecker extends HTMLElement {
      * @param {string} name 
     */
     applyCellColor(rowIndex, colIndex, name) {
+        //TODO: could be optimized and called once in constructor
         let cellColor = "white";
 
         // Apply colors to rows with names defined within
@@ -468,19 +524,35 @@ export class ScheduleChecker extends HTMLElement {
                 continue;
             }
 
-            if (cell.innerText.toUpperCase() === employee.first_name ||
+            if (cell.innerText.toUpperCase() === employee.str_alias ||
                 cell.innerText.toUpperCase() === employee.abbrev) {
                 this.applyOpacity(cell, 1);
+                this.highlightBorders(cell, "#4FC174"); // emerald green
             } else {
                 this.applyOpacity(cell, 0.05);
             }
         }
     }
 
+    /**
+     * @param {HTMLTableCellElement} cell
+     */
+    highlightBorders(cell, color) {
+        cell.style.boxShadow = `0px 0px 4px ${color}`;
+    }
+
+    /**
+     * @param {HTMLTableCellElement} cell
+     */
+    unhighlightBorders(cell) {
+        cell.style.boxShadow = ``;
+    }
+
     unfadeAllCells() {
         const allCells = this.scheduleTable.querySelectorAll("td");
         allCells.forEach(cell => {
             this.applyOpacity(cell, 1);
+            this.unhighlightBorders(cell);
         });
     }
 

@@ -36,6 +36,9 @@ export class SelectFTR extends HTMLElement {
     get value() {
         return this.select.value;
     }
+    set value(v) {
+        this.select.value = v;
+    }
 
     /**
     * @param {() => void} callback 
@@ -82,6 +85,10 @@ export class SelectFTR extends HTMLElement {
     enableSelect() {
         this.select.disabled = false;
         this.select.style.cursor = "pointer";
+    }
+
+    selectFirstChild() {
+        this.select.value = this.select.firstChild.value;
     }
 }
 

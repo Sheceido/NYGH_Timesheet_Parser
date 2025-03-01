@@ -26,14 +26,14 @@ export const roster = {
     "Sherri Linzon": {
         first_name: "SHERRI",
         last_name: "LINZON",
-        str_alias: "SHERRI L",
+        str_alias: "SHERRI",
         abbrev: "SL",
         gender: "F",
     },
     "Tim Dang": {
         first_name: "TIM",
         last_name: "DANG",
-        str_alias: "TIM D",
+        str_alias: "TIM",
         abbrev: "TD",
         gender: "M",
 
@@ -104,7 +104,7 @@ export const roster = {
     "Jennifer Wang": {
         first_name: "JENNIFER",
         last_name: "WANG",
-        str_alias: "JENNIFER W",
+        str_alias: "JENNIFER",
         abbrev: "JW",
         gender: "F",
     },
