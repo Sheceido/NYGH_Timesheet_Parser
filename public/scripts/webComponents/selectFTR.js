@@ -75,6 +75,14 @@ export class SelectFTR extends HTMLElement {
         this.select.style.outline = "";
     }
 
+    hideSelect() {
+        this.select.style.display = "none";
+    }
+    
+    showSelect() {
+        this.select.style.display = "block";
+    }
+
     disableSelect() {
         this.select.disabled = true;
         this.removeErrorHighlight();

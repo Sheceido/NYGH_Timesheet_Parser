@@ -21,6 +21,7 @@ function onSelectChangeCallback(rosterName) {
 const selectFTR = document.querySelector("#schedCheckSelectFTR");
 selectFTR.addShowAllOption();
 selectFTR.addOnChangeFn(onSelectChangeCallback);
+selectFTR.hideSelect();
 selectFTR.disableSelect();
 
 export function checkSchedule() {
@@ -89,4 +90,5 @@ export function checkSchedule() {
 
     scheduleCheckTable.applyEmployeeWarnings(ftrEmployeeShiftsWarnings);
     selectFTR.enableSelect(); // enable for filtering once schedule is generated
+    selectFTR.showSelect();
 }

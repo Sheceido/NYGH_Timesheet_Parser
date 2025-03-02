@@ -97,6 +97,7 @@ export class ScheduleChecker extends HTMLElement {
             margin-inline: 0.5em;
             background-color: #eee;
             border-radius: 3px;
+            min-width: 80px;
         }
     `;
 
@@ -272,14 +273,19 @@ export class ScheduleChecker extends HTMLElement {
                     color
                 );
 
+                const p = document.createElement("p");
+                p.style.fontSize = "x-small";
+                p.textContent = `Employees should double check their timesheet standby hours if partial coverage occurred.`;
+
                 this.applyWarningToCell(
                     row,
                     col,
                     "warningMulti",
-                    (onCall ? "./images/icons8-warning-48.png" : "./images/icons8-question-mark-48.png"),
-                    [h3, namesContainer],
+                    (onCall ? "./images/icons8-time-30.png" : "./images/icons8-question-mark-48.png"),
+                    (onCall ? [h3, namesContainer, p]  : [h3, namesContainer]),
                     color,
-                    "top"
+                    "top",
+                    (onCall && {x: 18, y: 18})
                 );
             });
             
