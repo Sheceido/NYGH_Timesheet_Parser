@@ -203,7 +203,7 @@ export class ScheduleTimeSheetParser {
                     // stays the same if row is empty, cascading from row above it
                     break;
                 default:
-                    shiftTimeName = row[0].trim();
+                    shiftTimeName = row[0].trim(); //TODO: ?standardize this
             }
 
             shiftMapping.set( i, {

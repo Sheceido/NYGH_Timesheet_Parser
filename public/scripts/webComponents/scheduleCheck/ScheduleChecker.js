@@ -1,6 +1,7 @@
 import { capitalize } from "../../utils.js";
 import { roster } from "../../roster.js";
 /** @typedef {import("../../parser.js").ShiftMap} ShiftMap */
+/** @typedef {import("../../warnings.js").ShiftCountError} ShiftCountError */
 /** @typedef {import("../../warnings.js").WarningsGroup} WarningsGroup */
 /** @typedef {import("../../schedCheck.js").EmployeeShiftsAndWarnings} EmployeeShiftsAndWarnings */
 /**
@@ -200,9 +201,45 @@ export class ScheduleChecker extends HTMLElement {
     }
 
     /**
+     * Temp for showing shift counts if error
+     * @param {string} employeeName
+     * @param {ShiftCountError} shiftCount 
+     * @param {number} statsCount 
+     * @returns {HTMLParagraphElement | null} p html tag containing prompt regarding the correct/incorrect number of shifts counted in this biweekly for the employee.
+     */
+    //TODO: create better way to make this, within this web component
+    createShiftCountErrorDisplay(employeeName, shiftCount, statsCount) {
+        const p = document.createElement("p");
+        p.classList.add("comments");
+
+        const successSpan = document.createElement("span");
+        successSpan.textContent = " ✅ ";
+
+        const errorSpan = document.createElement("span");
+        errorSpan.textContent = " ❌ ";
+
+        const promptSpan = document.createElement("span");
+        promptSpan.style.fontFamily = "sans-serif";
+        promptSpan.style.fontSize = "small";
+    
+        if (shiftCount.found === 0) {
+            return null;
+        } else if (shiftCount.found > 0) {
+            p.appendChild(errorSpan);
+            promptSpan.textContent = `${capitalize(employeeName)} appears to have MORE THAN (${shiftCount.expected}) shifts in the biweekly, (${statsCount}) of which would be stat holiday(s).`;
+        } else {
+            p.appendChild(errorSpan);
+            promptSpan.textContent = `${capitalize(employeeName)} appears to have LESS THAN (${shiftCount.expected}) shifts in the biweekly, (${statsCount}) of which would be stat holiday(s).`;
+        }
+        p.appendChild(promptSpan);
+
+        document.querySelector(".shiftCountErrors").appendChild(p);
+    }
+
+    /**
      * @param {EmployeeShiftsAndWarnings} employeeShiftsWarnings 
      */
-    applyEmployeeWarnings(employeeShiftsWarnings) {
+    applyEmployeeWarnings(employeeShiftsWarnings, statCount) {
         // Constructed table resulted in splicing away rows prior to 7am shift,
         // use firstRow index as offset to find true coordinate
         const firstRow = this.findFirstShiftTimeRow("07:00-15:00", "GENERAL");
@@ -217,9 +254,11 @@ export class ScheduleChecker extends HTMLElement {
         // Go through all FTR employees and render any warnings for the shift
         for (const [str_alias, shifts] of employeeShiftsWarnings.entries()) {
 
-            const duplicateIterable = shifts.warnings.duplicate.entries();
+            // Shift Count Errors Comments below table
+            this.createShiftCountErrorDisplay(str_alias, shifts.warnings.shiftCount, statCount);
 
-            // Apply "x" duplicate warning
+            // Apply duplicate warning
+            const duplicateIterable = shifts.warnings.duplicate.entries();
             for (const [_, sh] of duplicateIterable) {
 
                 sh.forEach(s => {

@@ -133,7 +133,13 @@ export function parse() {
     }
     stats.classList.remove("errorHighlight");
 
+    //TODO: better way to handle creating conflictMaps
+    const tempParser = new ScheduleTimeSheetParser(scheduleStr, null);
+
     const parser = new ScheduleTimeSheetParser(scheduleStr, employee);
+    parser.warnings.eveningMapping = tempParser.conflictMaps["evening"];
+    parser.warnings.unavailableMapping = tempParser.conflictMaps["unavailable"];
+
     const shifts = parser.findShifts();
     if (!shifts) {
         console.log(`No shifts found for ${employee.first_name}!`);

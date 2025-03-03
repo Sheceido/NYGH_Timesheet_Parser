@@ -26,12 +26,14 @@ selectFTR.disableSelect();
 
 export function checkSchedule() {
     scheduleCheckTable.reset(); // remove old table
+    document.querySelector(".shiftCountErrors").textContent = "";
     selectFTR.selectFirstChild();
 
     const schedTextArea = document.querySelector(".schedule");
     const scheduleStr = schedTextArea.value;
 
     let holidayCount = 0;
+    /** @type HTMLInputElement */
     const stats = document.querySelector(".schedCheckHolidays");
 
     if (scheduleStr === "") {
@@ -87,7 +89,8 @@ export function checkSchedule() {
         ftrEmployeeShiftsWarnings
     );
 
-    scheduleCheckTable.applyEmployeeWarnings(ftrEmployeeShiftsWarnings);
+    scheduleCheckTable.applyEmployeeWarnings(ftrEmployeeShiftsWarnings, holidayCount);
+
     selectFTR.enableSelect(); // enable for filtering once schedule is generated
     selectFTR.showSelect();
 }
