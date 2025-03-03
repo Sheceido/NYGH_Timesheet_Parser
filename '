@@ -46,10 +46,6 @@ export class ScheduleTimeSheetParser {
         return structuredClone(this.schedule);
     }
 
-    get conflictMaps() {
-        return this.warnings.conflictsMap;
-    }
-
     /**
     * @param {string} scheduleStr 
     * @returns {string[][]} scheduleGrid
@@ -242,12 +238,8 @@ export class ScheduleTimeSheetParser {
      * @returns {Array<Shift | null>}
      */
     findShifts() {
-        if (!this.warnings.unavailableMapping) {
+        if (!this.warnings._unavailableMapping) {
             console.error("warnings.unavailableMapping must be defined prior to calling findShifts().");
-            return;
-        }
-        if (!this.warnings.eveningMapping) {
-            console.error("warnings.eveningMapping must be defined prior to calling findShifts().");
             return;
         }
         if (!this.employee) {
@@ -290,16 +282,6 @@ export class ScheduleTimeSheetParser {
                     // Add Unavailable warning if name showeed up in unavailableMapping
                     if (this.warnings.isUnavailable(colNum, nameTrimmed)) {
                         this.warnings.addNotAvailableEntry(shiftData);
-                    }
-                    // Add Evening Male Tech warning if this.employee is male and another male tech is identified in the set of evening shifts for that column/day
-                    if (st.shiftTime === "16:00-24:00" &&
-                        this.warnings.isAnotherMaleEmployee(
-                            colNum,
-                            this.employee,
-                            this.matchEmployeeByRoster
-                        ))
-                    {
-                        this.warnings.addEveningMaleEntry(shiftData);
                     }
                 }
 
@@ -526,6 +508,7 @@ export class ScheduleTimeSheetParser {
     mapPossibleConflicts() {
         for (const [type, rowName] of Object.entries(this.conflicts)) {
             const foundRows = this.findAllShiftTimeRows(rowName);
+            console.log("foundRows: ", foundRows);
 
             foundRows.forEach(row => {
                 for (let day = 1; day < this.schedule[row].length; day++) {
@@ -546,7 +529,9 @@ export class ScheduleTimeSheetParser {
                 }
             });
             // Create empty map if no employees are in the rows with possible conflicts
+            console.log(this.warnings._category[type]);
             this.warnings.createEmptyMappingByCategory(type);
+            console.log(this.warnings._category[type]);
         }
     }
 

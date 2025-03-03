@@ -3,6 +3,10 @@ import { roster } from "../../roster.js";
 /** @typedef {import("../../parser.js").ShiftMap} ShiftMap */
 /** @typedef {import("../../warnings.js").WarningsGroup} WarningsGroup */
 /** @typedef {import("../../schedCheck.js").EmployeeShiftsAndWarnings} EmployeeShiftsAndWarnings */
+/**
+ * @typedef {Map<number, string>} ColorByRow
+ * - Mapping of a color's hex code in relation to the row index key
+ */
 
 export class ScheduleChecker extends HTMLElement {
     
@@ -104,6 +108,8 @@ export class ScheduleChecker extends HTMLElement {
     shiftTimes;
     /** @type {HTMLTableElement} */
     scheduleTable;
+    /** @type {ColorByRow} */
+    rowColorSwatch;
 
     constructor() {
         super();
@@ -121,10 +127,12 @@ export class ScheduleChecker extends HTMLElement {
     * @param {WarningsGroup} globalWarnings 
     * @param {EmployeeShiftsAndWarnings} employeeShiftsWarnings 
     */
-    createScheduleTable(grid, headers, shiftTimes, globalWarnings, employeeShiftsWarnings) {
+    createScheduleTable(grid, headers, shiftTimes, employeeShiftsWarnings) {
         const DAYS_OF_THE_WEEK = ["Sat", "Sun", "Mon", "Tues", "Wed", "Thurs", "Fri"];
 
         this.shiftTimes = shiftTimes;
+        this.rowColorSwatch = this.generateCellColorSwatch();
+
         this.scheduleTable = document.createElement("table");
 
         /** Create first row with days of the week starting on Saturday */
@@ -147,29 +155,6 @@ export class ScheduleChecker extends HTMLElement {
         for (let i = 0, th; i < headers.length; i++) {
             th = document.createElement("th");
             th.textContent = headers[i];
-
-            // Add global warnings into header:
-            if (globalWarnings.evening.has(i)) {
-                const names = globalWarnings.evening.get(i);
-
-                const h3 = document.createElement("h3");
-                h3.textContent = `Multiple Male Techs in Evening!`;
-
-                const namesContainer = this.generateMultiNameContainer(
-                    names,
-                    "#F44336"
-                );
-
-                const imgWithCtx = this.addImageSymbolWithContext(
-                    "./images/icons8-male-24.png",
-                    [h3, namesContainer],
-                    "#F44336",
-                    "bottom"
-                );
-                imgWithCtx.id = `eveningMaleError`;
-
-                th.appendChild(imgWithCtx);
-            }
             daysNumRow.appendChild(th);
         }
         this.scheduleTable.append(daysNumRow);
@@ -222,13 +207,17 @@ export class ScheduleChecker extends HTMLElement {
         // use firstRow index as offset to find true coordinate
         const firstRow = this.findFirstShiftTimeRow("07:00-15:00", "GENERAL");
 
+        const colors = {
+            "red": "#FF0000",
+            "lightRed": "#F78F8F",
+            "vibrantYellow": "#FFF075",
+            "lightBlue": "#72C0FF",
+        };
+
         // Go through all FTR employees and render any warnings for the shift
         for (const [str_alias, shifts] of employeeShiftsWarnings.entries()) {
 
             const duplicateIterable = shifts.warnings.duplicate.entries();
-            const lightRed = "#F78F8F";
-            const red = "#FF0000";
-            const unavailRows = this.findAllShiftTimeRow("Not Available", "GENERAL");
 
             // Apply "x" duplicate warning
             for (const [_, sh] of duplicateIterable) {
@@ -241,7 +230,7 @@ export class ScheduleChecker extends HTMLElement {
                     h3.textContent = `?Duplicate Error`;
 
                     const p = document.createElement("p");
-                    p.textContent = `Another shift found in this same column!`;
+                    p.textContent = `${capitalize(str_alias)} has another shift in the current column!`;
 
                     this.applyWarningToCell(
                         row,
@@ -249,7 +238,7 @@ export class ScheduleChecker extends HTMLElement {
                         "warningDup",
                         "./images/icons8-error-48.png",
                         [h3, p],
-                        (unavailRows.includes(s.coordinate.row) ? lightRed : red),
+                        colors["red"],
                         "top"
                     );
                 });
@@ -261,9 +250,7 @@ export class ScheduleChecker extends HTMLElement {
                 const col = s.shift.coordinate.col;
                 const onCall = (s.shift.shiftTime === "ON-CALL");
 
-                const lightBlue = "#72C0FF";
-                const vibrantYellow = "#FFF075";
-                const color = onCall ? vibrantYellow : lightBlue;
+                const color = onCall ? colors["vibrantYellow"] : colors["lightBlue"];
 
                 const h3 = document.createElement("h3");
                 h3.textContent = `Multiple Names Found!`;
@@ -290,11 +277,10 @@ export class ScheduleChecker extends HTMLElement {
             });
             
             // Apply Not Available warning
-            for (let i = 0; i < shifts.warnings.notAvailable.length; i++) {
+            for (let i = 0; i < shifts.warnings.notAvailable.length; i++) { //TODO: ?Generalize ops with below
                 const s = shifts.warnings.notAvailable[i];
                 const row = s.coordinate.row - firstRow;
                 const col = s.coordinate.col;
-                const lightRed = "#F78F8F";
 
                 const h3 = document.createElement("h3");
                 h3.textContent = `Unavailable!`;
@@ -308,10 +294,35 @@ export class ScheduleChecker extends HTMLElement {
                     "warningNotAvail",
                     "./images/icons8-unavailable-30.png",
                     [h3, p],
-                    lightRed,
+                    colors["lightRed"],
                     "top",
                     {x: 18, y: 18}
                 );
+            }
+
+            // Apply Evening Male Tech warning
+            for (let i = 0; i < shifts.warnings.evening.length; i++) {
+                const s = shifts.warnings.evening[i];
+                const row = s.coordinate.row - firstRow;
+                const col = s.coordinate.col;
+
+                const h3 = document.createElement("h3");
+                h3.textContent = `Evening Male Tech!`;
+
+                const p = document.createElement("p");
+                p.textContent = `More than 1 evening Male tech was found!`;
+
+                this.applyWarningToCell(
+                    row,
+                    col,
+                    "warningEvening",
+                    "./images/icons8-male-24.png",
+                    [h3, p],
+                    colors["lightRed"],
+                    "top",
+                    {x: 18, y: 18}
+                );
+
             }
         }
     }
@@ -424,6 +435,7 @@ export class ScheduleChecker extends HTMLElement {
     }
 
     /**
+    * Finds all row indices which match the provided shift time and location.
     * @param {ShiftMap} shiftTimes 
     * @param {string} time 
     * @param {string} location
@@ -445,63 +457,51 @@ export class ScheduleChecker extends HTMLElement {
      * @returns {number} offset pixels based on number of warnings already populated in element
      * */
     getIconOffset(cell) {
-        const priorErrors = cell.querySelectorAll(`#warningDup, #warningMulti, #warningNotAvail`);
+        const WIDTH = 18;
+        const priorErrors = cell.querySelectorAll(`#warningDup, #warningMulti, #warningNotAvail, #warningEvening`);
         if (priorErrors.length > 0) {
-            return (15 * priorErrors.length) - 18;
+            return (WIDTH * priorErrors.length) - WIDTH; // subtract width again for first element to be always top left corner
         }
         return -1;
     }
 
     /**
-     * @param {number} rowIndex 
-     * @param {number} colIndex 
-     * @param {string} name 
-    */
+     * Find relevant shiftTime + location which require a color reference, mapping rows to the color code.
+     */
+    generateCellColorSwatch() {
+        if (!this.shiftTimes) {
+            console.error("schedule checker's shiftTime property must be defined before generating the color swatch.");
+            return;
+        }
+        /** @type {ColorByRow} */
+        const cellColorSwatch = new Map();
+
+        this.findAllShiftTimeRow("07:30-15:30", "BDC").forEach(row => cellColorSwatch.set(row, "#FFD9FF"));
+        this.findAllShiftTimeRow("08:00-16:00", "BDC").forEach(row => cellColorSwatch.set(row, "#FFD9FF"));
+        this.findAllShiftTimeRow("09:00-17:00", "BDC").forEach(row => cellColorSwatch.set(row, "#FFD9FF"));
+
+        this.findAllShiftTimeRow("11:00-19:00", "GENERAL").forEach(row => cellColorSwatch.set(row, "#CCFFCC"));
+        this.findAllShiftTimeRow("12:00-20:00", "GENERAL").forEach(row => cellColorSwatch.set(row, "#CCFFFF"));
+        this.findAllShiftTimeRow("15:00-23:00", "GENERAL").forEach(row => cellColorSwatch.set(row, "#92D050"));
+        this.findAllShiftTimeRow("16:00-24:00", "GENERAL").forEach(row => cellColorSwatch.set(row, "#99CCFF"));
+
+        this.findAllShiftTimeRow("AVAILABLE", "GENERAL").forEach(row => cellColorSwatch.set(row, "#92D050"));
+        this.findAllShiftTimeRow("VACATION", "GENERAL").forEach(row => cellColorSwatch.set(row, "#CCFFCC"));
+        this.findAllShiftTimeRow("FLOAT", "GENERAL").forEach(row => cellColorSwatch.set(row, "#FFFF00"));
+        this.findAllShiftTimeRow("LIEU TIME", "GENERAL").forEach(row => cellColorSwatch.set(row, "#99CCFF"));
+        this.findAllShiftTimeRow("Absent", "GENERAL").forEach(row => cellColorSwatch.set(row, "#FF99CC"));
+        this.findAllShiftTimeRow("Not Available", "GENERAL").forEach(row => cellColorSwatch.set(row, "#FF9900"));
+
+        return cellColorSwatch;
+    }
+
+
+    /**
+     * Find the color hex-code by the row index; override color if column index is on a weekend
+     */
     applyCellColor(rowIndex, colIndex, name) {
-        //TODO: could be optimized and called once in constructor
-        let cellColor = "white";
+        const color = this.rowColorSwatch.get(rowIndex);
 
-        // Apply colors to rows with names defined within
-        if (name !== "") {
-            if (this.findAllShiftTimeRow("07:30-15:30", "BDC").includes(rowIndex) ||
-                this.findAllShiftTimeRow("08:00-16:00", "BDC").includes(rowIndex) ||
-                this.findAllShiftTimeRow("09:00-17:00", "BDC").includes(rowIndex)) {
-                cellColor = "#FFD9FF";
-            }
-            if (this.findAllShiftTimeRow("11:00-19:00", "GENERAL").includes(rowIndex)) {
-                cellColor = "#CCFFCC";
-            }
-            if (this.findAllShiftTimeRow("12:00-20:00", "GENERAL").includes(rowIndex)) {
-                cellColor = "#CCFFFF";
-            }
-            if (this.findAllShiftTimeRow("15:00-23:00", "GENERAL").includes(rowIndex)) {
-                cellColor = "#92D050";
-            }
-            if (this.findAllShiftTimeRow("16:00-24:00", "GENERAL").includes(rowIndex)) {
-                cellColor = "#99CCFF";
-            }
-        }
-        // apply colors to all rows with the shiftTime and location
-        if (this.findAllShiftTimeRow("AVAILABLE", "GENERAL").includes(rowIndex)) {
-                cellColor = "#92D050";
-        }
-        if (this.findAllShiftTimeRow("VACATION", "GENERAL").includes(rowIndex)) {
-                cellColor = "#CCFFCC";
-        }
-        if (this.findAllShiftTimeRow("FLOAT", "GENERAL").includes(rowIndex)) {
-                cellColor = "#FFFF00";
-        }
-        if (this.findAllShiftTimeRow("LIEU TIME", "GENERAL").includes(rowIndex)) {
-                cellColor = "#99CCFF";
-        }
-        if (this.findAllShiftTimeRow("Absent", "GENERAL").includes(rowIndex)) {
-                cellColor = "#FF99CC";
-        }
-        if (this.findAllShiftTimeRow("Not Available", "GENERAL").includes(rowIndex)) {
-                cellColor = "#FF9900";
-        }
-
-       // Apply weekend shift color, overrides any other color
         switch(colIndex) {
             case 1:
             case 2:
@@ -512,7 +512,10 @@ export class ScheduleChecker extends HTMLElement {
                 }
                 break;
         }
-        return cellColor;
+        if (!color) {
+            return "#FFFFFF";
+        }
+        return color;
     }
 
     fadeAllCellsExcept(name) {

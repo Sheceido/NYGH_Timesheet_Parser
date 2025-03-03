@@ -53,20 +53,20 @@ export function checkSchedule() {
 
     // get grid
     const schedParse = new ScheduleTimeSheetParser(scheduleStr, null);
-    const scheduleGrid = schedParse.getScheduleGrid();
+    const scheduleGrid = schedParse.scheduleGrid;
     const headers = schedParse.getWeekdayHeader();
     const shiftTimes = schedParse.getShiftTimeRows();
-    
-    // Global warnings
-    schedParse.checkEveningShiftGenders();
-    const globalWarnings = schedParse.getWarningsGroup();
+    const conflictMaps = schedParse.conflictMaps;
 
     /** @type {EmployeeShiftsAndWarnings} */
     const ftrEmployeeShiftsWarnings = new Map();
     
     for (const [_, employee] of Object.entries(roster)) {
         const parser = new ScheduleTimeSheetParser(scheduleStr, employee);
-        parser.warnings.unavailableMapping = schedParse.warnings.unavailableMapping;
+        // set from outer scope predefined schedule conflicts name mapping
+        parser.warnings.eveningMapping = conflictMaps["evening"];
+        parser.warnings.unavailableMapping = conflictMaps["unavailable"];
+
         const shifts = parser.findShifts();
 
         const regularShifts = parser.getRegularHoursMap(shifts);
@@ -84,7 +84,6 @@ export function checkSchedule() {
         scheduleGrid,
         headers,
         shiftTimes,
-        globalWarnings,
         ftrEmployeeShiftsWarnings
     );
 
