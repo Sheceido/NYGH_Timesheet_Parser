@@ -8,6 +8,7 @@ import {
     addToggleEventListener,
     addDialogEventListener,
 } from "./timesheetEventListeners.js";
+
 /** @typedef {import('./roster.js').Employee} Employee */
 /** @typedef {import('./parser.js').Shift} Shift */
 /** @typedef {import('./parser.js').ShiftMap} ShiftMap */

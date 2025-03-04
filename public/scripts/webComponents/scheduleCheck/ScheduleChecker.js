@@ -18,6 +18,16 @@ export class ScheduleChecker extends HTMLElement {
             padding: 0.5em;
             border: 1px solid #ddd;
             border-radius: 5px;
+            opacity: 0;
+            animation-name: fadeIn;
+            animation-duration: 0.5s;
+            animation-timing-function: ease-in;
+            animation-iteration-count: 1;
+            animation-fill-mode: forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
         th {
             position: relative;

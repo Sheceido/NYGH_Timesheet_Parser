@@ -1,4 +1,5 @@
 import { SelectFTR } from "./webComponents/selectFTR.js";
+import { PasteSuccessfulPrompt } from "./webComponents/pasteSuccessPrompt.js";
 
 /**
  * @param {HTMLButtonElement} pasteBtn 
@@ -12,12 +13,17 @@ export function textareaEventListener(pasteBtn) {
         if (!navigator.clipboard) {
             // Navigator.clipboard is not available if not using HTTPS,
             // fallback with alert to notify user
-            alert("Current site not running HTTPS, use [Ctrl-V] to paste!");
+            // alert("Current site not running HTTPS, use [Ctrl-V] to paste!");
         } else {
             navigator.clipboard
                 .readText()
                 .then((clipText) => txtarea.value = clipText);
         }
+
+        /** @type {PasteSuccessfulPrompt} prompt */
+        const prompt = document.createElement("paste-success");
+        pasteBtn.appendChild(prompt);
+        setTimeout(() => pasteBtn.removeChild(prompt), 2000);
     });
 }
 

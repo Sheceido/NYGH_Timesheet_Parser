@@ -25,9 +25,11 @@ selectFTR.hideSelect();
 selectFTR.disableSelect();
 
 export function checkSchedule() {
+    // Reset state to beginning
     scheduleCheckTable.reset(); // remove old table
     document.querySelector(".shiftCountErrors").textContent = "";
     selectFTR.selectFirstChild();
+
 
     const schedTextArea = document.querySelector(".schedule");
     const scheduleStr = schedTextArea.value;
