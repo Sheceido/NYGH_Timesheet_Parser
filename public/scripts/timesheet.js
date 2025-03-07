@@ -12,6 +12,7 @@ import {
 /** @typedef {import('./roster.js').Employee} Employee */
 /** @typedef {import('./parser.js').Shift} Shift */
 /** @typedef {import('./parser.js').ShiftMap} ShiftMap */
+/** @typedef {import('./parser.js').StandbyHrs} StandbyHrs */
 /** @typedef {import('./warnings.js').WarningsGroup} WarningsGroup */
 /** @typedef {import('./warnings.js').ShiftCountError} ShiftCountError */
 
@@ -134,13 +135,7 @@ export function parse() {
     }
     stats.classList.remove("errorHighlight");
 
-    //TODO: better way to handle creating conflictMaps
-    const tempParser = new ScheduleTimeSheetParser(scheduleStr, null);
-
-    const parser = new ScheduleTimeSheetParser(scheduleStr, employee);
-    parser.warnings.eveningMapping = tempParser.conflictMaps["evening"];
-    parser.warnings.unavailableMapping = tempParser.conflictMaps["unavailable"];
-
+    const parser = new ScheduleTimeSheetParser(scheduleStr, employee, true);
     const shifts = parser.findShifts();
     if (!shifts) {
         console.log(`No shifts found for ${employee.first_name}!`);
@@ -153,8 +148,9 @@ export function parse() {
     /** @type {ShiftMap} regularShifts */
     const regularShifts = parser.getRegularHoursMap(shifts);
 
-    /* @type {Map<number, number>} standbyHours */
+    /* @type {StandbyHrs} standbyHours */
     const standbyHours = parser.getStandbyHourMap(shifts);
+    const standbyShifts = parser.getStandbyShiftsMap(shifts);
 
     // evaluate shift count to generate {ShiftCountError} into WarningsGroup
     parser.shiftCountCheck(!isCustomInput, regularShifts.size, statHolidays);
@@ -168,6 +164,7 @@ export function parse() {
         statHolidays,
         regularShifts,
         standbyHours,
+        standbyShifts,
         parsedWarnings
     );
 }

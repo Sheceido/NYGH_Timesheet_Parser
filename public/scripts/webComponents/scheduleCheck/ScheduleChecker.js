@@ -1,5 +1,6 @@
 import { capitalize } from "../../utils.js";
 import { roster } from "../../roster.js";
+import { WARNING_COLORS } from "../../constants.js";
 /** @typedef {import("../../parser.js").ShiftMap} ShiftMap */
 /** @typedef {import("../../warnings.js").ShiftCountError} ShiftCountError */
 /** @typedef {import("../../warnings.js").WarningsGroup} WarningsGroup */
@@ -125,7 +126,6 @@ export class ScheduleChecker extends HTMLElement {
     constructor() {
         super();
         this.#shadowRoot = this.attachShadow({ mode: "closed" });
-
         const style = document.createElement("style");
         style.textContent = this.css;
         this.#shadowRoot.appendChild(style);
@@ -189,12 +189,10 @@ export class ScheduleChecker extends HTMLElement {
 
                 const td = document.createElement("td");
                 if (colIndex === 0) {
-                    td.id = `shiftTime`; // important for qs'ing for warnings
+                    td.id = `shiftTime`; // important for querySelector for warnings
                 } else {
                     td.id = `row${rowIndex}col${colIndex}`; // important for qs'ing for warnings
                 }
-                td.setAttribute("row", rowIndex);
-                td.setAttribute("col", colIndex);
 
                 td.textContent = name;
                 td.style.backgroundColor = this.applyCellColor(
@@ -254,13 +252,6 @@ export class ScheduleChecker extends HTMLElement {
         // use firstRow index as offset to find true coordinate
         const firstRow = this.findFirstShiftTimeRow("07:00-15:00", "GENERAL");
 
-        const colors = {
-            "red": "#FF0000",
-            "lightRed": "#F78F8F",
-            "vibrantYellow": "#FFF075",
-            "lightBlue": "#72C0FF",
-        };
-
         // Go through all FTR employees and render any warnings for the shift
         for (const [str_alias, shifts] of employeeShiftsWarnings.entries()) {
 
@@ -268,38 +259,34 @@ export class ScheduleChecker extends HTMLElement {
             this.createShiftCountErrorDisplay(str_alias, shifts.warnings.shiftCount, statCount);
 
             // Apply duplicate warning
-            const duplicateIterable = shifts.warnings.duplicate.entries();
-            for (const [_, sh] of duplicateIterable) {
+            shifts.warnings.duplicate.forEach(dupShift => {
+                const row = dupShift.coordinate.row - firstRow //offset for post-splicing shift
+                const col = dupShift.coordinate.col;
 
-                sh.forEach(s => {
-                    const row = s.coordinate.row - firstRow; //offset for row index post-splice
-                    const col = s.coordinate.col;
+                const h3 = document.createElement("h3");
+                h3.textContent = `?Duplicate Error`;
 
-                    const h3 = document.createElement("h3");
-                    h3.textContent = `?Duplicate Error`;
+                const p = document.createElement("p");
+                p.textContent = `${capitalize(str_alias)} has another shift in the current column!`;
 
-                    const p = document.createElement("p");
-                    p.textContent = `${capitalize(str_alias)} has another shift in the current column!`;
-
-                    this.applyWarningToCell(
-                        row,
-                        col,
-                        "warningDup",
-                        "./images/icons8-error-48.png",
-                        [h3, p],
-                        colors["red"],
-                        "top"
-                    );
-                });
-            }
+                this.applyWarningToCell(
+                    row,
+                    col,
+                    "warningDup",
+                    "./images/icons8-error-48.png",
+                    [h3, p],
+                    WARNING_COLORS.red,
+                    "top"
+                );
+            });
 
             // Apply "?" and "!" multi-name warnings on schedule
             shifts.warnings.multipleNames.forEach(s => {
-                const row = s.shift.coordinate.row - firstRow;
-                const col = s.shift.coordinate.col;
-                const onCall = (s.shift.shiftTime === "ON-CALL");
+                const row = s.coordinate.row - firstRow;
+                const col = s.coordinate.col;
+                const onCall = (s.shiftTime === "ON-CALL");
 
-                const color = onCall ? colors["vibrantYellow"] : colors["lightBlue"];
+                const color = onCall ? WARNING_COLORS.vibrantYellow : WARNING_COLORS.lightBlue;
 
                 const h3 = document.createElement("h3");
                 h3.textContent = `Multiple Names Found!`;
@@ -326,8 +313,7 @@ export class ScheduleChecker extends HTMLElement {
             });
             
             // Apply Not Available warning
-            for (let i = 0; i < shifts.warnings.notAvailable.length; i++) { //TODO: ?Generalize ops with below
-                const s = shifts.warnings.notAvailable[i];
+            shifts.warnings.notAvailable.forEach(s => {
                 const row = s.coordinate.row - firstRow;
                 const col = s.coordinate.col;
 
@@ -343,15 +329,14 @@ export class ScheduleChecker extends HTMLElement {
                     "warningNotAvail",
                     "./images/icons8-unavailable-30.png",
                     [h3, p],
-                    colors["lightRed"],
+                    WARNING_COLORS.lightRed,
                     "top",
                     {x: 18, y: 18}
                 );
-            }
+            });
 
             // Apply Evening Male Tech warning
-            for (let i = 0; i < shifts.warnings.evening.length; i++) {
-                const s = shifts.warnings.evening[i];
+            shifts.warnings.evening.forEach(s => {
                 const row = s.coordinate.row - firstRow;
                 const col = s.coordinate.col;
 
@@ -367,12 +352,11 @@ export class ScheduleChecker extends HTMLElement {
                     "warningEvening",
                     "./images/icons8-male-24.png",
                     [h3, p],
-                    colors["lightRed"],
+                    WARNING_COLORS.lightRed,
                     "top",
                     {x: 18, y: 18}
                 );
-
-            }
+            });
         }
     }
 

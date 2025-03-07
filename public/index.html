@@ -99,13 +99,19 @@
         <schedule-checker></schedule-checker>
         <div class="shiftCountErrors"></div>
       </div>
-      <script type="module">
-      import {parse} from "./scripts/timesheet.js";
-      import {checkSchedule} from "./scripts/schedCheck.js";
-      // attach functions to be accessible in browser.
-      window.parse = parse; 
-      window.checkSchedule = checkSchedule;
-      </script>
     </div>
+    <footer>
+      <p>&copy; <span id="year"></span> Leon Poon. All rights reserved.</p>
+    </footer>
+    <script type="module">
+    import {parse} from "./scripts/timesheet.js";
+    import {checkSchedule} from "./scripts/schedCheck.js";
+    // attach functions to be accessible in browser.
+    window.parse = parse; 
+    window.checkSchedule = checkSchedule;
+
+    // footer date
+    document.getElementById("year").textContent = new Date().getFullYear();
+    </script>
   </body>
 </html>

@@ -37,7 +37,7 @@ export class PasteSuccessfulPrompt extends HTMLElement {
 
     constructor() {
         super();
-        this.#shadowRoot = this.attachShadow({ mode: "open" });
+        this.#shadowRoot = this.attachShadow({ mode: "closed" });
 
         const styleElement  = document.createElement("style");
         styleElement.textContent = this.css;

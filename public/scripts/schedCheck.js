@@ -55,8 +55,8 @@ export function checkSchedule() {
     }
     stats.classList.remove("errorHighlight");
 
-    // get grid
-    const schedParse = new ScheduleTimeSheetParser(scheduleStr, null);
+    // get grid, parse conflicts map set to true, results assigned to individual employee parser
+    const schedParse = new ScheduleTimeSheetParser(scheduleStr, null, true);
     const scheduleGrid = schedParse.scheduleGrid;
     const headers = schedParse.getWeekdayHeader();
     const shiftTimes = schedParse.getShiftTimeRows();
@@ -66,8 +66,8 @@ export function checkSchedule() {
     const ftrEmployeeShiftsWarnings = new Map();
     
     for (const [_, employee] of Object.entries(roster)) {
-        const parser = new ScheduleTimeSheetParser(scheduleStr, employee);
-        // set from outer scope predefined schedule conflicts name mapping
+        const parser = new ScheduleTimeSheetParser(scheduleStr, employee, false);
+        // set from outer scope predefined conflicts mapping
         parser.warnings.eveningMapping = conflictMaps["evening"];
         parser.warnings.unavailableMapping = conflictMaps["unavailable"];
 

@@ -15,7 +15,7 @@ export class SelectFTR extends HTMLElement {
 
     constructor() {
         super();
-        this.#shadowRoot = this.attachShadow({ mode: "open" });
+        this.#shadowRoot = this.attachShadow({ mode: "closed" });
 
         const style = document.createElement("style");
         style.textContent = this.css;

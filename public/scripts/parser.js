@@ -4,12 +4,14 @@ import { roster } from './roster.js';
 /**
  * @typedef {Object} Shift 
  * @property {{row: number, col: number}} coordinate - [row][col] identifier
+ * @property {string[]} names - list of names within the shift cell
  * @property {number} weekday - column index of the weekday.
  * @property {string} location - location of the shift.
  * @property {string} shiftTime - time that which the shift takes place at.
  */
 /** @typedef {import('./roster.js').Employee} Employee */
 /** @typedef {Map<number, Shift>} ShiftMap */
+/** @typedef {Map<number, number>} StandbyHrs */
 
 export class ScheduleTimeSheetParser {
 
@@ -28,13 +30,14 @@ export class ScheduleTimeSheetParser {
     /**
      * @param {string} scheduleStr
      * @param {Employee} employee 
+     * @param {boolean} parseConflicts 
     */
-    constructor(scheduleStr, employee) {
+    constructor(scheduleStr, employee, parseConflictsMap) {
         this.employee = employee;
         this.schedule = this.parseScheduleToGrid(scheduleStr);
         this.shiftTimes = this.getShiftTimeRows();
         this.warnings = new Warnings();
-        if (!this.employee) {
+        if (parseConflictsMap) {
             this.mapPossibleConflicts();
         }
     }
@@ -262,6 +265,24 @@ export class ScheduleTimeSheetParser {
 
                 const st = this.shiftTimes.get(rowNum);
                 const nameTrimmed = name.trim().toUpperCase();
+                const { isMulti, names } = this.multiNameCell(nameTrimmed);
+
+                /** @type {Shift} shiftData */
+                    const shiftData = {
+                        coordinate: {
+                            row: rowNum,
+                            col: colNum
+                        },
+                        names: names,
+                        weekday: colNum,
+                        location: this.isOcscOrConsumer(st.location),
+                        shiftTime: st.shiftTime,
+                    };
+
+                // Add multiple names warning if cell contains >= 2 names
+                if (isMulti && this.warnings.hasMultipleNames(this.employee, names)) {
+                    this.warnings.addMultipleNamesEntry(shiftData);
+                }
 
                 if (this.matchEmployee(nameTrimmed)) {
 
@@ -273,21 +294,10 @@ export class ScheduleTimeSheetParser {
                             continue;
                     }
 
-                    /** @type {Shift} shiftData */
-                    const shiftData = {
-                        coordinate: {
-                            row: rowNum,
-                            col: colNum
-                        },
-                        weekday: colNum,
-                        location: this.isOcscOrConsumer(st.location),
-                        shiftTime: st.shiftTime,
-                    };
-
                     // Add valid shift into shifts array
                     shifts.push(shiftData);
 
-                    // Add Unavailable warning if name showeed up in unavailableMapping
+                    // Add Unavailable warning if name showed up in unavailableMapping
                     if (this.warnings.isUnavailable(colNum, nameTrimmed)) {
                         this.warnings.addNotAvailableEntry(shiftData);
                     }
@@ -301,22 +311,6 @@ export class ScheduleTimeSheetParser {
                     {
                         this.warnings.addEveningMaleEntry(shiftData);
                     }
-                }
-
-                // Add multiple names warning if cell contains >= 2 names
-                const { isMulti, names } = this.multiNameCell(nameTrimmed);
-                if (isMulti && this.warnings.hasMultipleNames(this.employee, names)) {
-                    /** @type {Shift} shift */
-                    const shift = {
-                        coordinate: {
-                            row: rowNum,
-                            col: colNum
-                        },
-                        weekday: colNum,
-                        location: this.isOcscOrConsumer(st.location),
-                        shiftTime: st.shiftTime
-                    };
-                    this.warnings.addMultipleNamesEntry(shift, names);
                 }
             }
         }
@@ -378,7 +372,7 @@ export class ScheduleTimeSheetParser {
 
         if (names.includes("W/E") ||
             names.includes("STAT") ||
-            names[names.length-1].length < 2 // for same first names and only 1st letter of last name is used as the differentiator
+            names[names.length-1].length < 2 // for same first names and only 1st letter of last name is used as the differentiator, e.g.~ "Jennifer J" and "Jennifer W"
         ) {
             return { isMulti: false, names: [name.trim().toUpperCase()] };
         }
@@ -439,17 +433,29 @@ export class ScheduleTimeSheetParser {
     }
 
     /**
+     * Public method to get a mapping of standby shifts by their weekdays.
+     * @param {Shift[]} shifts 
+     * @returns {ShiftMap} a mapping of shifts to their weekday index
+     */
+    getStandbyShiftsMap(shifts) {
+        const standbyHoursMap = new Map();
+
+        shifts.forEach(s => {
+            if (s !== null && s.shiftTime === "ON-CALL") {
+                standbyHoursMap.set(s.weekday, s);
+            }
+        });
+        return standbyHoursMap;
+    }
+
+    /**
      * Public method to get the predetermined stand by hours by the day for selected employee.
      * @param {Shift} shifts 
-     * @returns {Map<number, number>} standbyHours
+     * @returns {StandbyHrs} standbyHours
      */
     getStandbyHourMap(shifts) {
-        /**
-         * @type {Map<number, number>} standbyHours
-         * @comment
-         * key      - weekday index 
-         * value    - standby hours
-         */
+        
+        /** @type {StandbyHrs} */
         const standbyHours = new Map();
         shifts.forEach(s => {
             if (s !== null && s.shiftTime === "ON-CALL") {
@@ -513,15 +519,12 @@ export class ScheduleTimeSheetParser {
     }
 
     /**
-    * Parser calls this function at instantiation if employee is undefined/null
-    *   (reduces useless calls to this function for each employee that uses new parser)
-    * - Goes through a pre-defined {[type]: "row-name"} this.conflicts object
-    * - finds the rows associated with the row name
-    * - goes through each row, then calls the warning instance to create a map,
-    *   adding in each work day with a set of names that appear
-    * - Each map now defined in the warnings instance will be used later
-    *   to check whether a shift marked in another cell conflicts with the name
-    *   which appear in the set for each workday
+    * Parser calls this function at instantiation provided if parseConflictsMap is set to true:
+    *   (reduces redundant calls to this function for each employee that uses a new parser)
+    *   Creates a map object:
+    *       key: day index
+    *       value: a Set of names found in the shiftTimes/rows for that day
+    *   Map is stored into its relevant field in the warning class instantiation
     */
     mapPossibleConflicts() {
         for (const [type, rowName] of Object.entries(this.conflicts)) {

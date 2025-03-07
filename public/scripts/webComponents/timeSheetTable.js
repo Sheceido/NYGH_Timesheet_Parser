@@ -1,7 +1,10 @@
+import { DAYS_OF_THE_WEEK, BIWEEKLY, WARNING_COLORS } from "../constants.js";
 import { capitalize } from "../utils.js";
 import { HeaderWithCopyBtn } from "../webComponents/copyBtn.js";
+import { WarningPopup } from "./warningPopup.js";
 /** @typedef {import('../parser.js').Shift} Shift */
 /** @typedef {import('../parser.js').ShiftMap} ShiftMap */
+/** @typedef {import('../parser.js').StandbyHrs} StandbyHrs */
 /** @typedef {import('../roster.js').Employee} Employee */
 /** @typedef {import("../warnings.js").WarningsGroup} WarningsGroup */
 /** @typedef {import("../warnings.js").MultipleNames} MultipleNames */
@@ -102,6 +105,10 @@ export class TimesheetTable extends HTMLElement {
 `;
     
     timesheet = "";
+    /** @type {ShiftMap} */
+    regShifts;
+    /** @type {ShiftMap} */
+    standbyShifts;
 
     constructor() {
         super();
@@ -123,22 +130,43 @@ export class TimesheetTable extends HTMLElement {
      * @param {number} stats 
      * @param {ShiftMap} regShiftsMap 
      * @param {string | number} standbyHrs 
+     * @param {ShiftMap} standbyShifts 
      * @param {WarningsGroup} warnings 
      */
-    constructTable(employee, headers, stats, regShiftsMap, standbyHrs, warnings) {
+    constructTable(employee, headers, stats, regShiftsMap, standbyHrs, standbyShifts, warnings) {
         if (!employee) { console.error("missing employee parameter"); return; }
         if (!headers) { console.error("missing headers parameter"); return; }
         if (!regShiftsMap) { console.error("missing regShiftsMap parameter"); return; }
         if (!standbyHrs) { console.error("missing standbyHrs parameter"); return; }
+        if (!standbyShifts) { console.error("missing standbyShifts parameter"); return; }
         if (!warnings) { console.error("missing warnings parameter"); return; }
+
+        this.regShifts = regShiftsMap;
+        this.standbyShifts = standbyShifts;
 
         this.headerCopyBtn.setAttribute('header', this.generateHeader(employee, headers));
         this.headerCopyBtn.setAttribute('timesheet', this.generateTimesheet(regShiftsMap, standbyHrs));
         this.headerCopyBtn.reveal();
 
+        // Create Timesheet Table
         this.#shadowRoot.appendChild(
-            this.generateTable(headers, regShiftsMap, standbyHrs, warnings)
+            this.generateTable(headers, regShiftsMap, standbyHrs)
         );
+
+        // Apply warnings to shift time row
+        this.applyShiftTimeWarnings(warnings.duplicate, "duplicate", "shiftTime");
+        this.applyShiftTimeWarnings(
+            warnings.multipleNames.filter(s => s.shiftTime !== "ON-CALL"),
+            "multiName",
+            "shiftTime"
+        );
+        this.applyShiftTimeWarnings(
+            warnings.multipleNames.filter(s => s.shiftTime === "ON-CALL"),
+            "standbyMultiName",
+            "standbyHrs"
+        );
+        this.applyShiftTimeWarnings(warnings.notAvailable, "unavailable", "shiftTime");
+        this.applyShiftTimeWarnings(warnings.evening, "evening", "shiftTime");
 
         this.#shadowRoot.appendChild(
             this.generateShiftCountErrorComment(employee, warnings.shiftCount, stats)
@@ -148,6 +176,7 @@ export class TimesheetTable extends HTMLElement {
     /**
      * @param {Employee} employee 
      * @param {string[]} headers 
+     * @returns {string}
      */
     generateHeader(employee, headers) {
         return (headers.length === 15)
@@ -163,25 +192,37 @@ export class TimesheetTable extends HTMLElement {
      * @param {WarningsGroup} warnings 
      * @returns {HTMLTableElement} table
      */
-    generateTable(headers, regShiftsMap, standbyHrs, warnings) {
-        const BIWEEKLY = 14;
-        const DAYS_OF_THE_WEEK = ["Sat", "Sun", "Mon", "Tues", "Wed", "Thurs", "Fri"];
-
+    generateTable(headers, regShiftsMap, standbyHrs) {
         const table = document.createElement("table");
 
+        table.appendChild(this.createDaysOfTheWeek());
+        table.appendChild(this.createDaysOfTheBiweekly(headers));
+        const rows = this.createShiftTimeAndLocationRows(regShiftsMap);
+        table.appendChild(rows.st);
+        table.appendChild(this.createStandbyHrRow(standbyHrs));
+        table.appendChild(rows.loc);
+
+        return table;
+    }
+
+    /** 
+     * @returns {HTMLTableRowElement}
+     */
+    createDaysOfTheWeek() {
         // Include name for days of the week in header
         const daysOfWeekRow = document.createElement("tr");
         daysOfWeekRow.appendChild(document.createElement("th")); //empty first element
         for (let i = 0; i < 2; i++) {
-
             for (let j = 0, th; j < DAYS_OF_THE_WEEK.length; j++) {
                 th = document.createElement("th");
                 th.textContent = DAYS_OF_THE_WEEK[j];
                 daysOfWeekRow.appendChild(th);
             }
-            table.appendChild(daysOfWeekRow);
         }
+        return daysOfWeekRow;
+    }
 
+    createDaysOfTheBiweekly(headers) {
         // include weekday numbers in header
         const headerRow = document.createElement("tr");
         for (let i = 0, th; i < headers.length; i++) {
@@ -189,147 +230,137 @@ export class TimesheetTable extends HTMLElement {
             th.textContent = headers[i];
             headerRow.appendChild(th);
         }
-        table.appendChild(headerRow);
+        return headerRow;
+    }
 
+    /**
+     * @param {ShiftMap} shiftMap 
+     * @returns {{ HTMLTableRowElement, HTMLTableRowElement }}
+     */
+    createShiftTimeAndLocationRows(shiftMap) {
         // Shift Times for first row, generate warning icons if errors found
         const shiftTimeRow = document.createElement("tr");
         const stColumnTitle = document.createElement("td");
         stColumnTitle.textContent = "Shift Time";
         shiftTimeRow.appendChild(stColumnTitle);
 
-        for (let i = 1, td; i <= BIWEEKLY; i++) {
-            td = document.createElement("td");
+        const locationRow = document.createElement("tr");
+        const locColumnTitle = document.createElement("td");
+        locColumnTitle.textContent = "Location";
+        locationRow.appendChild(locColumnTitle);
 
-            if (regShiftsMap.has(i)) {
+        for (let i = 1, tdST, tdLOC; i <= BIWEEKLY; i++) {
+            tdST = document.createElement("td");
+            tdLOC = document.createElement("td");
 
-                const shift = regShiftsMap.get(i);
-                let hasError = false;
+            if (shiftMap.has(i)) {
+                const shift = shiftMap.get(i);
+                tdST.textContent = shift.shiftTime;
+                tdST.id = `shiftTime-col${shift.coordinate.col}`;
+                tdST.setAttribute("row", shift.coordinate.row);
+                tdST.setAttribute("col", shift.coordinate.col);
 
-                td.textContent = shift.shiftTime;
-
-                // Add warnings icon with context if duplicate shifts found in day
-                if (warnings.duplicate.has(i)) {
-                    hasError = true;
-
-                    const headerP = document.createElement("h3");
-                    headerP.textContent = `?Duplicate Error`;
-
-                    const pElements = warnings.duplicate.get(i).map(shift => {
-                        const p = document.createElement("p");
-                        p.textContent = `${shift.location} site @ ${shift.shiftTime}`;
-                        return p;
-                    });
-
-                    td.appendChild(
-                        this.addImageSymbolWithContext(
-                            "./images/icons8-error-48.png",
-                            [headerP, ...pElements],
-                            "red",
-                            "top"
-                        )
-                    );
-                }
-
-                // Add question icon with context if multiple names were in cell
-                const matchingShiftsWithWarning = warnings.multipleNames.filter(warning => {
-                    return (warning.shift.coordinate.row === shift.coordinate.row &&
-                            warning.shift.coordinate.col === shift.coordinate.col);
-                });
-
-                if (matchingShiftsWithWarning.length >= 1) {
-                    const multiNamed = matchingShiftsWithWarning[0];
-                    const lightBlue = "#72C0FF";
-
-                    const h3 = document.createElement("h3");
-                    h3.textContent = `Multiple Names Found!`;
-
-                    const namesContainer = this.generateMultiNameContainer(
-                        multiNamed.names,
-                        lightBlue
-                    );
-
-                    const imgWithCtx = this.addImageSymbolWithContext(
-                        "./images/icons8-question-mark-48.png",
-                        [h3, namesContainer],
-                        lightBlue,
-                        "top"
-                    );
-
-                    // Augment position of "?" icon left of "x" error icon if present as well
-                    if (hasError) {
-                        imgWithCtx.querySelector("img").style.right = "15px";
-                    }
-                    td.appendChild(imgWithCtx);
-                }
+                tdLOC.textContent = shift.location;
+                tdLOC.id = `location-col${shift.coordinate.col}`;
+                tdLOC.setAttribute("row", shift.coordinate.row);
+                tdLOC.setAttribute("col", shift.coordinate.col);
             }
-            shiftTimeRow.appendChild(td);
+            shiftTimeRow.appendChild(tdST);
+            locationRow.appendChild(tdLOC);
         }
-        table.appendChild(shiftTimeRow);
+        return { st: shiftTimeRow, loc: locationRow };
+    }
 
+    /**
+     * @param {StandbyHrs} standbyHrs 
+     * @returns {HTMLTableRowElement}
+     */
+    createStandbyHrRow(standbyHrs) {
         // On-call standby hours for second row, generate warning icon if errors found
         const standbyRow = document.createElement("tr");
-        const standbyColumnTitle = document.createElement("td");
-        standbyColumnTitle.textContent = "Standby Hrs";
-        standbyRow.appendChild(standbyColumnTitle);
+        const columnTitle = document.createElement("td");
 
-        const standbyMultiNameWarnings = warnings.multipleNames.filter(o => {
-            return (o.shift.shiftTime === "ON-CALL");
-        });
+        columnTitle.textContent = "Standby Hrs";
+        standbyRow.appendChild(columnTitle);
 
-        for (let i = 1, td; i <= BIWEEKLY; i++) {
+        for (let i = 1, td, shift; i <= BIWEEKLY; i++) {
             td = document.createElement("td");
-
-            if (standbyHrs.has(i)) {
-                const standByHours = standbyHrs.get(i);
-                td.textContent = standByHours;
-
-                const vibrantYellow = "#FFF075";
-
-                // Search through On-Call shifts with multiple names, add warning icon with context
-                for (let j = 0; j < standbyMultiNameWarnings.length; j++) {
-                    const dayIndex = standbyMultiNameWarnings[j].shift.weekday;
-                    if (i === dayIndex) {
-                        const h3 = document.createElement("h3");
-                        h3.textContent = `Multiple Names Found!`;
-
-                        const namesContainer = this.generateMultiNameContainer(
-                            standbyMultiNameWarnings[j].names,
-                            vibrantYellow
-                        );
-
-                        const imgWithCtx = this.addImageSymbolWithContext(
-                            "./images/icons8-warning-48.png",
-                            [h3, namesContainer],
-                            vibrantYellow,
-                            "top"
-                        );
-                        td.appendChild(imgWithCtx);
-                        break;
-                    }
-                }
+            shift = this.standbyShifts.get(i);
+            
+            if (standbyHrs.has(i) && shift) {
+                td.textContent = standbyHrs.get(i);
+                td.id = `standbyHrs-col${i}`;
+                td.setAttribute("row", shift.coordinate.row);
+                td.setAttribute("col", shift.coordinate.col);
             }
             standbyRow.appendChild(td);
         }
-        table.appendChild(standbyRow);
+        return standbyRow;
+    }
 
-        // Location for each shift for third row
-        const locationRow = document.createElement("tr");
-        const locationColumnTitle = document.createElement("td");
-        locationColumnTitle.textContent = "Location";
-        locationRow.appendChild(locationColumnTitle);
-
-        for (let i = 1, td; i <= BIWEEKLY; i++) {
-            td = document.createElement("td");
-
-            if (regShiftsMap.has(i)) {
-                const shift = regShiftsMap.get(i);
-                td.textContent = shift.location;
+    /**
+     * @param {Shift[]} warnings 
+     * @param {string} type 
+     * @param {string} rowName
+     */
+    applyShiftTimeWarnings(warnings, type, rowName) {
+        warnings.forEach(s => {
+            const tdId = `${rowName}-col${s.coordinate.col}`;
+            const foundCell = this.#shadowRoot.querySelector(`#${tdId}`);
+            if (!foundCell) {
+                return;
             }
-            locationRow.appendChild(td);
-        }
-        table.appendChild(locationRow);
+            const cellRowIsShiftRow = Number(foundCell.getAttribute("row")) === s.coordinate.row;
+            
+            /** @type {WarningPopup} */
+            const popup = document.createElement("warning-popup");
 
-        return table;
+            switch(type) {
+                case "duplicate":
+                    popup.createDuplicateWarning();
+                    break;
+
+                case "evening":
+                    popup.createEveningWarning();
+                    break;
+
+                case "multiName":
+                    if(!cellRowIsShiftRow) {
+                        return;
+                    }
+                    popup.createMultiNameWarning(s.names, type);
+                    break;
+
+                case "standbyMultiName":
+                    if(!cellRowIsShiftRow) {
+                        return;
+                    }
+                    popup.createMultiNameWarning(s.names, type);
+                    break;
+
+                case "unavailable":
+                    popup.createUnavailableWarning();
+                    break;
+            }
+
+            foundCell.appendChild(popup);
+            popup.offsetRight(
+                this.getIconOffset(foundCell)
+            );
+        });
+    }
+
+    /**
+     * @param {Element} cell
+     * @returns {number} offset pixels based on number of warnings already populated in element
+     * */
+    getIconOffset(cell) {
+        const WIDTH = 18;
+        const priorErrors = cell.querySelectorAll(`warning-popup`);
+        if (priorErrors.length > 1) {
+            return (WIDTH * priorErrors.length) - WIDTH; // subtract width again for first element to be always top left corner
+        }
+        return -1;
     }
 
     /**
@@ -341,6 +372,9 @@ export class TimesheetTable extends HTMLElement {
     generateShiftCountErrorComment(employee, shiftCount, statsCount) {
         const p = document.createElement("p");
         p.classList.add("comments");
+        p.style.width = "fit-content";
+        p.style.padding = "1em";
+        p.style.borderRadius = "4px";
 
         const successSpan = document.createElement("span");
         successSpan.textContent = " ✅ ";
@@ -353,10 +387,12 @@ export class TimesheetTable extends HTMLElement {
         promptSpan.style.fontSize = "small";
     
         if (shiftCount.found === 0) {
+            p.style.backgroundColor = "#CCF3CF";
             p.appendChild(successSpan);
             promptSpan.textContent = `${capitalize(employee.first_name)} has ${shiftCount.expected} shifts in this biweekly schedule (ignoring any duplicate errors), with (${statsCount}) stat holidays noted.`;
 
         } else if (shiftCount.found > 0) {
+            p.style.backgroundColor = WARNING_COLORS.lightRed;
             p.appendChild(errorSpan);
             promptSpan.textContent = `${capitalize(employee.first_name)} appears to have MORE THAN (${shiftCount.expected}) shifts in the biweekly, (${statsCount}) of which would be stat holiday(s).`;
         } else {
@@ -374,7 +410,6 @@ export class TimesheetTable extends HTMLElement {
     */
     generateTimesheet(regShiftsMap, standbyHrs) {
         let tsvTimesheet = ``;
-        const BIWEEKLY = 14;
 
         for (let i = 1; i <= BIWEEKLY; i++) {
             if (regShiftsMap.has(i)) {
@@ -406,58 +441,6 @@ export class TimesheetTable extends HTMLElement {
         }
         tsvTimesheet += `\n`;
         return tsvTimesheet;
-    }
-
-    /**
-     * @param {string[]} multiNames 
-     * @returns {HTMLDivElement} multiNameContainer, holding a list of names in HTMLParagraphElements
-     */
-    generateMultiNameContainer(multiNames, colorCode) {
-        const multiNameContainer = document.createElement("div");
-        multiNameContainer.classList.add("multiNameContainer");
-
-        multiNames.forEach(name => {
-            const p = document.createElement("p");
-            p.textContent = name;
-            p.style.backgroundColor = colorCode;
-            multiNameContainer.appendChild(p);
-        });
-
-        return multiNameContainer;
-    }
-
-    /**
-     * @param {HTMLElement[]} ctxChildEl 
-     * @returns {HTMLDivElement} user-defined symbol with added context on hover
-     **/
-    addImageSymbolWithContext(src, ctxChildEl, colorCode, direction) {
-        const imgCtxContainer = document.createElement("div");
-        imgCtxContainer.classList.add("ctxContainer");
-
-        const img = new Image(20, 20);
-        img.src = src;
-        
-        const context = document.createElement("div");
-        context.classList.add("context");
-        if (colorCode !== "") {
-            context.style.borderColor = colorCode;
-            context.style.boxShadow = `0px 0px 4px ${colorCode}`;
-        }
-        switch(direction) {
-            case "top":
-                context.style.bottom = `${context.offsetHeight + 5}px`;
-                break;
-            case "bottom":
-                context.style.top = `-${context.offsetHeight - 5}px`;
-                break;
-        }
-
-        ctxChildEl.forEach(element => context.appendChild(element));
-
-        imgCtxContainer.appendChild(img);
-        imgCtxContainer.append(context);
-
-        return imgCtxContainer;
     }
 
     /**

@@ -1,9 +1,22 @@
-body {
+html, body {
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  height: 100vh;
+  min-height: 100%;
   margin: 0;
+}
+
+main {
+  flex: 1;
+}
+
+footer {
+  color: #aaa;
+  text-align: center;
+  padding-block: 1em;
+  font-size: 1em;
+  z-index: 999;
 }
 
 textarea {
@@ -86,7 +99,7 @@ button {
   position: relative;
   border: 1px solid #ddd;
   background-color: white;
-  min-height: 80%;
+  min-height: 50vh;
   width: 90vw;
   padding: 1em;
   z-index: 1;

@@ -1,19 +1,18 @@
 /** @typedef {import('./roster.js').Employee} Employee */
 /** @typedef {import('./parser.js').Shift} Shift */
 /**
- * @typedef {Map<number, Shift[]>} Duplicates
+ * @typedef {Map<number, Set<string>>} ConflictsMap
+ * Represents a mapping of weekday indices to a set of employee str_alias names
+ */
+/**
+ * @typedef {Shift[]} Duplicates
  * Represents a mapping of weekday indices to an array of row indices where duplicates occur.
  * - The key (`number`) corresponds to a weekday column index.
  * - The value (`Shift[]`) is an array of row indices in the grid where duplicates are found
  */
 /**
- * @typedef {Array<{shift: Shift, names: Array<string>}>} MultipleNames
+ * @typedef {Shift[]} MultipleNames
  * Represents a list of shifts paired with a list of multiple name occurrences.
- */
-
-/**
- * @typedef {Map<number, Set<string>>} ConflictsMap
- * Represents a mapping of weekday indices to a set of employee str_alias names
  */
 /**
  * @typedef {Shift[]} EveningMaleConflicts
@@ -42,18 +41,18 @@
  */
 
 export class Warnings {
-    /** @type {Duplicates} */
-    _duplicate;
-    /** @type {MultipleNames} */
-    _multipleNames;
-    
-    /** @type {Object<string, ConflictsMap>} */
+    /** @type {Map<string, ConflictsMap>} */
     _category;
     /** @type {ConflictsMap} */
     _eveningMapping;
     /** @type {ConflictsMap} */
     _unavailableMapping;
 
+    /** @type {Duplicates} */
+    _duplicate;
+    /** @type {MultipleNames} */
+    _multipleNames;
+    
     /** @type {EveningMaleConflicts} */
     _eveningMaleTechs;
     /** @type {NotAvailableConflicts} */
@@ -64,18 +63,15 @@ export class Warnings {
     /** @type {number} */
     _shiftCountError;
 
-
-
     constructor() {
-        this._duplicate = new Map();
+        this._category = {
+            "unavailable": new Map(),
+            "evening": new Map(),
+        }
+        this._duplicate = [];
         this._multipleNames = [];
         this._eveningMaleTechs = [];
         this._notAvailable = [];
-
-        this._category = {
-            "unavailable": this._unavailableMapping,
-            "evening": this._eveningMapping,
-        }
     }
 
     get conflictsMap() {
@@ -100,31 +96,29 @@ export class Warnings {
     get multipleNames() {
         return structuredClone(this._multipleNames);
     }
-    
     /** @returns {ConflictsMap} */
     get eveningMapping() {
-        return structuredClone(this._eveningMapping);
+        return structuredClone(this._category["evening"]);
     }
+    /** @param {ConflictsMap} mapping  */
     set eveningMapping(mapping) {
-        this._eveningMapping = mapping;
+        this._category["evening"] = mapping;
+    }
+    /** @returns {ConflictsMap} a deep copy of unavailable techs warning */
+    get unavailableMapping() {
+        return structuredClone(this._category["unavailable"]);
+    }
+    /** @param {ConflictsMap} mapping  */
+    set unavailableMapping(mapping) {
+        this._category["unavailable"] = mapping;
     }
     /** @returns {EveningMaleConflicts} a deep copy of evening male techs warning */
     get eveningMalesTechs() {
         return structuredClone(this._eveningMaleTechs);
     }
-
-    /** @returns {ConflictsMap} a deep copy of unavailable techs warning */
-    get unavailableMapping() {
-        return structuredClone(this._unavailableMapping);
-    }
-    /** @param {ConflictsMap} mapping  */
-    set unavailableMapping(mapping) {
-        this._unavailableMapping = mapping;
-    }
     get notAvailable() {
         return structuredClone(this._notAvailable);
     }
-
     /** @returns {ShiftCountError} */
     get shiftCountError() {
         return {
@@ -169,23 +163,22 @@ export class Warnings {
 
     /**
     * @param {Shift} shift
-    * @param {Array<string>} names
     */
-    addMultipleNamesEntry(shift, names) {
-        this._multipleNames.push({
-            shift: shift,
-            names: names
-        });
+    addMultipleNamesEntry(shift) {
+        if (!this._multipleNames) {
+            this._multipleNames = [shift];
+        }
+        this._multipleNames.push(shift);
     }
 
     /**
     * @param {Shift} shift
     */
     addDuplicateNamesEntry(shift) {
-        if (this._duplicate.has(shift.weekday)) {
-            this._duplicate.get(shift.weekday).push(shift);
+        if (!this._duplicate) {
+            this._duplicate = [shift];
         } else {
-            this._duplicate.set(shift.weekday, [shift]);
+            this._duplicate.push(shift);
         }
     }
 
@@ -194,8 +187,8 @@ export class Warnings {
     * @param {string} name 
     */
     isUnavailable(dayIndex, name) {
-        if (this._unavailableMapping.has(dayIndex)) {
-            return this._unavailableMapping.get(dayIndex).has(name);
+        if (this._category["unavailable"].has(dayIndex)) {
+            return this._category["unavailable"].get(dayIndex).has(name);
         }
         return false;
     }
@@ -203,8 +196,9 @@ export class Warnings {
     addNotAvailableEntry(shift) {
         if (!this._notAvailable) {
             this._notAvailable = [shift];
+        } else {
+            this._notAvailable.push(shift);
         }
-        this._notAvailable.push(shift);
     }
     
     /**
@@ -221,11 +215,11 @@ export class Warnings {
         if (employee.gender !== "M") {
             return false;
         }
-        if (!this._eveningMapping.has(dayIndex)) {
+        if (!this._category["evening"].has(dayIndex)) {
             return false;
         }
 
-        const eveningEmployee = this._eveningMapping.get(dayIndex);
+        const eveningEmployee = this._category["evening"].get(dayIndex);
         let isAnotherMale = false;
 
         eveningEmployee.values().forEach(name => {
@@ -247,8 +241,9 @@ export class Warnings {
     addEveningMaleEntry(shift) {
         if (!this._eveningMaleTechs) {
             this._eveningMaleTechs = [shift];
+        } else {
+            this._eveningMaleTechs.push(shift);
         }
-        this._eveningMaleTechs.push(shift);
     }
 
     /**
@@ -260,7 +255,15 @@ export class Warnings {
             this._category[type] = new Map();
         }
     }
-
+    /**
+     * Adds an employee's name to the specified category mapping for a given day index.
+     * If the category does not exist, it initializes a new mapping.
+     * If the day index does not exist within the category, it initializes a new set.
+     * 
+     * @param {string} type - The category type (e.g., "unavailable", "evening", etc).
+     * @param {number} dayIndex - The index of the day (typically a weekday index).
+     * @param {string} name - The employee's name or alias to be added to the mapping.
+     */
     populateMapByCategory(type, dayIndex, name) {
         if (!this._category[type]) {
             this._category[type] = new Map();
