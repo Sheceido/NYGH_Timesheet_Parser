@@ -155,16 +155,8 @@ export class TimesheetTable extends HTMLElement {
 
         // Apply warnings to shift time row
         this.applyShiftTimeWarnings(warnings.duplicate, "duplicate", "shiftTime");
-        this.applyShiftTimeWarnings(
-            warnings.multipleNames.filter(s => s.shiftTime !== "ON-CALL"),
-            "multiName",
-            "shiftTime"
-        );
-        this.applyShiftTimeWarnings(
-            warnings.multipleNames.filter(s => s.shiftTime === "ON-CALL"),
-            "standbyMultiName",
-            "standbyHrs"
-        );
+        this.applyShiftTimeWarnings(warnings.regShiftMultiNames, "multiName", "shiftTime");
+        this.applyShiftTimeWarnings(warnings.standbyMultiNames, "standbyMultiName", "standbyHrs");
         this.applyShiftTimeWarnings(warnings.notAvailable, "unavailable", "shiftTime");
         this.applyShiftTimeWarnings(warnings.evening, "evening", "shiftTime");
 
@@ -304,6 +296,7 @@ export class TimesheetTable extends HTMLElement {
      * @param {string} rowName
      */
     applyShiftTimeWarnings(warnings, type, rowName) {
+
         warnings.forEach(s => {
             const tdId = `${rowName}-col${s.coordinate.col}`;
             const foundCell = this.#shadowRoot.querySelector(`#${tdId}`);
@@ -344,9 +337,7 @@ export class TimesheetTable extends HTMLElement {
             }
 
             foundCell.appendChild(popup);
-            popup.offsetRight(
-                this.getIconOffset(foundCell)
-            );
+            popup.offsetRight(this.getIconOffset(foundCell));
         });
     }
 
@@ -396,6 +387,7 @@ export class TimesheetTable extends HTMLElement {
             p.appendChild(errorSpan);
             promptSpan.textContent = `${capitalize(employee.first_name)} appears to have MORE THAN (${shiftCount.expected}) shifts in the biweekly, (${statsCount}) of which would be stat holiday(s).`;
         } else {
+            p.style.backgroundColor = WARNING_COLORS.lightRed;
             p.appendChild(errorSpan);
             promptSpan.textContent = `${capitalize(employee.first_name)} appears to have LESS THAN (${shiftCount.expected}) shifts in the biweekly, (${statsCount}) of which would be stat holiday(s).`;
         }

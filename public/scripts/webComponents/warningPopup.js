@@ -35,6 +35,7 @@ export class WarningPopup extends HTMLElement {
         }
         div.context {
             position:absolute;
+            left: -20%;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -52,7 +53,7 @@ export class WarningPopup extends HTMLElement {
             font-family: sans-serif;
             font-size: medium;
             margin: 0;
-            margin-top: 1.5em;
+            margin-top: 1em;
         }
         .multiNameContainer {
             display: flex;
@@ -79,7 +80,7 @@ export class WarningPopup extends HTMLElement {
         this.#shadowRoot.appendChild(style);
     }
 
-    createDuplicateWarning() {
+    createDuplicateWarning(type) {
         const h3 = document.createElement("h3");
         h3.textContent = `?Duplicate Error`;
 
@@ -93,9 +94,10 @@ export class WarningPopup extends HTMLElement {
             "top",
         );
         this.#shadowRoot.appendChild(dupWarning);
+        this.classList.add(type);
     }
 
-    createUnavailableWarning() {
+    createUnavailableWarning(type) {
         const h3 = document.createElement("h3");
         h3.textContent = `Unavailable!`;
 
@@ -110,9 +112,10 @@ export class WarningPopup extends HTMLElement {
             {x: 18, y: 18}
         );
         this.#shadowRoot.appendChild(unavailWarning);
+        this.classList.add(type);
     }
 
-    createEveningWarning() {
+    createEveningWarning(type) {
         const h3 = document.createElement("h3");
         h3.textContent = `Evening Male Tech!`;
 
@@ -127,6 +130,25 @@ export class WarningPopup extends HTMLElement {
             {x: 18, y: 18}
         );
         this.#shadowRoot.appendChild(eveningWarning);
+        this.classList.add(type);
+    }
+
+    createEmptyCellsWarning(type) {
+        const h3 = document.createElement("h3");
+        h3.textContent = `Empty Cell!`;
+        
+        const p = document.createElement("p");
+        p.textContent = `Expected employee to be scheduled in this cell, found none!`;
+
+        const emptyCellWarning = this.createSymbolWithHoverContext(
+            "./images/icons8-where-what-quest-48.png",
+            [h3, p],
+            WARNING_COLORS.pastelTeal,
+            "top",
+            {x: 15, y: 15}
+        );
+        this.#shadowRoot.appendChild(emptyCellWarning);
+        this.classList.add(type);
     }
 
     createMultiNameWarning(names, type) {
@@ -169,6 +191,7 @@ export class WarningPopup extends HTMLElement {
             "top"
         );
         this.#shadowRoot.appendChild(multiNameWarning);
+        this.classList.add(type);
     }
 
     /**

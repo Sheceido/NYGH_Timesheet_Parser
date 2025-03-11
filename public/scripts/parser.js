@@ -8,6 +8,7 @@ import { roster } from './roster.js';
  * @property {number} weekday - column index of the weekday.
  * @property {string} location - location of the shift.
  * @property {string} shiftTime - time that which the shift takes place at.
+ * @property {boolean} shiftTimeCascade - row's shiftTime was cascaded from a row above
  */
 /** @typedef {import('./roster.js').Employee} Employee */
 /** @typedef {Map<number, Shift>} ShiftMap */
@@ -91,7 +92,7 @@ export class ScheduleTimeSheetParser {
                 insideQuotes = !insideQuotes; 
             }
             // replace \n within quotations with \s
-        else if (currChar === `\n` && insideQuotes) {
+            else if (currChar === `\n` && insideQuotes) {
                 schedStrChars.push(` `);
             }
             // push all other chars
@@ -138,8 +139,10 @@ export class ScheduleTimeSheetParser {
         /** @type {string} */
         let shiftTimeName;
 
+
         for (let i = 0; i < this.schedule.length; i++) {
 
+            let shiftTimeCascade = false;
             const row = this.schedule[i];
             /**
              * Assuming iteration of schedule is row by row from top to bottom, when a certain
@@ -162,6 +165,7 @@ export class ScheduleTimeSheetParser {
 
             /**
              * Modify shift time to be 24 hour clock based on specific string
+             *  WARNING: any changes to shift time names must also be reflected for DEFINED_SHIFTS_SET in constants.js file.
              */
             switch (row[0].trim()) {
                 case "0700-1500":
@@ -204,6 +208,7 @@ export class ScheduleTimeSheetParser {
                     break;
                 case "":
                     // stays the same if row is empty, cascading from row above it
+                    shiftTimeCascade = true;
                     break;
                 default:
                     shiftTimeName = row[0].trim(); //TODO: ?standardize this
@@ -214,14 +219,31 @@ export class ScheduleTimeSheetParser {
                     row: i,
                     col: 0,
                 },
+                names: [],
                 weekday: i,
                 location: currLoc,
-                shiftTime: shiftTimeName
+                shiftTime: shiftTimeName,
+                shiftTimeCascade: shiftTimeCascade
             });
         }
         return shiftMapping;
     }
-    
+
+    /**
+    * @param {ShiftMap} shiftTimes 
+    * @param {string} time 
+    * @param {string} location
+    * @returns {number | null} first row found by the provided time and location
+    */
+    findFirstShiftTimeRow(time, location) {
+        for (const [_, shift] of this.shiftTimes.entries()) {
+            if (shift.shiftTime === time && shift.location === location) {
+                return shift.coordinate.row;
+            }
+        }
+        return null;
+    }
+
     /**
      * @param {string} st 
      * @return {number[]} index of each row with the shiftTime name
@@ -268,20 +290,24 @@ export class ScheduleTimeSheetParser {
                 const { isMulti, names } = this.multiNameCell(nameTrimmed);
 
                 /** @type {Shift} shiftData */
-                    const shiftData = {
-                        coordinate: {
-                            row: rowNum,
-                            col: colNum
-                        },
-                        names: names,
-                        weekday: colNum,
-                        location: this.isOcscOrConsumer(st.location),
-                        shiftTime: st.shiftTime,
-                    };
+                const shiftData = {
+                    coordinate: {
+                        row: rowNum,
+                        col: colNum
+                    },
+                    names: names,
+                    weekday: colNum,
+                    location: this.isOcscOrConsumer(st.location),
+                    shiftTime: st.shiftTime,
+                    shiftTimeCascade: st.shiftTimeCascade
+                };
 
                 // Add multiple names warning if cell contains >= 2 names
                 if (isMulti && this.warnings.hasMultipleNames(this.employee, names)) {
                     this.warnings.addMultipleNamesEntry(shiftData);
+                }
+                else if (this.warnings.isEmptyCell(shiftData)) {
+                    this.warnings.addEmptyCellEntry(shiftData);
                 }
 
                 if (this.matchEmployee(nameTrimmed)) {
@@ -303,11 +329,7 @@ export class ScheduleTimeSheetParser {
                     }
                     // Add Evening Male Tech warning if this.employee is male and another male tech is identified in the set of evening shifts for that column/day
                     if (st.shiftTime === "16:00-24:00" &&
-                        this.warnings.isAnotherMaleEmployee(
-                            colNum,
-                            this.employee,
-                            this.matchEmployeeByRoster
-                        ))
+                        this.warnings.isAnotherMaleEmployee(colNum, this.employee, this.matchEmployeeByRoster))
                     {
                         this.warnings.addEveningMaleEntry(shiftData);
                     }

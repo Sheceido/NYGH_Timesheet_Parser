@@ -1,3 +1,4 @@
+import { DEFINED_SHIFTS_SET, WEEKEND_DAYS, WEEKEND_SHIFT_TIMES } from './constants.js';
 /** @typedef {import('./roster.js').Employee} Employee */
 /** @typedef {import('./parser.js').Shift} Shift */
 /**
@@ -11,8 +12,12 @@
  * - The value (`Shift[]`) is an array of row indices in the grid where duplicates are found
  */
 /**
- * @typedef {Shift[]} MultipleNames
- * Represents a list of shifts paired with a list of multiple name occurrences.
+ * @typedef {Shift[]} RegShiftMultipleNames
+ * Represents a list of regular shifts paired with a list of multiple name occurrences.
+ */
+/**
+ * @typedef {Shift[]} StandbyMultipleNames
+ * Represents a list of standby shifts paired with a list of multiple name occurrences.
  */
 /**
  * @typedef {Shift[]} EveningMaleConflicts
@@ -23,11 +28,17 @@
  * An array of shifts that correspond to an employee that was already marked as not available on that day.
  */
 /**
+ * @typedef {Shift[]} EmptyCell
+ * an array of shifts that appear to be empty that by default may be expected to be filled
+ */
+/**
  * @typedef {{
  *      duplicate: Duplicates,
- *      multipleNames: MultipleNames,
+ *      regShiftMultiNames: RegShiftMultipleNames,
+ *      standbyMultiNames: StandbyMultipleNames,
  *      evening: EveningMaleConflicts,
  *      notAvailable: NotAvailableConflicts,
+ *      emptyCells: EmptyCell,
  *      shiftCount: ShiftCountError,
  *  }} WarningsGroup
  * */
@@ -50,13 +61,19 @@ export class Warnings {
 
     /** @type {Duplicates} */
     _duplicate;
-    /** @type {MultipleNames} */
-    _multipleNames;
+
+    /** @type {RegShiftMultipleNames} */
+    _regShiftMultiNames;
+    /** @type {StandbyMultipleNames} */
+    _standbyMultiNames;
     
     /** @type {EveningMaleConflicts} */
     _eveningMaleTechs;
     /** @type {NotAvailableConflicts} */
     _notAvailable;
+
+    /** @type {EmptyCell} */
+    _emptyCells;
 
     /** @type {number} */
     _expectedShiftCount;
@@ -69,9 +86,11 @@ export class Warnings {
             "evening": new Map(),
         }
         this._duplicate = [];
-        this._multipleNames = [];
+        this._regShiftMultiNames = [];
+        this._standbyMultiNames = [];
         this._eveningMaleTechs = [];
         this._notAvailable = [];
+        this._emptyCells = [];
     }
 
     get conflictsMap() {
@@ -82,9 +101,11 @@ export class Warnings {
     get warningsGroup() {
         return {
             duplicate: this.duplicate,
-            multipleNames: this.multipleNames,
+            regShiftMultiNames: this.regShiftMultiNames,
+            standbyMultiNames: this.standbyMultiNames,
             evening: this.eveningMalesTechs,
             notAvailable: this.notAvailable,
+            emptyCells: this.emptyCells,
             shiftCount: this.shiftCountError,
         }
     }
@@ -92,10 +113,15 @@ export class Warnings {
     get duplicate() {
         return structuredClone(this._duplicate);
     }
-    /** @returns {MultipleNames} a deep copy of multiple names found warning */
-    get multipleNames() {
-        return structuredClone(this._multipleNames);
+    /** @returns {RegShiftMultipleNames} a deep copy of multiple names found in reg shifts */
+    get regShiftMultiNames() {
+        return structuredClone(this._regShiftMultiNames);
     }
+    /** @returns {StandbyMultipleNames} a deep copy of multiple names found in standby shifts */
+    get standbyMultiNames() {
+        return structuredClone(this._standbyMultiNames);
+    }
+
     /** @returns {ConflictsMap} */
     get eveningMapping() {
         return structuredClone(this._category["evening"]);
@@ -116,8 +142,12 @@ export class Warnings {
     get eveningMalesTechs() {
         return structuredClone(this._eveningMaleTechs);
     }
+    /** @returns {NotAvailableConflicts} */
     get notAvailable() {
         return structuredClone(this._notAvailable);
+    }
+    get emptyCells() {
+        return structuredClone(this._emptyCells);
     }
     /** @returns {ShiftCountError} */
     get shiftCountError() {
@@ -165,10 +195,17 @@ export class Warnings {
     * @param {Shift} shift
     */
     addMultipleNamesEntry(shift) {
-        if (!this._multipleNames) {
-            this._multipleNames = [shift];
+        if (shift.shiftTime !== "ON-CALL") {
+            if (!this._regShiftMultiNames) {
+                this._regShiftMultipleNames = [];
+            }
+            this._regShiftMultiNames.push(shift);
+        } else {
+            if (!this._standbyMultiNames) {
+                this._standbyMultiNames = [];
+            }
+            this._standbyMultiNames.push(shift);
         }
-        this._multipleNames.push(shift);
     }
 
     /**
@@ -176,10 +213,9 @@ export class Warnings {
     */
     addDuplicateNamesEntry(shift) {
         if (!this._duplicate) {
-            this._duplicate = [shift];
-        } else {
-            this._duplicate.push(shift);
+            this._duplicate = [];
         }
+        this._duplicate.push(shift);
     }
 
     /**
@@ -195,10 +231,34 @@ export class Warnings {
 
     addNotAvailableEntry(shift) {
         if (!this._notAvailable) {
-            this._notAvailable = [shift];
-        } else {
-            this._notAvailable.push(shift);
+            this._notAvailable = [];
         }
+        this._notAvailable.push(shift);
+    }
+
+    /**
+     * @param {Shift} shift 
+     */
+    isEmptyCell(shift) {
+        return (
+            (
+                shift.location === "GENERAL" ||
+                shift.location === "OCSC" ||
+                shift.location === "CONSUMER" ||
+                (shift.location === "BDC" && !WEEKEND_DAYS.includes(shift.weekday))
+            ) &&
+            DEFINED_SHIFTS_SET.has(shift.shiftTime) &&
+            shift.names.length === 1 &&
+            shift.names[0] === "" &&
+            shift.shiftTimeCascade === false
+        );
+    }
+
+    addEmptyCellEntry(shift) {
+        if (!this._emptyCells) {
+            this._emptyCells = [];
+        }
+        this._emptyCells.push(shift);
     }
     
     /**
@@ -240,10 +300,9 @@ export class Warnings {
      */
     addEveningMaleEntry(shift) {
         if (!this._eveningMaleTechs) {
-            this._eveningMaleTechs = [shift];
-        } else {
-            this._eveningMaleTechs.push(shift);
+            this._eveningMaleTechs = [];
         }
+        this._eveningMaleTechs.push(shift);
     }
 
     /**
