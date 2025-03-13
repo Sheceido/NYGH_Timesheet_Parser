@@ -47,6 +47,7 @@ const toggle = document.querySelector(".toggleSwitch");
 /** @type {SelectFTR} employeeDropdown */
 const employeeDropdown = document.querySelector("#timesheetSelectFTR");
 employeeDropdown.addDisabledOption();
+employeeDropdown.showEmployeeOptions();
 
 const customName = document.querySelector(".customName");
 const customAbbrev = document.querySelector(".customAbbrev");

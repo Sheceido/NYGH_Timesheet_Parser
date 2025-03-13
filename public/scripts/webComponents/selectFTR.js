@@ -1,5 +1,5 @@
 import { roster } from "../roster.js";
-import { capitalize } from "../utils.js";
+import { capitalize, capitalizeArray } from "../utils.js";
 /**
  * @typedef {import("../warnings.js").ShiftCountError} ShiftCountError 
  * @typedef {import("../warnings.js").WarningsGroup} WarningsGroup
@@ -40,6 +40,15 @@ export class SelectFTR extends HTMLElement {
     }
     set value(v) {
         this.select.value = v;
+    }
+
+    showEmployeeOptions() {
+        for (const [fullName, employee] of Object.entries(roster)) {
+            const option = document.createElement("option");
+            option.value = fullName;
+            option.textContent = capitalize(employee.str_alias);
+            this.select.appendChild(option);
+        }
     }
 
     /**
