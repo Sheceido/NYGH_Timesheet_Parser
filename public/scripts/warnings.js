@@ -154,7 +154,7 @@ export class Warnings {
         return {
             expected: this._expectedShiftCount,
             found: this._shiftCountError,
-        }
+        };
     }
 
     /**

@@ -1,4 +1,4 @@
-import { capitalize } from "../../utils.js";
+import { capitalize, capitalizeArray } from "../../utils.js";
 import { roster } from "../../roster.js";
 import { WarningPopup } from "../warningPopup.js";
 import { WARNING_COLORS } from "../../constants.js";
@@ -109,9 +109,10 @@ export class ScheduleChecker extends HTMLElement {
         this.scheduleTable.append(daysNumRow);
 
         // Go through all FTR employees and place the corrected names into grid
-        for (const [name, e] of employeeShiftsWarnings.entries()) {
-            e.shifts.forEach(shift => {
-                grid[shift.coordinate.row][shift.coordinate.col] = capitalize(name);
+        for (const [fullName, employee] of Object.entries(roster)) {
+            
+            employeeShiftsWarnings.get(fullName).shifts.forEach(shift => {
+                grid[shift.coordinate.row][shift.coordinate.col] = capitalize(employee.str_alias);
             });
         }
         /** Remove all rows above the first row starting at a specified time */
@@ -160,6 +161,10 @@ export class ScheduleChecker extends HTMLElement {
     createShiftCountErrorDisplay(employeeName, shiftCount, statsCount) {
         const p = document.createElement("p");
         p.classList.add("comments");
+        p.style.maxWidth = "70vw";
+        p.style.padding = "1em";
+        p.style.borderRadius = "5px";
+        p.style.backgroundColor = WARNING_COLORS.lightRed;
 
         const successSpan = document.createElement("span");
         successSpan.textContent = " ✅ ";
@@ -169,16 +174,16 @@ export class ScheduleChecker extends HTMLElement {
 
         const promptSpan = document.createElement("span");
         promptSpan.style.fontFamily = "sans-serif";
-        promptSpan.style.fontSize = "small";
+        promptSpan.style.fontSize = "1.1em";
     
         if (shiftCount.found === 0) {
             return null;
         } else if (shiftCount.found > 0) {
             p.appendChild(errorSpan);
-            promptSpan.textContent = `${capitalize(employeeName)} appears to have MORE THAN (${shiftCount.expected}) shifts in the biweekly, (${statsCount}) of which would be stat holiday(s).`;
+            promptSpan.textContent = `${capitalizeArray(employeeName.split(" "))} appears to have MORE THAN (${shiftCount.expected}) shifts in the biweekly, (${shiftCount.expected + shiftCount.found}) shifts scheduled, (${statsCount}) of which would be stat holiday(s).`;
         } else {
             p.appendChild(errorSpan);
-            promptSpan.textContent = `${capitalize(employeeName)} appears to have LESS THAN (${shiftCount.expected}) shifts in the biweekly, (${statsCount}) of which would be stat holiday(s).`;
+            promptSpan.textContent = `${capitalizeArray(employeeName.split(" "))} appears to have LESS THAN (${shiftCount.expected}) shifts in the biweekly, (${shiftCount.expected + shiftCount.found}) shifts scheduled, (${statsCount}) of which would be stat holiday(s).`;
         }
         p.appendChild(promptSpan);
 
@@ -195,10 +200,10 @@ export class ScheduleChecker extends HTMLElement {
         let appliedEmptyCells = false;
 
         // Go through all FTR employees and render any warnings for the shift
-        for (const [str_alias, shifts] of employeeShiftsWarnings.entries()) {
+        for (const [fullName, shifts] of employeeShiftsWarnings.entries()) {
 
             // Shift Count Errors Comments below table
-            this.createShiftCountErrorDisplay(str_alias, shifts.warnings.shiftCount, statCount);
+            this.createShiftCountErrorDisplay(fullName, shifts.warnings.shiftCount, statCount);
 
             this.applyShiftWarnings(shifts.warnings.duplicate, "duplicate", firstRow);
             this.applyShiftWarnings(shifts.warnings.regShiftMultiNames, "multiName",firstRow);

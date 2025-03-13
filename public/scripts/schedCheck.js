@@ -25,37 +25,40 @@ selectFTR.hideSelect();
 selectFTR.disableSelect();
 
 export function checkSchedule() {
-    // Reset state to beginning
-    scheduleCheckTable.reset(); // remove old table
-    document.querySelector(".shiftCountErrors").textContent = "";
-    selectFTR.selectFirstChild();
-
-
+    // Check input for text area
     const schedTextArea = document.querySelector(".schedule");
-    const scheduleStr = schedTextArea.value;
 
-    let holidayCount = 0;
-    /** @type HTMLInputElement */
-    const stats = document.querySelector(".schedCheckHolidays");
-
-    if (scheduleStr === "") {
+    if (schedTextArea.value === "") {
         schedTextArea.classList.add("errorHighlight");
         return;
     }
     schedTextArea.classList.remove("errorHighlight");
 
+    const scheduleStr = schedTextArea.value;
+
+    // Check input for stats count
+    let holidayCount = 0;
+
+    /** @type HTMLInputElement */
+    const stats = document.querySelector(".schedCheckHolidays");
+
     if (stats.value !== "") {
         const numInput = Number(stats.value);
-        if (!isNaN(numInput) || numInput >= 0 && numInput <= 14) {
-            holidayCount = numInput;
-        } else {
+
+        if (isNaN(numInput) || numInput < 0 || numInput > 14) {
             stats.classList.add("errorHighlight");
             return;
         }
+        holidayCount = numInput;
     }
     stats.classList.remove("errorHighlight");
 
-    // get grid, parse conflicts map set to true, results assigned to individual employee parser
+    // Reset state to beginning
+    scheduleCheckTable.reset(); // remove old table
+    document.querySelector(".shiftCountErrors").textContent = "";
+    selectFTR.selectFirstChild();
+    
+    // get grid, parse conflicts map set to true, maps then assigned to individual employee parser
     const schedParse = new ScheduleTimeSheetParser(scheduleStr, null, true);
     const scheduleGrid = schedParse.scheduleGrid;
     const headers = schedParse.getWeekdayHeader();
@@ -65,7 +68,7 @@ export function checkSchedule() {
     /** @type {EmployeeShiftsAndWarnings} */
     const ftrEmployeeShiftsWarnings = new Map();
     
-    for (const [_, employee] of Object.entries(roster)) {
+    for (const [fullName, employee] of Object.entries(roster)) {
         const parser = new ScheduleTimeSheetParser(scheduleStr, employee, false);
         // set from outer scope predefined conflicts mapping
         parser.warnings.eveningMapping = conflictMaps["evening"];
@@ -78,7 +81,7 @@ export function checkSchedule() {
 
         // get warnings specific to each employee
         const warnings = parser.getWarningsGroup();
-        ftrEmployeeShiftsWarnings.set(employee.str_alias, {
+        ftrEmployeeShiftsWarnings.set(fullName, {
             shifts: shifts,
             warnings: warnings,
         });
@@ -92,6 +95,7 @@ export function checkSchedule() {
     );
 
     scheduleCheckTable.applyEmployeeWarnings(ftrEmployeeShiftsWarnings, holidayCount);
+    selectFTR.showEmployeeAndShiftCount(ftrEmployeeShiftsWarnings);
 
     selectFTR.enableSelect(); // enable for filtering once schedule is generated
     selectFTR.showSelect();

@@ -1,4 +1,10 @@
 import { roster } from "../roster.js";
+import { capitalize } from "../utils.js";
+/**
+ * @typedef {import("../warnings.js").ShiftCountError} ShiftCountError 
+ * @typedef {import("../warnings.js").WarningsGroup} WarningsGroup
+ * @typedef {Map<string, {shifts: Shift[], warnings: WarningsGroup}>} EmployeeShiftsAndWarnings
+ **/
 
 export class SelectFTR extends HTMLElement {
     
@@ -6,11 +12,15 @@ export class SelectFTR extends HTMLElement {
     css = `
         select {
             padding: 4px;
+            width: 250px;
             cursor: pointer;
             margin-inline: 0.5em;
         }
+        option {
+            font-family: monospace;
+            font-size: 1.1em;
+        }
     `
-
     select;
 
     constructor() {
@@ -22,14 +32,6 @@ export class SelectFTR extends HTMLElement {
         this.#shadowRoot.appendChild(style);
 
         this.select = document.createElement("select");
-
-        for (const [key, _] of Object.entries(roster)) {
-            const option = document.createElement("option");
-            option.value = key;
-            option.textContent = key;
-            this.select.appendChild(option);
-        }
-
         this.#shadowRoot.appendChild(this.select);
     }
 
@@ -38,6 +40,48 @@ export class SelectFTR extends HTMLElement {
     }
     set value(v) {
         this.select.value = v;
+    }
+
+    /**
+     * @param {EmployeeShiftsAndWarnings} ftrEmployeeShiftsWarnings 
+     */
+    showEmployeeAndShiftCount(ftrEmployeeShiftsWarnings) {
+        for (const [fullName, employee] of Object.entries(roster)) {
+
+            // remove prior stale employee option entry
+            const staleOption = this.select.querySelector(`option[value="${fullName}"]`);
+            if (staleOption) {
+                staleOption.remove();
+            }
+            // create new option with updated shift counts
+            const option = document.createElement("option");
+            option.value = fullName;
+
+            /** @type ShiftCountError */
+            let employeeShiftCount = ftrEmployeeShiftsWarnings.get(fullName).warnings.shiftCount;
+
+            const successSpan = document.createElement("span");
+            const errorSpan = document.createElement("span");
+            successSpan.textContent = " ✅ ";
+            errorSpan.textContent = " ❌ ";
+
+            const sp1 = document.createElement("span");
+            const sp2 = document.createElement("span");
+
+            sp1.textContent = `${capitalize(employee.str_alias.padEnd(15, '\u00A0'))}`;
+            sp2.textContent = `${employeeShiftCount.expected + employeeShiftCount.found} Shifts.`.padStart(10, '\u00A0');
+
+            option.append(sp1);
+
+            if (employeeShiftCount.found === 0) {
+                option.appendChild(successSpan);
+            } else {
+                option.appendChild(errorSpan);
+            }
+            option.appendChild(sp2);
+
+            this.select.appendChild(option);
+        }
     }
 
     /**
