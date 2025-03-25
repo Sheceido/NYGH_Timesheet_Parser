@@ -20,6 +20,7 @@ function onSelectChangeCallback(rosterName) {
 /** @type {SelectFTR} */
 const selectFTR = document.querySelector("#schedCheckSelectFTR");
 selectFTR.addShowAllOption();
+selectFTR.addDudOption();
 selectFTR.addOnChangeFn(onSelectChangeCallback);
 selectFTR.hideSelect();
 selectFTR.disableSelect();
@@ -57,17 +58,20 @@ export function checkSchedule() {
     scheduleCheckTable.reset(); // remove old table
     document.querySelector(".shiftCountErrors").textContent = "";
     selectFTR.selectFirstChild();
-    
+
     // get grid, parse conflicts map set to true, maps then assigned to individual employee parser
     const schedParse = new ScheduleTimeSheetParser(scheduleStr, null, true);
     const scheduleGrid = schedParse.scheduleGrid;
     const headers = schedParse.getWeekdayHeader();
     const shiftTimes = schedParse.getShiftTimeRows();
+
+    // these only get parsed if paramater optionalParsing is set to true as above
     const conflictMaps = schedParse.conflictMaps;
+    const unknownEmployeeShifts = schedParse.unknownEmployeeShiftsWarning;
 
     /** @type {EmployeeShiftsAndWarnings} */
     const ftrEmployeeShiftsWarnings = new Map();
-    
+
     for (const [fullName, employee] of Object.entries(roster)) {
         const parser = new ScheduleTimeSheetParser(scheduleStr, employee, false);
         // set from outer scope predefined conflicts mapping
@@ -93,6 +97,10 @@ export function checkSchedule() {
         shiftTimes,
         ftrEmployeeShiftsWarnings
     );
+
+    // Render panel showing all non-FTR / unrecognized employee names and shift count
+    // with functionality to filter schedule by these names
+    scheduleCheckTable.renderUnrecognizedPanel(unknownEmployeeShifts, selectFTR.selectDudOption.bind(selectFTR));
 
     scheduleCheckTable.applyEmployeeWarnings(ftrEmployeeShiftsWarnings, holidayCount);
     selectFTR.showEmployeeAndShiftCount(ftrEmployeeShiftsWarnings);

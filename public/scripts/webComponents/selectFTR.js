@@ -1,5 +1,5 @@
 import { roster } from "../roster.js";
-import { capitalize, capitalizeArray } from "../utils.js";
+import { capitalize } from "../utils.js";
 /**
  * @typedef {import("../warnings.js").ShiftCountError} ShiftCountError 
  * @typedef {import("../warnings.js").WarningsGroup} WarningsGroup
@@ -7,7 +7,7 @@ import { capitalize, capitalizeArray } from "../utils.js";
  **/
 
 export class SelectFTR extends HTMLElement {
-    
+
     #shadowRoot;
     css = `
         select {
@@ -22,6 +22,7 @@ export class SelectFTR extends HTMLElement {
         }
     `
     select;
+    DUD_VALUE = "---";
 
     constructor() {
         super();
@@ -97,6 +98,7 @@ export class SelectFTR extends HTMLElement {
     * @param {() => void} callback 
     */
     addOnChangeFn(callback) {
+        if (this.select.value === this.DUD_VALUE) return;
         this.select.onchange = () => callback(this.select.value);
     }
 
@@ -120,6 +122,18 @@ export class SelectFTR extends HTMLElement {
         this.select.prepend(showAllOption);
     }
 
+    addDudOption() {
+        const dudOption = document.createElement("option");
+        dudOption.value = this.DUD_VALUE;
+        dudOption.textContent = this.DUD_VALUE;
+
+        this.select.appendChild(dudOption);
+    }
+
+    selectDudOption() {
+        this.select.value = this.DUD_VALUE;
+    }
+
     addErrorHighlight() {
         this.select.style.outline = "1px red solid";
     }
@@ -131,7 +145,7 @@ export class SelectFTR extends HTMLElement {
     hideSelect() {
         this.select.style.display = "none";
     }
-    
+
     showSelect() {
         this.select.style.display = "block";
     }

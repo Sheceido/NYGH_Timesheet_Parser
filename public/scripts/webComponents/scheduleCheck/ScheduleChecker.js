@@ -2,9 +2,12 @@ import { capitalize, capitalizeArray } from "../../utils.js";
 import { roster } from "../../roster.js";
 import { WarningPopup } from "../warningPopup.js";
 import { WARNING_COLORS } from "../../constants.js";
+import { UnrecognizedPanelEntry } from "./UnrecognizedPanelEntry.js";
 /** @typedef {import("../../parser.js").ShiftMap} ShiftMap */
+/** @typedef {import("../../parser.js").Shift} Shift */
 /** @typedef {import("../../warnings.js").ShiftCountError} ShiftCountError */
 /** @typedef {import("../../warnings.js").WarningsGroup} WarningsGroup */
+/** @typedef {import("../../warnings.js").UnknownEmployeeShifts} UnknownEmployeeShifts */
 /** @typedef {import("../../schedCheck.js").EmployeeShiftsAndWarnings} EmployeeShiftsAndWarnings */
 /**
  * @typedef {Map<number, string>} ColorByRow
@@ -12,9 +15,15 @@ import { WARNING_COLORS } from "../../constants.js";
  */
 
 export class ScheduleChecker extends HTMLElement {
-    
+
     #shadowRoot;
     css = `
+        :host {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: start;
+        }
         table {
             position: relative;
             margin-block: 1em;
@@ -53,11 +62,34 @@ export class ScheduleChecker extends HTMLElement {
             font-size: 12px;
             font-family: sans-serif;
         }
+        .unrecognizedPanel {
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin-block: 1em;
+            margin-inline: 0.5em;
+            padding-bottom: 2em;
+            padding-inline: 0.5em;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            text-align: center;
+
+            opacity: 0;
+            animation-name: fadeIn;
+            animation-duration: 0.5s;
+            animation-timing-function: ease-in;
+            animation-iteration-count: 1;
+            animation-fill-mode: forwards;
+        }
     `;
 
     shiftTimes;
     /** @type {HTMLTableElement} */
     scheduleTable;
+    /** @type {HTMLDivElement} */
+    unrecognizedPanel;
     /** @type {ColorByRow} */
     rowColorSwatch;
 
@@ -68,7 +100,7 @@ export class ScheduleChecker extends HTMLElement {
         style.textContent = this.css;
         this.#shadowRoot.appendChild(style);
     }
-    
+
     /**
     * @param {string[][]} grid 
     * @param {string[]} headers 
@@ -88,7 +120,7 @@ export class ScheduleChecker extends HTMLElement {
         const daysOfWeekRow = document.createElement("tr");
         //create empty first column cell
         daysOfWeekRow.appendChild(document.createElement("th"));
-        
+
         for (let i = 0; i < 2; i++) {
             for (let j = 0, th; j < DAYS_OF_THE_WEEK.length; j++) {
                 th = document.createElement("th");
@@ -110,7 +142,7 @@ export class ScheduleChecker extends HTMLElement {
 
         // Go through all FTR employees and place the corrected names into grid
         for (const [fullName, employee] of Object.entries(roster)) {
-            
+
             employeeShiftsWarnings.get(fullName).shifts.forEach(shift => {
                 grid[shift.coordinate.row][shift.coordinate.col] = capitalize(employee.str_alias);
             });
@@ -118,7 +150,7 @@ export class ScheduleChecker extends HTMLElement {
         /** Remove all rows above the first row starting at a specified time */
         const firstRow = this.findFirstShiftTimeRow("07:00-15:00", "GENERAL");
         grid.splice(0, firstRow);
-        
+
         // Create table from grid of data
         for (let rowIndex = 0; rowIndex < grid.length; rowIndex++) {
             const tr = document.createElement("tr");
@@ -175,7 +207,7 @@ export class ScheduleChecker extends HTMLElement {
         const promptSpan = document.createElement("span");
         promptSpan.style.fontFamily = "sans-serif";
         promptSpan.style.fontSize = "1.1em";
-    
+
         if (shiftCount.found === 0) {
             return null;
         } else if (shiftCount.found > 0) {
@@ -206,13 +238,13 @@ export class ScheduleChecker extends HTMLElement {
             this.createShiftCountErrorDisplay(fullName, shifts.warnings.shiftCount, statCount);
 
             this.applyShiftWarnings(shifts.warnings.duplicate, "duplicate", firstRow);
-            this.applyShiftWarnings(shifts.warnings.regShiftMultiNames, "multiName",firstRow);
+            this.applyShiftWarnings(shifts.warnings.regShiftMultiNames, "multiName", firstRow);
             this.applyShiftWarnings(shifts.warnings.standbyMultiNames, "standbyMultiName", firstRow);
             this.applyShiftWarnings(shifts.warnings.notAvailable, "unavailable", firstRow);
             this.applyShiftWarnings(shifts.warnings.evening, "evening", firstRow);
 
             if (!appliedEmptyCells) {
-                this.applyShiftWarnings(shifts.warnings.emptyCells, "emptyCells", firstRow); 
+                this.applyShiftWarnings(shifts.warnings.emptyCells, "emptyCells", firstRow);
                 appliedEmptyCells = true;
             }
         }
@@ -235,7 +267,7 @@ export class ScheduleChecker extends HTMLElement {
             /** @type {WarningPopup} */
             const popup = document.createElement("warning-popup");
 
-            switch(type) {
+            switch (type) {
                 case "duplicate":
                     popup.createDuplicateWarning(type);
                     break;
@@ -264,6 +296,85 @@ export class ScheduleChecker extends HTMLElement {
             foundCell.appendChild(popup);
             popup.offsetRight(this.getIconOffset(foundCell));
         });
+    }
+
+    /**
+     * @param {UnknownEmployeeShifts} unknowns
+     * @param {() => void} changeSelectState
+     */
+    renderUnrecognizedPanel(unknowns, changeSelectState) {
+        this.unrecognizedPanel = document.createElement("div");
+        this.unrecognizedPanel.classList.add("unrecognizedPanel");
+
+        const title = document.createElement("h3");
+        title.style.fontFamily = "sans-serif";
+        title.style.position = "relative";
+
+        const sp1 = document.createElement("span");
+        sp1.textContent = "Other Staff";
+        const sp2 = document.createElement("span");
+        sp2.style.position = "absolute";
+        sp2.style.top = 0;
+        sp2.style.left = "-5px";
+
+        const ctxHeader = document.createElement("h3");
+        ctxHeader.textContent = "Double Check!";
+
+        const ctxInfo = document.createElement("p");
+        ctxInfo.style.fontWeight = "300";
+        ctxInfo.style.textAlign = "start";
+        ctxInfo.textContent = "Check spelling as listed names may be:"
+
+        const checkmarkEmoji = "&#x2714;";
+        const errorEmoji = "&#x274C;";
+        const items = [`Part-Time ${checkmarkEmoji}`, `Casual ${checkmarkEmoji}`, `Mispelled FTR ${errorEmoji}`, `Invalid Name! ${errorEmoji}`];
+        const ul = document.createElement("ul");
+        ul.style.fontSize = "small";
+        ul.style.fontWeight = "300";
+        ul.style.textAlign = "start";
+        ul.style.paddingInline = "1em";
+        ul.style.paddingBottom = "1em";
+        ul.style.margin = 0;
+
+        items.forEach(item => {
+            let li = document.createElement("li");
+            li.innerHTML = item;
+            ul.appendChild(li);
+        });
+
+        const ctxInfo2 = document.createElement("p");
+        ctxInfo2.style.fontWeight = "300";
+        ctxInfo2.style.textAlign = "start";
+        ctxInfo2.textContent = "Clicking on the name listed here will filter the schedule showing where they are.";
+
+        /** @type {WarningPopup} popupInfo */
+        const popupInfo = document.createElement("warning-popup");
+        popupInfo.generateSpecifiedIcon(
+            "./images/icons8-question-mark-48.png",
+            [ctxHeader, ctxInfo, ul, ctxInfo2],
+            WARNING_COLORS.lightBlue,
+            "top"
+        );
+
+        sp2.appendChild(popupInfo);
+
+        title.append(sp1, sp2);
+        this.unrecognizedPanel.appendChild(title);
+
+        for (const [name, shifts] of unknowns) {
+            /** @type {UnrecognizedPanelEntry} */
+            let panelEntry = document.createElement("unrecognized-panel-entry");
+
+            panelEntry.initEntry(
+                name,
+                shifts,
+                this.fadeAllCellsByShifts.bind(this),
+                changeSelectState
+            );
+
+            this.unrecognizedPanel.appendChild(panelEntry);
+        }
+        this.#shadowRoot.appendChild(this.unrecognizedPanel);
     }
 
 
@@ -365,7 +476,7 @@ export class ScheduleChecker extends HTMLElement {
     applyCellColor(rowIndex, colIndex, name) {
         const color = this.rowColorSwatch.get(rowIndex);
 
-        switch(colIndex) {
+        switch (colIndex) {
             case 1:
             case 2:
             case 8:
@@ -407,6 +518,42 @@ export class ScheduleChecker extends HTMLElement {
     }
 
     /**
+     * @param {Shift[]} shifts 
+     */
+    fadeAllCellsByShifts(shifts) {
+        const allCells = this.scheduleTable.querySelectorAll("td");
+        for (let i = 0, cell; i < allCells.length; i++) {
+            cell = allCells[i];
+
+            if (cell.id === "shiftTime") {
+                continue;
+            }
+
+            const row = parseInt(cell.getAttribute("row"));
+            const col = parseInt(cell.getAttribute("col"));
+
+            if (!row || !col) {
+                continue;
+            }
+
+            let found = false;
+            for (let j = 0; j < shifts.length; j++) {
+                let s = shifts[j];
+
+                if (s.coordinate.row === row && s.coordinate.col === col) {
+                    found = true;
+                    this.applyOpacity(cell, 1);
+                    this.highlightBorders(cell, "#4FC174"); // emerald green
+                    break;
+                }
+            }
+            if (!found) {
+                this.applyOpacity(cell, 0.05);
+            }
+        }
+    }
+
+    /**
      * @param {HTMLTableCellElement} cell
      */
     highlightBorders(cell, color) {
@@ -439,6 +586,7 @@ export class ScheduleChecker extends HTMLElement {
     reset() {
         if (this.scheduleTable) {
             this.#shadowRoot.removeChild(this.scheduleTable);
+            this.#shadowRoot.removeChild(this.unrecognizedPanel);
         }
     }
 }

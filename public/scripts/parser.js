@@ -20,10 +20,10 @@ export class ScheduleTimeSheetParser {
     schedule;
     shiftTimes;
 
-    conflicts= {
-            "evening": "16:00-24:00",
-            "unavailable": "Not Available",
-        };
+    conflicts = {
+        "evening": "16:00-24:00",
+        "unavailable": "Not Available",
+    };
 
     warnings;
 
@@ -33,13 +33,14 @@ export class ScheduleTimeSheetParser {
      * @param {Employee} employee 
      * @param {boolean} parseConflicts 
     */
-    constructor(scheduleStr, employee, parseConflictsMap) {
+    constructor(scheduleStr, employee, optionalParsing) {
         this.employee = employee;
         this.schedule = this.parseScheduleToGrid(scheduleStr);
         this.shiftTimes = this.getShiftTimeRows();
         this.warnings = new Warnings();
-        if (parseConflictsMap) {
+        if (optionalParsing) {
             this.mapPossibleConflicts();
+            this.findUnknownEmployeeShifts();
         }
     }
 
@@ -52,6 +53,10 @@ export class ScheduleTimeSheetParser {
 
     get conflictMaps() {
         return this.warnings.conflictsMap;
+    }
+
+    get unknownEmployeeShiftsWarning() {
+        return this.warnings.unknownEmployeeShifts;
     }
 
     /**
@@ -89,7 +94,7 @@ export class ScheduleTimeSheetParser {
             const currChar = scheduleStr[i];
 
             if (currChar === `"`) {
-                insideQuotes = !insideQuotes; 
+                insideQuotes = !insideQuotes;
             }
             // replace \n within quotations with \s
             else if (currChar === `\n` && insideQuotes) {
@@ -100,7 +105,7 @@ export class ScheduleTimeSheetParser {
                 schedStrChars.push(currChar);
             }
         }
-        
+
         return schedStrChars.join("");
     }
 
@@ -132,7 +137,7 @@ export class ScheduleTimeSheetParser {
     * @returns {ShiftMap} shiftMapping, where the key is the day index
     */
     getShiftTimeRows() {
-        let currLoc = "GENERAL"; 
+        let currLoc = "GENERAL";
 
         /** @type {ShiftMap} */
         const shiftMapping = new Map();
@@ -214,7 +219,7 @@ export class ScheduleTimeSheetParser {
                     shiftTimeName = row[0].trim(); //TODO: ?standardize this
             }
 
-            shiftMapping.set( i, {
+            shiftMapping.set(i, {
                 coordinate: {
                     row: i,
                     col: 0,
@@ -329,14 +334,62 @@ export class ScheduleTimeSheetParser {
                     }
                     // Add Evening Male Tech warning if this.employee is male and another male tech is identified in the set of evening shifts for that column/day
                     if (st.shiftTime === "16:00-24:00" &&
-                        this.warnings.isAnotherMaleEmployee(colNum, this.employee, this.matchEmployeeByRoster))
-                    {
+                        this.warnings.isAnotherMaleEmployee(colNum, this.employee, this.matchEmployeeByRoster)) {
                         this.warnings.addEveningMaleEntry(shiftData);
                     }
                 }
             }
         }
         return shifts.sort((a, b) => a.weekday - b.weekday);
+    }
+
+    findUnknownEmployeeShifts() {
+        for (const [rowNum, row] of this.schedule.entries()) {
+            for (const [colNum, name] of row.entries()) {
+
+                if (rowNum === 0 || rowNum === 1) continue;
+                if (colNum === 0) continue;
+
+                const st = this.shiftTimes.get(rowNum);
+                const nameTrimmed = name.trim().toUpperCase();
+                const { _, names } = this.multiNameCell(nameTrimmed);
+
+                const finalName = names[names.length - 1];
+                if (finalName === "" || finalName === "X" || !isNaN(parseInt(finalName))) {
+                    continue;
+                }
+
+                // Skip over specific shift times that aren't relevant to the timesheet
+                switch (st.shiftTime) {
+                    case "AVAILABLE":
+                    case "Not Available":
+                    case "LIEU TIME":
+                        continue;
+                }
+
+                /** @type {Shift} shiftData */
+                const shiftData = {
+                    coordinate: {
+                        row: rowNum,
+                        col: colNum
+                    },
+                    names: names,
+                    weekday: colNum,
+                    location: this.isOcscOrConsumer(null), // unknown employee has no gender associated, default location value
+                    shiftTime: st.shiftTime,
+                    shiftTimeCascade: st.shiftTimeCascade
+                };
+
+                if (!this.matchEmployeeByRoster(finalName) && !finalName.includes("W/E")) {
+                    // no matching FTR employee, consider warning for user to double check
+                    // entered names are valid as they were not default names listed
+                    this.warnings.addUnknownEmployeeShiftsEntry(
+                        names[names.length - 1],
+                        shiftData
+                    );
+                }
+            }
+        }
     }
 
     /**
@@ -354,10 +407,10 @@ export class ScheduleTimeSheetParser {
         const multiNames = this.multiNameCell(finalName);
 
         if (multiNames.isMulti) {
-            finalName = multiNames.names[multiNames.names.length-1];
+            finalName = multiNames.names[multiNames.names.length - 1];
         }
 
-        switch(finalName.toUpperCase()) {
+        switch (finalName.toUpperCase()) {
             case this.employee.first_name:
             case this.employee.str_alias:
             case this.employee.abbrev:
@@ -394,7 +447,7 @@ export class ScheduleTimeSheetParser {
 
         if (names.includes("W/E") ||
             names.includes("STAT") ||
-            names[names.length-1].length < 2 // for same first names and only 1st letter of last name is used as the differentiator, e.g.~ "Jennifer J" and "Jennifer W"
+            names[names.length - 1].length < 2 // for same first names and only 1st letter of last name is used as the differentiator, e.g.~ "Jennifer J" and "Jennifer W"
         ) {
             return { isMulti: false, names: [name.trim().toUpperCase()] };
         }
@@ -409,12 +462,13 @@ export class ScheduleTimeSheetParser {
     * @returns {string} differentiated location based on employee gender
     */
     isOcscOrConsumer(location) {
+        if (location !== "OCSC / CONSUMER") {
+            return location;
+        }
+
         if (!this.employee) {
             console.error("employee must be defined before calling matchEmployee().");
             return;
-        }
-        if (location !== "OCSC / CONSUMER") {
-            return location;
         }
 
         if (this.employee.gender === "M") {
@@ -433,16 +487,16 @@ export class ScheduleTimeSheetParser {
      * Any duplicates found are logged in the parsers warning property.
      */
     getRegularHoursMap(shifts) {
-         /**
-         * @type {ShiftMap} regularHoursMap
-         * @comment
-         * key      - weekday numeration
-         * value    - Shift object
-         */
+        /**
+        * @type {ShiftMap} regularHoursMap
+        * @comment
+        * key      - weekday numeration
+        * value    - Shift object
+        */
         const regularHoursMap = new Map();
 
         shifts.forEach(s => {
-            if (s!== null && s.shiftTime !== "ON-CALL") {
+            if (s !== null && s.shiftTime !== "ON-CALL") {
                 // add duplicate warning entry for any duplicate names found on same day
                 if (regularHoursMap.has(s.weekday)) {
                     this.warnings.addDuplicateNamesEntry(s);
@@ -476,7 +530,7 @@ export class ScheduleTimeSheetParser {
      * @returns {StandbyHrs} standbyHours
      */
     getStandbyHourMap(shifts) {
-        
+
         /** @type {StandbyHrs} */
         const standbyHours = new Map();
         shifts.forEach(s => {
@@ -501,7 +555,7 @@ export class ScheduleTimeSheetParser {
                         // Weekends total 24 hours standby per day
                         standbyHours.set(s.weekday, 24);
                         break;
-                
+
                     case 6:
                     case 13:
                         // Thursdays (weekday #6 and #13) need to account for:
@@ -510,7 +564,7 @@ export class ScheduleTimeSheetParser {
                         standbyHours.set(s.weekday, 11);
 
                         // 12am to 7am (of the Friday morning), 7 hours
-                        const friday = s.weekday+1;
+                        const friday = s.weekday + 1;
                         if (standbyHours.has(friday)) {
                             standbyHours.set(friday, (standbyHours.get(friday) + 7));
                         } else {
@@ -518,7 +572,7 @@ export class ScheduleTimeSheetParser {
                         }
                         break;
 
-                   default:
+                    default:
                         // all other weekdays that are on-call:
                         // continues from 12am to 7am, 7 hours
                         // continues from 8pm to 12am, 4 hours

@@ -84,7 +84,7 @@ export function parse() {
         gender: "",
     };
     let statHolidays = 0;
-    
+
     if (scheduleStr === "") {
         scheduleTextArea.classList.add("errorHighlight");
         return;
@@ -120,7 +120,7 @@ export function parse() {
         customGender.classList.remove("errorHighlight");
 
         employee.first_name = customName.value.trim().toUpperCase();
-        employee.str_alias = customName.value.trim().toUpperCase(); 
+        employee.str_alias = customName.value.trim().toUpperCase();
         employee.abbrev = customAbbrev.value.trim().toUpperCase();
         employee.gender = customGender.value.trim().toUpperCase();
     }

@@ -32,6 +32,10 @@ import { DEFINED_SHIFTS_SET, WEEKEND_DAYS, WEEKEND_SHIFT_TIMES } from './constan
  * an array of shifts that appear to be empty that by default may be expected to be filled
  */
 /**
+ * @typedef {Map<string, Shift[]>} UnknownEmployeeShifts
+ * a mapping of unknown employee name, to their found shifts scheduled.
+ */
+/**
  * @typedef {{
  *      duplicate: Duplicates,
  *      regShiftMultiNames: RegShiftMultipleNames,
@@ -66,7 +70,7 @@ export class Warnings {
     _regShiftMultiNames;
     /** @type {StandbyMultipleNames} */
     _standbyMultiNames;
-    
+
     /** @type {EveningMaleConflicts} */
     _eveningMaleTechs;
     /** @type {NotAvailableConflicts} */
@@ -74,6 +78,9 @@ export class Warnings {
 
     /** @type {EmptyCell} */
     _emptyCells;
+
+    /** @type {UnknownEmployeeShifts} */
+    _unknownEmployeeShifts;
 
     /** @type {number} */
     _expectedShiftCount;
@@ -91,6 +98,7 @@ export class Warnings {
         this._eveningMaleTechs = [];
         this._notAvailable = [];
         this._emptyCells = [];
+        this._unknownEmployeeShifts = new Map();
     }
 
     get conflictsMap() {
@@ -138,6 +146,7 @@ export class Warnings {
     set unavailableMapping(mapping) {
         this._category["unavailable"] = mapping;
     }
+
     /** @returns {EveningMaleConflicts} a deep copy of evening male techs warning */
     get eveningMalesTechs() {
         return structuredClone(this._eveningMaleTechs);
@@ -149,6 +158,15 @@ export class Warnings {
     get emptyCells() {
         return structuredClone(this._emptyCells);
     }
+
+    get unknownEmployeeShifts() {
+        return structuredClone(this._unknownEmployeeShifts);
+    }
+    /** @param {UnknownEmployeeShifts} mapping  */
+    set unknownEmployeeShifts(mapping) {
+        this._unknownEmployeeShifts = mapping;
+    }
+
     /** @returns {ShiftCountError} */
     get shiftCountError() {
         return {
@@ -187,8 +205,8 @@ export class Warnings {
         const nameCheck = new Set(names.map(n => n.toUpperCase()));
 
         return nameCheck.has(employee.first_name) ||
-               nameCheck.has(employee.str_alias) ||
-               nameCheck.has(employee.abbrev);
+            nameCheck.has(employee.str_alias) ||
+            nameCheck.has(employee.abbrev);
     }
 
     /**
@@ -260,7 +278,7 @@ export class Warnings {
         }
         this._emptyCells.push(shift);
     }
-    
+
     /**
      * Makes sure that the current employee is male first, then checks that the evening mapping has the day provided, and finally Iterate through each name in the set (usually < 3 names) of evening employees:
      * - skip names that are of the provided employee
@@ -306,6 +324,18 @@ export class Warnings {
     }
 
     /**
+     * @param {string} key 
+     * @param {Shift} shift 
+     */
+    addUnknownEmployeeShiftsEntry(key, shift) {
+        if (this._unknownEmployeeShifts.has(key)) {
+            this._unknownEmployeeShifts.get(key).push(shift);
+        } else {
+            this._unknownEmployeeShifts.set(key, [shift]);
+        }
+    }
+
+    /**
     * @param {string} type 
     * Creates an empty `ConflictsMap` if the indexed category has yet to be defined
     */
@@ -328,7 +358,7 @@ export class Warnings {
             this._category[type] = new Map();
         }
         const mapping = this._category[type];
-        
+
         if (mapping.has(dayIndex)) {
             mapping.get(dayIndex).add(name);
         } else {

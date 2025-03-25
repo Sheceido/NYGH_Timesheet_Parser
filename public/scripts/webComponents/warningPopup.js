@@ -1,7 +1,7 @@
 import { WARNING_COLORS } from "../constants.js";
 
 export class WarningPopup extends HTMLElement {
-    
+
     #shadowRoot;
     style;
     css = `
@@ -35,11 +35,8 @@ export class WarningPopup extends HTMLElement {
         }
         div.context {
             position:absolute;
-            left: -20%;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
             min-height: 120px;
             min-width: 150px;
             max-width: fit-content;
@@ -109,7 +106,7 @@ export class WarningPopup extends HTMLElement {
             [h3, p],
             WARNING_COLORS.lightRed,
             "top",
-            {x: 18, y: 18}
+            { x: 18, y: 18 }
         );
         this.#shadowRoot.appendChild(unavailWarning);
         this.classList.add(type);
@@ -127,7 +124,7 @@ export class WarningPopup extends HTMLElement {
             [h3, p],
             WARNING_COLORS.lightRed,
             "top",
-            {x: 18, y: 18}
+            { x: 18, y: 18 }
         );
         this.#shadowRoot.appendChild(eveningWarning);
         this.classList.add(type);
@@ -136,7 +133,7 @@ export class WarningPopup extends HTMLElement {
     createEmptyCellsWarning(type) {
         const h3 = document.createElement("h3");
         h3.textContent = `Empty Cell!`;
-        
+
         const p = document.createElement("p");
         p.textContent = `Expected employee to be scheduled in this cell, found none!`;
 
@@ -145,7 +142,7 @@ export class WarningPopup extends HTMLElement {
             [h3, p],
             WARNING_COLORS.pastelTeal,
             "top",
-            {x: 15, y: 15}
+            { x: 15, y: 15 }
         );
         this.#shadowRoot.appendChild(emptyCellWarning);
         this.classList.add(type);
@@ -158,7 +155,7 @@ export class WarningPopup extends HTMLElement {
         h3.textContent = isMultiNameType
             ? `Multiple Names Found!`
             : `Multiple Names in Standby!`
-        ;
+            ;
 
         const p = document.createElement("p");
         p.style.fontSize = "x-small";
@@ -167,12 +164,12 @@ export class WarningPopup extends HTMLElement {
         const img = isMultiNameType
             ? "./images/icons8-question-mark-48.png"
             : "./images/icons8-time-30.png"
-        ;
+            ;
 
         const color = isMultiNameType
             ? WARNING_COLORS.lightBlue
             : WARNING_COLORS.vibrantYellow
-        ;
+            ;
 
         const namesContainer = this.generateMultiNameContainer(
             names,
@@ -182,7 +179,7 @@ export class WarningPopup extends HTMLElement {
         const ctx = isMultiNameType
             ? [h3, namesContainer]
             : [h3, namesContainer, p]
-        ;
+            ;
 
         const multiNameWarning = this.createSymbolWithHoverContext(
             img,
@@ -211,6 +208,18 @@ export class WarningPopup extends HTMLElement {
         return multiNameContainer;
     }
 
+    /**
+     * @param {string} src
+     * @param {HTMLElement[]} ctxChildEl 
+     * @param {string} colorCode 
+     * @param {string} direction 
+     * @param {{x: number, y: number}} dimensions 
+     */
+    generateSpecifiedIcon(src, ctxChildEl, colorCode, direction, dimensions) {
+        this.#shadowRoot.appendChild(
+            this.createSymbolWithHoverContext(src, ctxChildEl, colorCode, direction, dimensions)
+        );
+    }
 
     /**
      * @param {string} src
@@ -219,7 +228,7 @@ export class WarningPopup extends HTMLElement {
      * @param {string} direction 
      * @param {{x: number, y: number}} dimensions 
      * @returns {HTMLDivElement} user-defined symbol with added context on hover
-     **/
+     */
     createSymbolWithHoverContext(src, ctxChildEl, colorCode, direction, dimensions) {
         const imgCtxContainer = document.createElement("div");
         imgCtxContainer.classList.add("ctxContainer");
@@ -238,7 +247,7 @@ export class WarningPopup extends HTMLElement {
             context.style.borderColor = colorCode;
             context.style.boxShadow = `0px 0px 4px ${colorCode}`;
         }
-        switch(direction) {
+        switch (direction) {
             case "top":
                 context.style.bottom = `5px`;
                 break;
