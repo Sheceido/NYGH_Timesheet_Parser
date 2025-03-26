@@ -12,7 +12,10 @@ export function capitalize(s) {
 export function capitalizeArray(s) {
     const newStrArr = [];
     for (let i = 0; i < s.length; i++) {
-        newStrArr[i] = capitalize(s[i]);
+        if (s[i] === "") {
+            continue;
+        }
+        newStrArr.push(capitalize(s[i]));
     }
     return newStrArr.join(" ");
 }

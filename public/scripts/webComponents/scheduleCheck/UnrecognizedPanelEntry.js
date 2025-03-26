@@ -6,7 +6,16 @@ export class UnrecognizedPanelEntry extends HTMLElement {
 
     #shadowRoot;
     css = `
+        .btnBox {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+        }
         button {
+            display: flex;
+            justify-content: center;
+            align-items: center;
             width: 150px;
             padding-inline: 1em;
             padding-block: 0.5em;
@@ -18,13 +27,15 @@ export class UnrecognizedPanelEntry extends HTMLElement {
         }
         button:hover {
             cursor: pointer;
-            background-color: ${WARNING_COLORS.lightRed};
+            background-color: ${WARNING_COLORS.pastelTeal};
         }
         button:focus {
-            background-color: ${WARNING_COLORS.lightRed};
+            background-color: ${WARNING_COLORS.pastelTeal};
         }
     `;
     panelEntry;
+    deleteBtn;
+    parentContainer;
     _name;
     _shifts;
 
@@ -35,8 +46,25 @@ export class UnrecognizedPanelEntry extends HTMLElement {
         style.textContent = this.css;
         this.#shadowRoot.appendChild(style);
 
+        const btnBox = document.createElement("div");
+        btnBox.classList.add("btnBox");
         this.panelEntry = document.createElement("button");
-        this.#shadowRoot.appendChild(this.panelEntry);
+        btnBox.appendChild(this.panelEntry);
+
+        this.deleteBtn = document.createElement("button");
+        this.deleteBtn.style.width = "fit-content";
+        this.deleteBtn.style.height = "fit-content";
+        this.deleteBtn.style.padding = "0.2em";
+        this.deleteBtn.style.margin = 0;
+        this.deleteBtn.style.border = "none";
+
+        const img = new Image(20, 20);
+        img.src = "./images/icons8-delete-48.png";
+        this.deleteBtn.appendChild(img);
+
+        btnBox.appendChild(this.deleteBtn);
+
+        this.#shadowRoot.appendChild(btnBox);
     }
 
     /**
@@ -60,6 +88,9 @@ export class UnrecognizedPanelEntry extends HTMLElement {
         this.panelEntry.onclick = () => {
             searchCells(this._shifts);
             changeSelectState();
+        }
+        this.deleteBtn.onclick = () => {
+            this.parentNode.removeChild(this);
         }
     }
 }

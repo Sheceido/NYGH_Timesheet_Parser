@@ -327,7 +327,13 @@ export class ScheduleChecker extends HTMLElement {
 
         const checkmarkEmoji = "&#x2714;";
         const errorEmoji = "&#x274C;";
-        const items = [`Part-Time ${checkmarkEmoji}`, `Casual ${checkmarkEmoji}`, `Mispelled FTR ${errorEmoji}`, `Invalid Name! ${errorEmoji}`];
+        const items = [
+            `Part-Time ${checkmarkEmoji}`,
+            `Casual ${checkmarkEmoji}`,
+            `Mispelled FTR ${errorEmoji}`,
+            `Invalid Name! ${errorEmoji}`,
+            `Irrelevant Notes ${errorEmoji}`,
+        ];
         const ul = document.createElement("ul");
         ul.style.fontSize = "small";
         ul.style.fontWeight = "300";
@@ -345,7 +351,7 @@ export class ScheduleChecker extends HTMLElement {
         const ctxInfo2 = document.createElement("p");
         ctxInfo2.style.fontWeight = "300";
         ctxInfo2.style.textAlign = "start";
-        ctxInfo2.textContent = "Clicking on the name listed here will filter the schedule showing where they are.";
+        ctxInfo2.textContent = "Click a name to filter the schedule. Click the trashcan to hide them in this panel.";
 
         /** @type {WarningPopup} popupInfo */
         const popupInfo = document.createElement("warning-popup");
@@ -365,6 +371,13 @@ export class ScheduleChecker extends HTMLElement {
             /** @type {UnrecognizedPanelEntry} */
             let panelEntry = document.createElement("unrecognized-panel-entry");
 
+            // ignore name values containing numbers at beginning or end, as these are likely
+            // accessory info placed in empty cells to note down events occurring in the day;
+            // note foolproof as any purely alphabetical notes would not be ignored
+            if (!isNaN(parseInt(name[0])) || !isNaN(parseInt(name[name.length - 1]))) {
+                continue;
+            }
+
             panelEntry.initEntry(
                 name,
                 shifts,
@@ -376,7 +389,6 @@ export class ScheduleChecker extends HTMLElement {
         }
         this.#shadowRoot.appendChild(this.unrecognizedPanel);
     }
-
 
     /**
      * @param {HTMLElement} cell
