@@ -1,4 +1,5 @@
-html, body {
+html,
+body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -42,6 +43,7 @@ textarea {
   opacity: 0.3;
   transition: 300ms;
 }
+
 .textareaPaste:hover {
   opacity: 0.7;
 }
@@ -87,14 +89,17 @@ button {
   margin: 0;
   background-color: #fff;
 }
+
 .tab:hover {
-  background-color: #eee; 
+  background-color: #eee;
 }
+
 .tab:focus {
   background-color: white;
 }
 
-.timesheetContainer, .scheduleCheckContainer {
+.timesheetContainer,
+.scheduleCheckContainer {
   display: none;
   position: relative;
   border: 1px solid #ddd;
@@ -102,7 +107,6 @@ button {
   min-height: 50vh;
   width: 90vw;
   padding: 1em;
-  z-index: 1;
 }
 
 .copy {
@@ -112,30 +116,9 @@ button {
   border: none;
   transition: 300ms;
 }
+
 .copy:hover {
   color: #111;
-}
-
-table {
-  padding: 0.5em;
-  border: 1px solid #ddd;
-}
-
-tr {
-  border: 1px solid #ddd;
-}
-th {
-  padding-block: 0.5em;
-  font-size: 14px;
-}
-td {
-  text-align: center;
-  border: 1px solid #ddd;
-  border-width: 1px;
-  width: 5em;
-  padding-block: 1.5em;
-  padding-inline: 1em;
-  font-size: 12px;
 }
 
 dialog {
@@ -148,13 +131,13 @@ ol {
   margin-inline: 2em;
 }
 
-ol > li {
+ol>li {
   margin-top: 3em;
   font-size: 1.2em;
   font-weight: 500;
 }
 
-ul > li {
+ul>li {
   margin-top: 1em;
 }
 
@@ -176,7 +159,7 @@ ul > li {
 }
 
 .flex-row {
-  display: flex; 
+  display: flex;
   flex-direction: row;
 }
 
@@ -227,7 +210,7 @@ input.holidays {
   margin-block: 0.2em;
 }
 
-.switch input { 
+.switch input {
   opacity: 0;
   width: 0;
   height: 0;
@@ -265,15 +248,15 @@ input.holidays {
   border-radius: 50%;
 }
 
-input:checked + .slider {
+input:checked+.slider {
   background-color: #aaa;
 }
 
-input:focus + .slider {
+input:focus+.slider {
   box-shadow: 0 0 1px #2196F3;
 }
 
-input:checked + .slider:before {
+input:checked+.slider:before {
   -webkit-transform: translateX(20px);
   -ms-transform: translateX(20px);
   transform: translateX(20px);

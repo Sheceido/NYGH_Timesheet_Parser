@@ -13,6 +13,7 @@ export class UnrecognizedPanelEntry extends HTMLElement {
             align-items: center;
         }
         button {
+            z-index: 0;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -90,7 +91,12 @@ export class UnrecognizedPanelEntry extends HTMLElement {
             changeSelectState();
         }
         this.deleteBtn.onclick = () => {
+            const parentNode = this.parentNode;
             this.parentNode.removeChild(this);
+
+            if (parentNode.children.length === 1) {
+                parentNode.remove();
+            }
         }
     }
 }

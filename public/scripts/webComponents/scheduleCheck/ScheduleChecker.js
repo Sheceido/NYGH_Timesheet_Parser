@@ -21,11 +21,12 @@ export class ScheduleChecker extends HTMLElement {
         :host {
             display: flex;
             flex-direction: row;
-            justify-content: center;
+            justify-content: start;
             align-items: start;
         }
         table {
             position: relative;
+            z-index: 10;
             margin-block: 1em;
             padding: 0.5em;
             border: 1px solid #ddd;
@@ -63,7 +64,7 @@ export class ScheduleChecker extends HTMLElement {
             font-family: sans-serif;
         }
         .unrecognizedPanel {
-            z-index: 1;
+            z-index: 0;
             display: flex;
             flex-direction: column;
             justify-content: center;

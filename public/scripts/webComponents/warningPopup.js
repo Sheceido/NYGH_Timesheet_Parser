@@ -18,23 +18,24 @@ export class WarningPopup extends HTMLElement {
         img + div.context {
             display: none;
             visibility: hidden;
-            z-index: -999;
             pointer-events: none;
+            z-index: -999;
         }
         img:hover + div.context {
             display: flex;
             visibility: visible;
             z-index: 999;
         }
-        div.ctxContainer {
+        .ctxContainer {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 1px;
         }
-        div.context {
-            position:absolute;
+        .context {
+            position: absolute;
+            left: -100px;
             display: flex;
             flex-direction: column;
             min-height: 120px;
@@ -46,7 +47,7 @@ export class WarningPopup extends HTMLElement {
             box-shadow: 5px 5px 5px #ccc;
             padding: 1em;
         }
-        div.context h3 {
+        .context h3 {
             font-family: sans-serif;
             font-size: medium;
             margin: 0;
@@ -57,7 +58,6 @@ export class WarningPopup extends HTMLElement {
             flex-direction: row;
             justify-content: center;
             align-items: center;
-            z-index: 100;
         }
         .multiNameContainer p {
             padding-inline: 1.5em;
