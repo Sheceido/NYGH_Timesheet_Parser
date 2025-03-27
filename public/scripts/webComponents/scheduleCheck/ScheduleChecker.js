@@ -599,7 +599,9 @@ export class ScheduleChecker extends HTMLElement {
     reset() {
         if (this.scheduleTable) {
             this.#shadowRoot.removeChild(this.scheduleTable);
-            this.#shadowRoot.removeChild(this.unrecognizedPanel);
+            if (this.unrecognizedPanel.parentNode) {
+                this.#shadowRoot.removeChild(this.unrecognizedPanel);
+            }
         }
     }
 }
