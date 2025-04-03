@@ -31,17 +31,14 @@ export class ScheduleTimeSheetParser {
     /**
      * @param {string} scheduleStr
      * @param {Employee} employee 
-     * @param {boolean} parseConflicts 
     */
-    constructor(scheduleStr, employee, optionalParsing) {
+    constructor(scheduleStr, employee) {
         this.employee = employee;
         this.schedule = this.parseScheduleToGrid(scheduleStr);
         this.shiftTimes = this.getShiftTimeRows();
         this.warnings = new Warnings();
-        if (optionalParsing) {
-            this.mapPossibleConflicts();
-            this.findUnknownEmployeeShifts();
-        }
+        this.mapPossibleConflicts();
+        this.findUnknownEmployeeShifts();
     }
 
     /**
@@ -268,7 +265,7 @@ export class ScheduleTimeSheetParser {
     }
 
     /**
-     * Public method for traversing schedule to find all shifts by selected name.
+     * Public method for traversing schedule to find all shifts by the employee passed in through the constructor.
      * @returns {Array<Shift | null>}
      */
     findShifts() {
@@ -302,7 +299,7 @@ export class ScheduleTimeSheetParser {
                     },
                     names: names,
                     weekday: colNum,
-                    location: this.isOcscOrConsumer(st.location),
+                    location: this.isOcscOrConsumer(st.location, this.employee),
                     shiftTime: st.shiftTime,
                     shiftTimeCascade: st.shiftTimeCascade
                 };
@@ -343,6 +340,113 @@ export class ScheduleTimeSheetParser {
         return shifts.sort((a, b) => a.weekday - b.weekday);
     }
 
+    /**
+     * Public method for traversing schedule to find all shifts of each employee
+     */
+    findAllShifts() {
+        if (!this.warnings.unavailableMapping) {
+            console.error("warnings.unavailableMapping must be defined prior to calling findShifts().");
+            return;
+        }
+        if (!this.warnings.eveningMapping) {
+            console.error("warnings.eveningMapping must be defined prior to calling findShifts().");
+            return;
+        }
+        if (this.employee) {
+            console.error("employee should be set to null in the parser to call this public method findAllShifts (for all employees).");
+            return;
+        }
+
+        /** @type {Shift[]} */
+        const allShifts = [];
+
+        /** @type {Set<string>} entries is of <name><weekday#> */
+        const shiftDuplicateCheck = new Set();
+
+        for (const [rowNum, row] of this.schedule.entries()) {
+            for (const [colNum, name] of row.entries()) {
+                const st = this.shiftTimes.get(rowNum);
+
+                const nameTrimmed = name.trim().toUpperCase();
+                const { isMulti, names } = this.multiNameCell(nameTrimmed);
+                const endName = names[names.length - 1];
+                const employeeFtr = this.matchEmployeeByRoster(endName);
+
+                /** @type {Shift} shiftData */
+                const shiftData = {
+                    coordinate: {
+                        row: rowNum,
+                        col: colNum
+                    },
+                    names: names,
+                    weekday: colNum,
+                    location: this.isOcscOrConsumer(st.location, employeeFtr),
+                    shiftTime: st.shiftTime,
+                    shiftTimeCascade: st.shiftTimeCascade
+                };
+
+                // Multiple names in cell warning
+                if (isMulti) {
+                    this.warnings.addMultipleNamesEntry(shiftData);
+                }
+                // Empty cell warning
+                if (this.warnings.isEmptyCell(shiftData)) {
+                    this.warnings.addEmptyCellEntry(shiftData);
+                }
+                // Duplicate shift in same weekday warning
+                if (shiftDuplicateCheck.has(`${endName}${colNum}`)) {
+                    switch (st.shiftTime) {
+                        case "ON-CALL":
+                        case "AVAILABLE":
+                        case "Not Available":
+                        case "LIEU TIME":
+                            break;
+                        default:
+                            this.warnings.addDuplicateNamesEntry(shiftData);
+                            break;
+                    }
+                } else {
+                    if (
+                        colNum !== 0 && // ignore shiftTime column
+                        rowNum > 2 &&   // ignore first two header rows
+                        endName !== "X" &&  // ignore any cells marked X
+                        endName !== ""      // ignore any cells with empty string
+                    ) {
+                        shiftDuplicateCheck.add(`${endName}${colNum}`);
+                    }
+                }
+                // Unavailability was marked warning
+                if (st.shiftTime !== "Not Available" && this.warnings.isUnavailable(colNum, endName)) {
+                    this.warnings.addNotAvailableEntry(shiftData);
+                }
+
+                if (employeeFtr) {
+                    // Multiple Male Techs in evening warning
+                    if (st.shiftTime === "16:00-24:00" &&
+                        this.warnings.isAnotherMaleEmployee(colNum, employeeFtr, this.matchEmployeeByRoster)
+                    ) {
+                        this.warnings.addEveningMaleEntry(shiftData);
+                    }
+
+                    // Skip over specific shift times that aren't relevant to shift counting
+                    switch (st.shiftTime) {
+                        case "ON-CALL":
+                        case "AVAILABLE":
+                        case "Not Available":
+                        case "LIEU TIME":
+                            break;
+                        default:
+                            // Shift Counter for each FTR employee
+                            this.warnings.employeeShiftCountIncrement(employeeFtr.str_alias, true, 1);
+                            break;
+                    }
+                }
+                allShifts.push(shiftData);
+            }
+        }
+        return allShifts.sort((a, b) => a.weekday - b.weekday);
+    }
+
     findUnknownEmployeeShifts() {
         for (const [rowNum, row] of this.schedule.entries()) {
             for (const [colNum, name] of row.entries()) {
@@ -352,19 +456,14 @@ export class ScheduleTimeSheetParser {
 
                 const st = this.shiftTimes.get(rowNum);
                 const nameTrimmed = name.trim().toUpperCase();
+
+                if (nameTrimmed === "") continue;
+
                 const { _, names } = this.multiNameCell(nameTrimmed);
 
                 const finalName = names[names.length - 1];
                 if (finalName === "" || finalName === "X" || !isNaN(parseInt(finalName))) {
                     continue;
-                }
-
-                // Skip over specific shift times that aren't relevant to the timesheet
-                switch (st.shiftTime) {
-                    case "AVAILABLE":
-                    case "Not Available":
-                    case "LIEU TIME":
-                        continue;
                 }
 
                 /** @type {Shift} shiftData */
@@ -444,36 +543,60 @@ export class ScheduleTimeSheetParser {
     */
     multiNameCell(name) {
         const names = name.trim().toUpperCase().split(/\s+/);
-
         if (names.includes("W/E") ||
             names.includes("STAT") ||
-            names[names.length - 1].length < 2 // for same first names and only 1st letter of last name is used as the differentiator, e.g.~ "Jennifer J" and "Jennifer W"
+            names.length < 2
         ) {
             return { isMulti: false, names: [name.trim().toUpperCase()] };
         }
+
+        const parsedNames = this.parseNames(names);
+
         return {
-            isMulti: (name.trim().split(/\s+/).length >= 2),
-            names: names
+            isMulti: parsedNames.length > 1,
+            names: parsedNames,
         };
     }
 
     /**
+     * @param {string[]} names
+     * @returns {string[]} a list of of properly parsed names
+     * - individual names of letter count > 2 will be pushed onto the list
+     * - entries with letter count == 1 is assumed to be the 1st letter of the prior entry's last name,
+     *   will be appended to the name that appeared before it.
+     */
+    parseNames(names) {
+        const finalNames = [];
+        for (let i = 0; i < names.length; i++) {
+
+            if (names[i].length > 1) {
+                if ((i + 1) < names.length && names[i + 1].length === 1) {
+                    finalNames.push(names[i].concat(" ", names[i + 1]));
+                } else {
+                    finalNames.push(names[i]);
+                }
+            }
+        }
+        return finalNames;
+    }
+
+    /**
     * @param {string} location
+    * @param {Employee} employee 
     * @returns {string} differentiated location based on employee gender
     */
-    isOcscOrConsumer(location) {
+    isOcscOrConsumer(location, employee) {
         if (location !== "OCSC / CONSUMER") {
             return location;
         }
 
-        if (!this.employee) {
-            console.error("employee must be defined before calling matchEmployee().");
-            return;
+        if (!employee) {
+            return location;
         }
 
-        if (this.employee.gender === "M") {
+        if (employee.gender === "M") {
             return "CONSUMER";
-        } else if (this.employee.gender === "F") {
+        } else if (employee.gender === "F") {
             return "OCSC";
         } else {
             return location;
@@ -629,7 +752,8 @@ export class ScheduleTimeSheetParser {
         }
     }
 
-    getWarningsGroup() {
+    getWarningsGroup(statCount) {
+        this.warnings.employeeShiftCountCheck(statCount);
         return this.warnings.warningsGroup;
     }
 }

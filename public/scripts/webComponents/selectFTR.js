@@ -2,8 +2,8 @@ import { roster } from "../roster.js";
 import { capitalize } from "../utils.js";
 /**
  * @typedef {import("../warnings.js").ShiftCountError} ShiftCountError 
+ * @typedef {import("../warnings.js").EmployeeShiftCount} EmployeeShiftCount 
  * @typedef {import("../warnings.js").WarningsGroup} WarningsGroup
- * @typedef {Map<string, {shifts: Shift[], warnings: WarningsGroup}>} EmployeeShiftsAndWarnings
  **/
 
 export class SelectFTR extends HTMLElement {
@@ -53,9 +53,9 @@ export class SelectFTR extends HTMLElement {
     }
 
     /**
-     * @param {EmployeeShiftsAndWarnings} ftrEmployeeShiftsWarnings 
+     * @param {EmployeeShiftCount} employeeSC 
      */
-    showEmployeeAndShiftCount(ftrEmployeeShiftsWarnings) {
+    showEmployeeAndShiftCount(employeeSC) {
         for (const [fullName, employee] of Object.entries(roster)) {
 
             // remove prior stale employee option entry
@@ -67,8 +67,7 @@ export class SelectFTR extends HTMLElement {
             const option = document.createElement("option");
             option.value = fullName;
 
-            /** @type ShiftCountError */
-            let employeeShiftCount = ftrEmployeeShiftsWarnings.get(fullName).warnings.shiftCount;
+            let employeeShiftCount = employeeSC.get(employee.str_alias);
 
             const successSpan = document.createElement("span");
             const errorSpan = document.createElement("span");

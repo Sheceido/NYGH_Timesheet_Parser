@@ -36,6 +36,18 @@ import { DEFINED_SHIFTS_SET, WEEKEND_DAYS, WEEKEND_SHIFT_TIMES } from './constan
  * a mapping of unknown employee name, to their found shifts scheduled.
  */
 /**
+ * @typedef {{expected: number, found: number}} ShiftCountError
+ * expected: number of expected shifts for the FTR, taking into account stat holidays
+ * found: error value by +/0/- integer value:
+ *   (+) is greater than the expected shifts
+ *   (0) accounts for the proper number of shifts
+ *   (-) less than the expected shifts
+ */
+/**
+ * @typedef {Map<string, {isFTR: boolean, total: number, expected: number, found: number}>} EmployeeShiftCount
+ * a mapping of employee name, to their FTR status and found shift count (errors)
+ */
+/**
  * @typedef {{
  *      duplicate: Duplicates,
  *      regShiftMultiNames: RegShiftMultipleNames,
@@ -44,16 +56,10 @@ import { DEFINED_SHIFTS_SET, WEEKEND_DAYS, WEEKEND_SHIFT_TIMES } from './constan
  *      notAvailable: NotAvailableConflicts,
  *      emptyCells: EmptyCell,
  *      shiftCount: ShiftCountError,
+ *      employeeShiftCount: EmployeeShiftCount,
+ *      unknownEmployeeShifts: UnknownEmployeeShifts,
  *  }} WarningsGroup
  * */
-/**
- * @typedef {{expected: number, found: number}} ShiftCountError
- * expected: number of expected shifts for the FTR, taking into account stat holidays
- * found: error value by +/0/- integer value:
- *   (+) is greater than the expected shifts
- *   (0) accounts for the proper number of shifts
- *   (-) less than the expected shifts
- */
 
 export class Warnings {
     /** @type {Map<string, ConflictsMap>} */
@@ -87,6 +93,9 @@ export class Warnings {
     /** @type {number} */
     _shiftCountError;
 
+    /** @type {EmployeeShiftCount} */
+    _employeeShiftCount;
+
     constructor() {
         this._category = {
             "unavailable": new Map(),
@@ -99,6 +108,7 @@ export class Warnings {
         this._notAvailable = [];
         this._emptyCells = [];
         this._unknownEmployeeShifts = new Map();
+        this._employeeShiftCount = new Map();
     }
 
     get conflictsMap() {
@@ -114,7 +124,9 @@ export class Warnings {
             evening: this.eveningMalesTechs,
             notAvailable: this.notAvailable,
             emptyCells: this.emptyCells,
-            shiftCount: this.shiftCountError,
+            shiftCount: this.shiftCountError, // only used if parsing is of a single employee
+            employeeShiftCount: this.employeeShiftCount, // only used if parsing is of multiple employees
+            unknownEmployeeShifts: this.unknownEmployeeShifts,
         }
     }
     /** @returns {Duplicates} a deep copy of duplicate warnings */
@@ -175,10 +187,14 @@ export class Warnings {
         };
     }
 
+    get employeeShiftCount() {
+        return structuredClone(this._employeeShiftCount);
+    }
+
     /**
      * @param {string} employeeStatus 
      * @param {number} shiftCount 
-     * @param {number} statHolidays 
+     * @param {number} statCount
      */
     shiftCountEval(isFTR, shiftCount, statCount) {
         const FTR_HRS = 10;
@@ -193,6 +209,39 @@ export class Warnings {
             this._shiftCountError = 0;
         } else {
             this._shiftCountError = shiftCount - this._expectedShiftCount;
+        }
+    }
+
+    /**
+     * @param {string} name
+     * @param {boolean} isFTR 
+     * @param {number} increment 
+     */
+    employeeShiftCountIncrement(name, isFTR, increment) {
+        if (this._employeeShiftCount.has(name)) {
+            const sCount = this._employeeShiftCount.get(name);
+            sCount.total += increment;
+        } else {
+            this._employeeShiftCount.set(
+                name,
+                {
+                    isFTR: isFTR,
+                    total: increment,
+                    expected: null,
+                    found: null,
+                }
+            );
+        }
+    }
+
+    employeeShiftCountCheck(statCount) {
+        const FTR_BIWEEKLY_SHIFT_TOTAL = 10;
+
+        for (const [_, sCount] of this._employeeShiftCount) {
+            if (sCount.isFTR) {
+                sCount.expected = FTR_BIWEEKLY_SHIFT_TOTAL - statCount;
+                sCount.found = sCount.total - sCount.expected;
+            }
         }
     }
 
@@ -247,6 +296,9 @@ export class Warnings {
         return false;
     }
 
+    /**
+     * @param {Shift} shift 
+     */
     addNotAvailableEntry(shift) {
         if (!this._notAvailable) {
             this._notAvailable = [];

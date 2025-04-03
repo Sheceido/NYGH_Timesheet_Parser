@@ -53,7 +53,7 @@ export const roster = {
     },
     "Jennifer Wang": {
         "first_name": "JENNIFER",
-        "str_alias": "JENNIFER",
+        "str_alias": "JENNIFER W",
         "abbrev": "JW",
         "gender": "F"
     },

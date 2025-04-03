@@ -136,7 +136,7 @@ export function parse() {
     }
     stats.classList.remove("errorHighlight");
 
-    const parser = new ScheduleTimeSheetParser(scheduleStr, employee, true);
+    const parser = new ScheduleTimeSheetParser(scheduleStr, employee);
     const shifts = parser.findShifts();
     if (!shifts) {
         console.log(`No shifts found for ${employee.first_name}!`);
@@ -157,7 +157,7 @@ export function parse() {
     parser.shiftCountCheck(!isCustomInput, regularShifts.size, statHolidays);
 
     /* @type {WarningsGroup} parsedWarnings */
-    const parsedWarnings = parser.getWarningsGroup();
+    const parsedWarnings = parser.getWarningsGroup(statHolidays);
 
     timesheetTable.constructTable(
         employee,

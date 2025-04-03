@@ -1,4 +1,4 @@
-import { capitalize, capitalizeArray } from "../../utils.js";
+import { capitalizeArray } from "../../utils.js";
 import { roster } from "../../roster.js";
 import { WarningPopup } from "../warningPopup.js";
 import { WARNING_COLORS } from "../../constants.js";
@@ -6,9 +6,9 @@ import { UnrecognizedPanelEntry } from "./UnrecognizedPanelEntry.js";
 /** @typedef {import("../../parser.js").ShiftMap} ShiftMap */
 /** @typedef {import("../../parser.js").Shift} Shift */
 /** @typedef {import("../../warnings.js").ShiftCountError} ShiftCountError */
+/** @typedef {import("../../warnings.js").EmployeeShiftCount} EmployeeShiftCount */
 /** @typedef {import("../../warnings.js").WarningsGroup} WarningsGroup */
 /** @typedef {import("../../warnings.js").UnknownEmployeeShifts} UnknownEmployeeShifts */
-/** @typedef {import("../../schedCheck.js").EmployeeShiftsAndWarnings} EmployeeShiftsAndWarnings */
 /**
  * @typedef {Map<number, string>} ColorByRow
  * - Mapping of a color's hex code in relation to the row index key
@@ -107,9 +107,9 @@ export class ScheduleChecker extends HTMLElement {
     * @param {string[]} headers 
     * @param {ShiftMap} shiftTimes 
     * @param {WarningsGroup} globalWarnings 
-    * @param {EmployeeShiftsAndWarnings} employeeShiftsWarnings 
+    * @param {Shift[]} shifts 
     */
-    createScheduleTable(grid, headers, shiftTimes, employeeShiftsWarnings) {
+    createScheduleTable(grid, headers, shiftTimes, shifts) {
         const DAYS_OF_THE_WEEK = ["Sat", "Sun", "Mon", "Tues", "Wed", "Thurs", "Fri"];
 
         this.shiftTimes = shiftTimes;
@@ -141,113 +141,148 @@ export class ScheduleChecker extends HTMLElement {
         }
         this.scheduleTable.append(daysNumRow);
 
-        // Go through all FTR employees and place the corrected names into grid
-        for (const [fullName, employee] of Object.entries(roster)) {
-
-            employeeShiftsWarnings.get(fullName).shifts.forEach(shift => {
-                grid[shift.coordinate.row][shift.coordinate.col] = capitalize(employee.str_alias);
-            });
-        }
-        /** Remove all rows above the first row starting at a specified time */
+        /** First row is defined by the a specified shift time */
         const firstRow = this.findFirstShiftTimeRow("07:00-15:00", "GENERAL");
-        grid.splice(0, firstRow);
 
-        // Create table from grid of data
-        for (let rowIndex = 0; rowIndex < grid.length; rowIndex++) {
+        // Create rows and add original col[row][0] cell names into scheduleTable
+        for (let i = 0; i < grid.length; i++) {
+            if (i < firstRow) continue; // ignore rows prior to "first row" as above
+
             const tr = document.createElement("tr");
+            tr.id = `row${i}`;
 
-            for (let colIndex = 0; colIndex < grid[rowIndex].length; colIndex++) {
-                const name = grid[rowIndex][colIndex];
+            const td = document.createElement("td");
+            td.id = `shiftTime`;
+            td.textContent = grid[i][0];
+            td.style.backgroundColor = this.applyCellColor(i, 0, grid[i][0]);
 
-                const td = document.createElement("td");
-                if (colIndex === 0) {
-                    td.id = `shiftTime`; // important for querySelector for warnings
-                } else {
-                    td.id = `row${rowIndex}col${colIndex}`; // important for qs'ing for warnings
-                }
-                // True row and col in the Excel schedule
-                td.setAttribute("row", rowIndex + firstRow);
-                td.setAttribute("col", colIndex);
-
-                td.textContent = name;
-                td.style.backgroundColor = this.applyCellColor(
-                    rowIndex + firstRow, // offset from the splice done above
-                    colIndex,
-                    name
-                );
-
-                tr.appendChild(td);
-            }
+            tr.appendChild(td);
             this.scheduleTable.appendChild(tr);
         }
+
+        // Format names for rendering, then add into a table data cell to its row
+        for (let i = 0; i < shifts.length; i++) {
+            const s = shifts[i];
+
+            // all rows before the "first" row starting at the specified shift time
+            if (s.coordinate.row < firstRow) continue;
+            // omit shiftTime column as rendering occurred in prior loop
+            if (s.coordinate.col === 0) continue;
+
+            const name = s.names[s.names.length - 1];
+            let nameToRender = "";
+
+            if (name.length > 2) {
+                nameToRender = capitalizeArray(name.split(" "));
+            } else {
+                nameToRender = name.toUpperCase();
+            }
+
+            /** @type {HTMLTableRowElement} */
+            let tr = this.scheduleTable.querySelector(`#row${s.coordinate.row}`);
+            // tr row should likely always be defined, create it if not
+            if (!tr) {
+                tr = document.createElement("tr");
+                tr.id = `row${s.coordinate.row}`;
+                this.scheduleTable.appendChild(tr);
+            }
+            tr.appendChild(
+                this.createTableData(s, nameToRender)
+            );
+        }
+
         this.#shadowRoot.appendChild(this.scheduleTable);
+    }
+
+
+    /**
+     * @param {Shift} shift 
+     * @param {string} name 
+     */
+    createTableData(shift, name) {
+        const td = document.createElement("td");
+
+        // td id important for querySelector for warnings
+        if (shift.coordinate.col === 0) {
+            td.id = `shiftTime`;
+        } else {
+            td.id = `row${shift.coordinate.row}col${shift.coordinate.col}`;
+        }
+
+        // True row and col in the Excel schedule
+        td.setAttribute("row", shift.coordinate.row);
+        td.setAttribute("col", shift.coordinate.col);
+
+        td.textContent = name;
+        td.style.backgroundColor = this.applyCellColor(
+            shift.coordinate.row,
+            shift.coordinate.col,
+            name
+        );
+
+        return td;
     }
 
     /**
      * Temp for showing shift counts if error
-     * @param {string} employeeName
-     * @param {ShiftCountError} shiftCount 
+     * @param {EmployeeShiftCount} employeeShiftCount
      * @param {number} statsCount 
      * @returns {HTMLParagraphElement | null} p html tag containing prompt regarding the correct/incorrect number of shifts counted in this biweekly for the employee.
      */
-    //TODO: create better way to make this, within this web component
-    createShiftCountErrorDisplay(employeeName, shiftCount, statsCount) {
-        const p = document.createElement("p");
-        p.classList.add("comments");
-        p.style.maxWidth = "70vw";
-        p.style.padding = "1em";
-        p.style.borderRadius = "5px";
-        p.style.backgroundColor = WARNING_COLORS.lightRed;
+    createShiftCountErrorDisplay(employeeShiftCount, statsCount) {
+        for (const [name, shiftCount] of employeeShiftCount) {
+            // skip non-FTR employees
+            if (!shiftCount.isFTR) continue;
+            // skip employees with no count errors
+            if (shiftCount.found === 0) continue;
 
-        const successSpan = document.createElement("span");
-        successSpan.textContent = " ✅ ";
+            const p = document.createElement("p");
+            p.classList.add("comments");
+            p.style.maxWidth = "70vw";
+            p.style.padding = "1em";
+            p.style.borderRadius = "5px";
+            p.style.backgroundColor = WARNING_COLORS.lightRed;
 
-        const errorSpan = document.createElement("span");
-        errorSpan.textContent = " ❌ ";
+            const successSpan = document.createElement("span");
+            successSpan.textContent = " ✅ ";
 
-        const promptSpan = document.createElement("span");
-        promptSpan.style.fontFamily = "sans-serif";
-        promptSpan.style.fontSize = "1.1em";
+            const errorSpan = document.createElement("span");
+            errorSpan.textContent = " ❌ ";
 
-        if (shiftCount.found === 0) {
-            return null;
-        } else if (shiftCount.found > 0) {
-            p.appendChild(errorSpan);
-            promptSpan.textContent = `${capitalizeArray(employeeName.split(" "))} appears to have MORE THAN (${shiftCount.expected}) shifts in the biweekly, (${shiftCount.expected + shiftCount.found}) shifts scheduled, (${statsCount}) of which would be stat holiday(s).`;
-        } else {
-            p.appendChild(errorSpan);
-            promptSpan.textContent = `${capitalizeArray(employeeName.split(" "))} appears to have LESS THAN (${shiftCount.expected}) shifts in the biweekly, (${shiftCount.expected + shiftCount.found}) shifts scheduled, (${statsCount}) of which would be stat holiday(s).`;
+            const promptSpan = document.createElement("span");
+            promptSpan.style.fontFamily = "sans-serif";
+            promptSpan.style.fontSize = "1.1em";
+
+            if (shiftCount.found > 0) {
+                p.appendChild(errorSpan);
+                promptSpan.textContent = `${capitalizeArray(name.split(" "))} has (${shiftCount.expected + shiftCount.found}) shifts scheduled, MORE THAN (${shiftCount.expected}) shifts in the biweekly, (${statsCount}) of which would be stat holiday(s).`;
+            } else {
+                p.appendChild(errorSpan);
+                promptSpan.textContent = `${capitalizeArray(name.split(" "))} has (${shiftCount.expected + shiftCount.found}) shifts scheduled, LESS THAN (${shiftCount.expected}) shifts in the biweekly, (${statsCount}) of which would be stat holiday(s).`;
+            }
+            p.appendChild(promptSpan);
+
+            document.querySelector(".shiftCountErrors").appendChild(p);
         }
-        p.appendChild(promptSpan);
-
-        document.querySelector(".shiftCountErrors").appendChild(p);
     }
 
     /**
-     * @param {EmployeeShiftsAndWarnings} employeeShiftsWarnings 
+     * @param {WarningsGroup} warnings 
      */
-    applyEmployeeWarnings(employeeShiftsWarnings, statCount) {
-        // Constructed table resulted in splicing away rows prior to 7am shift,
-        // use firstRow index as offset to find true coordinate
-        const firstRow = this.findFirstShiftTimeRow("07:00-15:00", "GENERAL");
+    applyEmployeeWarnings(warnings, statCount) {
         let appliedEmptyCells = false;
 
-        // Go through all FTR employees and render any warnings for the shift
-        for (const [fullName, shifts] of employeeShiftsWarnings.entries()) {
+        this.createShiftCountErrorDisplay(warnings.employeeShiftCount, statCount);
 
-            // Shift Count Errors Comments below table
-            this.createShiftCountErrorDisplay(fullName, shifts.warnings.shiftCount, statCount);
+        this.applyShiftWarnings(warnings.duplicate, "duplicate");
+        this.applyShiftWarnings(warnings.regShiftMultiNames, "multiName");
+        this.applyShiftWarnings(warnings.standbyMultiNames, "standbyMultiName");
+        this.applyShiftWarnings(warnings.notAvailable, "unavailable");
+        this.applyShiftWarnings(warnings.evening, "evening");
 
-            this.applyShiftWarnings(shifts.warnings.duplicate, "duplicate", firstRow);
-            this.applyShiftWarnings(shifts.warnings.regShiftMultiNames, "multiName", firstRow);
-            this.applyShiftWarnings(shifts.warnings.standbyMultiNames, "standbyMultiName", firstRow);
-            this.applyShiftWarnings(shifts.warnings.notAvailable, "unavailable", firstRow);
-            this.applyShiftWarnings(shifts.warnings.evening, "evening", firstRow);
-
-            if (!appliedEmptyCells) {
-                this.applyShiftWarnings(shifts.warnings.emptyCells, "emptyCells", firstRow);
-                appliedEmptyCells = true;
-            }
+        if (!appliedEmptyCells) {
+            this.applyShiftWarnings(warnings.emptyCells, "emptyCells");
+            appliedEmptyCells = true;
         }
     }
 
@@ -255,11 +290,11 @@ export class ScheduleChecker extends HTMLElement {
      * @param {Shift[]} warnings 
      * @param {string} type 
      */
-    applyShiftWarnings(warnings, type, rowOffset) {
+    applyShiftWarnings(warnings, type) {
         warnings.forEach(s => {
             /** @type {HTMLElement} foundCell */
             const foundCell = this.#shadowRoot.querySelector(
-                `#row${s.coordinate.row - rowOffset}col${s.coordinate.col}`
+                `#row${s.coordinate.row}col${s.coordinate.col}`
             );
 
             if (!foundCell) { return; } // continue to next iteration 
