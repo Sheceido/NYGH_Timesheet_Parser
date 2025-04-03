@@ -1,8 +1,9 @@
 import { capitalizeArray } from "../../utils.js";
 import { roster } from "../../roster.js";
 import { WarningPopup } from "../warningPopup.js";
-import { WARNING_COLORS } from "../../constants.js";
+import { WARNING_COLORS, DAYS_OF_THE_WEEK } from "../../constants.js";
 import { UnrecognizedPanelEntry } from "./UnrecognizedPanelEntry.js";
+import { CellIdentifier } from "./CellIdentifier.js";
 /** @typedef {import("../../parser.js").ShiftMap} ShiftMap */
 /** @typedef {import("../../parser.js").Shift} Shift */
 /** @typedef {import("../../warnings.js").ShiftCountError} ShiftCountError */
@@ -63,6 +64,16 @@ export class ScheduleChecker extends HTMLElement {
             font-size: 12px;
             font-family: sans-serif;
         }
+        td:hover {
+            outline: dashed ${WARNING_COLORS.lightBlue};
+        }
+        td cell-id {
+            display: none;
+        }
+        td:hover cell-id {
+            display: inline;
+            z-index: 9999;
+        }
         .unrecognizedPanel {
             z-index: 0;
             display: flex;
@@ -110,8 +121,6 @@ export class ScheduleChecker extends HTMLElement {
     * @param {Shift[]} shifts 
     */
     createScheduleTable(grid, headers, shiftTimes, shifts) {
-        const DAYS_OF_THE_WEEK = ["Sat", "Sun", "Mon", "Tues", "Wed", "Thurs", "Fri"];
-
         this.shiftTimes = shiftTimes;
         this.rowColorSwatch = this.generateCellColorSwatch();
 
@@ -178,6 +187,9 @@ export class ScheduleChecker extends HTMLElement {
                 nameToRender = name.toUpperCase();
             }
 
+            // col index starts at 1 in table, offset by -1 to properly ref DAYS_OF_THE_WEEK
+            const dayStr = `${DAYS_OF_THE_WEEK[(s.coordinate.col - 1) % 7]} ${headers[s.weekday]}`;
+
             /** @type {HTMLTableRowElement} */
             let tr = this.scheduleTable.querySelector(`#row${s.coordinate.row}`);
             // tr row should likely always be defined, create it if not
@@ -187,7 +199,7 @@ export class ScheduleChecker extends HTMLElement {
                 this.scheduleTable.appendChild(tr);
             }
             tr.appendChild(
-                this.createTableData(s, nameToRender)
+                this.createTableData(s, nameToRender, dayStr)
             );
         }
 
@@ -198,8 +210,9 @@ export class ScheduleChecker extends HTMLElement {
     /**
      * @param {Shift} shift 
      * @param {string} name 
+     * @param {string} dayStr <Weekday> <weekdate> e.g.~ Wed 21
      */
-    createTableData(shift, name) {
+    createTableData(shift, name, dayStr) {
         const td = document.createElement("td");
 
         // td id important for querySelector for warnings
@@ -219,6 +232,13 @@ export class ScheduleChecker extends HTMLElement {
             shift.coordinate.col,
             name
         );
+
+
+        /** @type CellIdentifier */
+        const cellId = document.createElement("cell-id");
+        cellId.initCellInfo(shift, dayStr);
+
+        td.appendChild(cellId);
 
         return td;
     }
