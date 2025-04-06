@@ -315,6 +315,7 @@ export class Warnings {
                 shift.location === "GENERAL" ||
                 shift.location === "OCSC" ||
                 shift.location === "CONSUMER" ||
+                shift.location === "OCSC / CONSUMER" ||
                 (shift.location === "BDC" && !WEEKEND_DAYS.includes(shift.weekday))
             ) &&
             DEFINED_SHIFTS_SET.has(shift.shiftTime) &&
