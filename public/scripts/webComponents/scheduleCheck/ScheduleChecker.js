@@ -590,13 +590,14 @@ export class ScheduleChecker extends HTMLElement {
      */
     fadeAllCellsByShifts(shifts) {
         const allCells = this.scheduleTable.querySelectorAll("td");
+
+        // fade all cells
         for (let i = 0, cell; i < allCells.length; i++) {
             cell = allCells[i];
 
             if (cell.id === "shiftTime") {
                 continue;
             }
-
             const row = parseInt(cell.getAttribute("row"));
             const col = parseInt(cell.getAttribute("col"));
 
@@ -604,21 +605,20 @@ export class ScheduleChecker extends HTMLElement {
                 continue;
             }
 
-            let found = false;
-            for (let j = 0; j < shifts.length; j++) {
-                let s = shifts[j];
-
-                if (s.coordinate.row === row && s.coordinate.col === col) {
-                    found = true;
-                    this.applyOpacity(cell, 1);
-                    this.highlightBorders(cell, "#4FC174"); // emerald green
-                    break;
-                }
-            }
-            if (!found) {
-                this.applyOpacity(cell, 0.05);
-            }
+            this.applyOpacity(cell, 0.05);
         }
+
+        // query relevant shifts and highlight cell
+        shifts.forEach(s => {
+            const queryStr = `#row${s.coordinate.row}col${s.coordinate.col}`;
+            const cell = this.scheduleTable.querySelector(queryStr);
+
+            if (!cell) {
+                return; // continue next iteration
+            }
+            this.applyOpacity(cell, 1);
+            this.highlightBorders(cell, "#4FC174"); // emerald green
+        });
     }
 
     /**
