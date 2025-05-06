@@ -1,4 +1,4 @@
-import { DEFINED_SHIFTS_SET, WEEKEND_DAYS, WEEKEND_SHIFT_TIMES } from './constants.js';
+import { DEFINED_SHIFTS_SET, WEEKEND_DAYS } from './constants.js';
 /** @typedef {import('./roster.js').Employee} Employee */
 /** @typedef {import('./parser.js').Shift} Shift */
 /**

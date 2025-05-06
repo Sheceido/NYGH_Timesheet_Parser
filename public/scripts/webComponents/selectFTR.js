@@ -78,17 +78,25 @@ export class SelectFTR extends HTMLElement {
             const sp2 = document.createElement("span");
 
             sp1.textContent = `${capitalize(employee.str_alias.padEnd(15, '\u00A0'))}`;
-            sp2.textContent = `${employeeShiftCount.expected + employeeShiftCount.found} Shifts.`.padStart(10, '\u00A0');
-
             option.append(sp1);
 
-            if (employeeShiftCount.found === 0) {
-                option.appendChild(successSpan);
-            } else {
+            // When ftr employee does not appear on schedule, flag error
+            if (!employeeShiftCount) {
+                sp2.textContent = `0 Shifts.`.padStart(10, '\u00A0');
                 option.appendChild(errorSpan);
-            }
-            option.appendChild(sp2);
+                option.appendChild(sp2);
 
+            } // Display found employee's shift count and success/error indicator
+            else {
+                sp2.textContent = `${employeeShiftCount.expected + employeeShiftCount.found} Shifts.`.padStart(10, '\u00A0');
+
+                if (employeeShiftCount.found === 0) {
+                    option.appendChild(successSpan);
+                } else {
+                    option.appendChild(errorSpan);
+                }
+                option.appendChild(sp2);
+            }
             this.select.appendChild(option);
         }
     }

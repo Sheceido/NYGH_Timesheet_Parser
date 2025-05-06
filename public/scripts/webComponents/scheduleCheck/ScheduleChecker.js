@@ -4,6 +4,8 @@ import { WarningPopup } from "../warningPopup.js";
 import { WARNING_COLORS, DAYS_OF_THE_WEEK } from "../../constants.js";
 import { UnrecognizedPanelEntry } from "./UnrecognizedPanelEntry.js";
 import { CellIdentifier } from "./CellIdentifier.js";
+/** @typedef {import("../../roster.js").Roster} Roster */
+/** @typedef {import("../../roster.js").Employee} Employee */
 /** @typedef {import("../../parser.js").ShiftMap} ShiftMap */
 /** @typedef {import("../../parser.js").Shift} Shift */
 /** @typedef {import("../../warnings.js").ShiftCountError} ShiftCountError */
@@ -233,7 +235,6 @@ export class ScheduleChecker extends HTMLElement {
             name
         );
 
-
         /** @type CellIdentifier */
         const cellId = document.createElement("cell-id");
         cellId.initCellInfo(shift, dayStr);
@@ -245,17 +246,16 @@ export class ScheduleChecker extends HTMLElement {
 
     /**
      * Temp for showing shift counts if error
+     * @param {Roster} roster 
      * @param {EmployeeShiftCount} employeeShiftCount
      * @param {number} statsCount 
      * @returns {HTMLParagraphElement | null} p html tag containing prompt regarding the correct/incorrect number of shifts counted in this biweekly for the employee.
      */
-    createShiftCountErrorDisplay(employeeShiftCount, statsCount) {
-        for (const [name, shiftCount] of employeeShiftCount) {
-            // skip non-FTR employees
-            if (!shiftCount.isFTR) continue;
-            // skip employees with no count errors
-            if (shiftCount.found === 0) continue;
+    createShiftCountErrorDisplay(roster, employeeShiftCount, statsCount) {
 
+        // Go through FTR roster
+        for (const [name, employee] of Object.entries(roster)) {
+            // text element creation and styling
             const p = document.createElement("p");
             p.classList.add("comments");
             p.style.maxWidth = "70vw";
@@ -265,23 +265,34 @@ export class ScheduleChecker extends HTMLElement {
 
             const successSpan = document.createElement("span");
             successSpan.textContent = " ✅ ";
-
             const errorSpan = document.createElement("span");
             errorSpan.textContent = " ❌ ";
 
             const promptSpan = document.createElement("span");
             promptSpan.style.fontFamily = "sans-serif";
             promptSpan.style.fontSize = "1.1em";
+            const shiftCount = employeeShiftCount.get(employee.str_alias)
 
-            if (shiftCount.found > 0) {
+            // ftr employee was not found in current schedule
+            if (!shiftCount) {
                 p.appendChild(errorSpan);
-                promptSpan.textContent = `${capitalizeArray(name.split(" "))} has (${shiftCount.expected + shiftCount.found}) shifts scheduled, MORE THAN (${shiftCount.expected}) shifts in the biweekly, (${statsCount}) of which would be stat holiday(s).`;
+                promptSpan.textContent = `${capitalizeArray(name.split(" "))} has (0) shifts scheduled in the biweekly!`;
+                p.appendChild(promptSpan);
             } else {
-                p.appendChild(errorSpan);
-                promptSpan.textContent = `${capitalizeArray(name.split(" "))} has (${shiftCount.expected + shiftCount.found}) shifts scheduled, LESS THAN (${shiftCount.expected}) shifts in the biweekly, (${statsCount}) of which would be stat holiday(s).`;
-            }
-            p.appendChild(promptSpan);
+                // skip non-FTR employees
+                if (!shiftCount.isFTR) continue;
+                // skip employees with no count errors
+                if (shiftCount.found === 0) continue;
 
+                if (shiftCount.found > 0) {
+                    p.appendChild(errorSpan);
+                    promptSpan.textContent = `${capitalizeArray(name.split(" "))} has (${shiftCount.expected + shiftCount.found}) shifts scheduled, MORE THAN (${shiftCount.expected}) shifts in the biweekly, (${statsCount}) of which would be stat holiday(s).`;
+                } else {
+                    p.appendChild(errorSpan);
+                    promptSpan.textContent = `${capitalizeArray(name.split(" "))} has (${shiftCount.expected + shiftCount.found}) shifts scheduled, LESS THAN (${shiftCount.expected}) shifts in the biweekly, (${statsCount}) of which would be stat holiday(s).`;
+                }
+                p.appendChild(promptSpan);
+            }
             document.querySelector(".shiftCountErrors").appendChild(p);
         }
     }
@@ -292,7 +303,7 @@ export class ScheduleChecker extends HTMLElement {
     applyEmployeeWarnings(warnings, statCount) {
         let appliedEmptyCells = false;
 
-        this.createShiftCountErrorDisplay(warnings.employeeShiftCount, statCount);
+        this.createShiftCountErrorDisplay(roster, warnings.employeeShiftCount, statCount);
 
         this.applyShiftWarnings(warnings.duplicate, "duplicate");
         this.applyShiftWarnings(warnings.regShiftMultiNames, "multiName");
