@@ -5,6 +5,7 @@ export class HeaderWithCopyBtn extends HTMLElement {
         div {
             display: flex; 
             flex-direction: row;
+            align-items: center;
             margin-top: 3em;
             margin-bottom: 1em;
             visiblity: hidden;
@@ -13,19 +14,28 @@ export class HeaderWithCopyBtn extends HTMLElement {
             font-family: sans-serif;
             font-weight: 500;
             margin: 0;
+            margin-right: 2em;
             text-align: center;
         }
         button {
-            padding: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 160px;
+            padding-inline: 1rem;
+            padding-block: 0.5rem;
             margin-inline: 0.5em;
-            color: #aaa;
+            color: #555;
             background-color: white;
-            border: none;
+            border: 1px solid #eee;
+            border-radius: 5px;
             transition: 300ms;
             visibility: hidden;
         }
         button:hover {
-            color: #111;
+            color: #000;
+            background-color: #90EE90;
+            border-color: green;
             cursor: pointer;
         }
     `;
@@ -43,7 +53,7 @@ export class HeaderWithCopyBtn extends HTMLElement {
           </svg>
     `;
     timesheetStr = "";
-    
+
     static get observedAttributes() {
         return ['header', 'timesheet']; // watch for changes in these attributes
     }
@@ -57,8 +67,13 @@ export class HeaderWithCopyBtn extends HTMLElement {
 
         this.container = document.createElement("div");
         this.header = document.createElement("h3");
+
+        const lb = document.createElement("span");
+        lb.textContent = "Copy Timesheet";
+
         this.copyBtn = document.createElement("button");
         this.copyBtn.innerHTML = this.svg;
+        this.copyBtn.prepend(lb);
 
         this.container.appendChild(this.header);
         this.container.appendChild(this.copyBtn);
@@ -72,7 +87,7 @@ export class HeaderWithCopyBtn extends HTMLElement {
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
-        switch(name) {
+        switch (name) {
             case "header":
                 this.header.textContent = newValue;
                 break;
