@@ -13,11 +13,16 @@ export function textareaEventListener(pasteBtn) {
         if (!navigator.clipboard) {
             // Navigator.clipboard is not available if not using HTTPS,
             // fallback with alert to notify user
-            // alert("Current site not running HTTPS, use [Ctrl-V] to paste!");
+            alert("Current site not running HTTPS, use [Ctrl-V] to paste!");
         } else {
             navigator.clipboard
                 .readText()
                 .then((clipText) => txtarea.value = clipText);
+
+            // clear most recent clipboard textarea data to prevent users from
+            // accidentally pasting unintended data into timesheet spreadsheet
+            // as they forgot to copy their timesheet data onto clipboard.
+            setTimeout(() => navigator.clipboard.writeText(""), 100);
         }
 
         /** @type {PasteSuccessfulPrompt} prompt */
@@ -85,7 +90,7 @@ export function addToggleEventListener(
         if (toggle.checked) {
             // disable + clear dropdown for predefined employees, enable custom input fields
             employeeDropdown.disableSelect();
-            
+
             customName.disabled = false;
             customAbbrev.disabled = false;
             customGender.disabled = false;
@@ -97,7 +102,7 @@ export function addToggleEventListener(
             customName.value = "";
             customName.classList.remove("errorHighlight");
 
-            customAbbrev.value = ""; 
+            customAbbrev.value = "";
             customAbbrev.disabled = true;
             customAbbrev.classList.remove("errorHighlight");
 
