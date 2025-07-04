@@ -88,6 +88,10 @@ export class UnrecognizedPanelEntry extends HTMLElement {
     addOnClickFn(searchCells, changeSelectState) {
         this.panelEntry.onclick = () => {
             searchCells(this._shifts);
+
+            // "changeSelectState" function dependency which changes the
+            // selectFTR dropdown component to dud status to match current
+            // selection state focus in the unrecognized panel
             changeSelectState();
         }
         this.deleteBtn.onclick = () => {

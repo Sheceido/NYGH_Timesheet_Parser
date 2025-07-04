@@ -1,4 +1,3 @@
-
 /**
 * @typedef {Object} Employee
 * @property {string} first_name - The employee's first name.
@@ -36,7 +35,7 @@ export const roster = {
     "Erica Lee": {
         "first_name": "ERICA",
         "str_alias": "ERICA",
-        "abbrev": "ELee",
+        "abbrev": "ELEE",
         "gender": "F"
     },
     "Esther Lyew": {
@@ -53,7 +52,7 @@ export const roster = {
     },
     "Jennifer Wang": {
         "first_name": "JENNIFER",
-        "str_alias": "JENNIFER W",
+        "str_alias": "JENNIFER",
         "abbrev": "JW",
         "gender": "F"
     },

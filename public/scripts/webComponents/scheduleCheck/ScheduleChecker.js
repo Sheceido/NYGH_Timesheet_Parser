@@ -163,7 +163,7 @@ export class ScheduleChecker extends HTMLElement {
             tr.id = `row${i}`;
 
             const td = document.createElement("td");
-            td.id = `shiftTime`;
+            td.id = `shiftTime-${i}`;
             td.textContent = grid[i][0];
             td.style.backgroundColor = this.applyCellColor(i, 0, grid[i][0]);
 
@@ -440,7 +440,7 @@ export class ScheduleChecker extends HTMLElement {
 
             // ignore name values containing numbers at beginning or end, as these are likely
             // accessory info placed in empty cells to note down events occurring in the day;
-            // note foolproof as any purely alphabetical notes would not be ignored
+            // not foolproof as any purely alphabetical notes would not be ignored
             if (!isNaN(parseInt(name[0])) || !isNaN(parseInt(name[name.length - 1]))) {
                 continue;
             }
@@ -578,11 +578,21 @@ export class ScheduleChecker extends HTMLElement {
             return;
         }
 
+        // flags that is checked when a new row is reached
+        let rowId = null;
+        let rowContainsEmployee = false;
+
         const allCells = this.scheduleTable.querySelectorAll("td");
         for (let i = 0, cell; i < allCells.length; i++) {
             cell = allCells[i];
 
-            if (cell.id === "shiftTime") {
+            if (cell.id.includes("shiftTime")) {
+                if (rowId !== null) {
+                    this.hideRowWithoutEmployee(rowId, rowContainsEmployee);
+                }
+                // set flags for next row
+                rowId = cell.id;
+                rowContainsEmployee = false;
                 continue;
             }
 
@@ -590,10 +600,13 @@ export class ScheduleChecker extends HTMLElement {
                 cell.innerText.toUpperCase() === employee.abbrev) {
                 this.applyOpacity(cell, 1);
                 this.highlightBorders(cell, "#4FC174"); // emerald green
+                rowContainsEmployee = true;
             } else {
                 this.applyOpacity(cell, 0.05);
             }
         }
+        // Check final row as loop only checks n-1 rows
+        this.hideRowWithoutEmployee(rowId, rowContainsEmployee);
     }
 
     /**
@@ -601,34 +614,39 @@ export class ScheduleChecker extends HTMLElement {
      */
     fadeAllCellsByShifts(shifts) {
         const allCells = this.scheduleTable.querySelectorAll("td");
-
         // fade all cells
-        for (let i = 0, cell; i < allCells.length; i++) {
-            cell = allCells[i];
+        for (let i = 0; i < allCells.length; i++) {
+            let cell = allCells[i];
 
             if (cell.id === "shiftTime") {
                 continue;
             }
             const row = parseInt(cell.getAttribute("row"));
             const col = parseInt(cell.getAttribute("col"));
-
             if (!row || !col) {
                 continue;
             }
-
             this.applyOpacity(cell, 0.05);
         }
+        // set all rows to not display
+        const allRows = this.scheduleTable.querySelectorAll("tr");
+        allRows.forEach((row, i) => {
+            if (i < 3) return; // continue showing first two header rows
+            row.style.display = "none";
+        });
 
         // query relevant shifts and highlight cell
         shifts.forEach(s => {
             const queryStr = `#row${s.coordinate.row}col${s.coordinate.col}`;
             const cell = this.scheduleTable.querySelector(queryStr);
-
             if (!cell) {
                 return; // continue next iteration
             }
             this.applyOpacity(cell, 1);
             this.highlightBorders(cell, "#4FC174"); // emerald green
+
+            // set row to visible if it was not displayed
+            cell.parentNode.style.display = "";
         });
     }
 
@@ -647,6 +665,11 @@ export class ScheduleChecker extends HTMLElement {
     }
 
     unfadeAllCells() {
+        // reset hidden rows previously set to display "none"
+        const allRows = this.scheduleTable.querySelectorAll("tr");
+        allRows.forEach(row => row.style.display = "");
+
+        // reset all cells to non-faded appearance
         const allCells = this.scheduleTable.querySelectorAll("td");
         allCells.forEach(cell => {
             this.applyOpacity(cell, 1);
@@ -660,6 +683,23 @@ export class ScheduleChecker extends HTMLElement {
      */
     applyOpacity(el, fp) {
         el.style.opacity = fp;
+    }
+
+    hideRowWithoutEmployee(rowId, containsEmployee) {
+        const shiftTimeCell = this.scheduleTable.querySelector(`#${rowId}`);
+        if (!shiftTimeCell) { console.error(`Could not find tr with row id: "${rowId}."`); }
+
+        /** @type {HTMLTableRowElement} parentRow */
+        const parentRow = shiftTimeCell.parentNode;
+        if (!parentRow) { console.error(`Could not find parent node for cell with id ${rowId}.`); }
+
+        if (!containsEmployee) {
+            // Hide row that does not contain the employee
+            parentRow.style.display = "none";
+        } else {
+            // Unhide row that does have the relevant employee
+            parentRow.style.display = "";
+        }
     }
 
     reset() {
