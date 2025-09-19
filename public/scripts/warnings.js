@@ -1,4 +1,4 @@
-import { DEFINED_SHIFTS_SET, WEEKEND_DAYS } from './constants.js';
+import { FTR_HRS, DEFINED_SHIFTS_SET, WEEKEND_DAYS } from './constants.js';
 /** @typedef {import('./roster.js').Employee} Employee */
 /** @typedef {import('./parser.js').Shift} Shift */
 /**
@@ -197,7 +197,6 @@ export class Warnings {
      * @param {number} statCount
      */
     shiftCountEval(isFTR, shiftCount, statCount) {
-        const FTR_HRS = 10;
         this._expectedShiftCount = FTR_HRS - statCount;
 
         if (!isFTR) {

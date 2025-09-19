@@ -1,8 +1,10 @@
-import { capitalizeArray } from "../../utils.js";
+import { capitalizeArray, getDateByColumn } from "../../utils.js";
 import { roster } from "../../roster.js";
 import { WarningPopup } from "../warningPopup.js";
-import { WARNING_COLORS, DAYS_OF_THE_WEEK } from "../../constants.js";
+import { WARNING_COLORS, DAYS_OF_THE_WEEK, NAMED_WARNING_COLORS } from "../../constants.js";
 import { UnrecognizedPanelEntry } from "./UnrecognizedPanelEntry.js";
+import { WarningTable } from "./WarningTable.js";
+import { ShiftCountErrorTable } from "./ShiftCountErrorTable.js";
 import { CellIdentifier } from "./CellIdentifier.js";
 /** @typedef {import("../../roster.js").Roster} Roster */
 /** @typedef {import("../../roster.js").Employee} Employee */
@@ -99,6 +101,8 @@ export class ScheduleChecker extends HTMLElement {
         }
     `;
 
+    headers;
+
     shiftTimes;
     /** @type {HTMLTableElement} */
     scheduleTable;
@@ -124,6 +128,7 @@ export class ScheduleChecker extends HTMLElement {
     */
     createScheduleTable(grid, headers, shiftTimes, shifts) {
         this.shiftTimes = shiftTimes;
+        this.headers = headers;
         this.rowColorSwatch = this.generateCellColorSwatch();
 
         this.scheduleTable = document.createElement("table");
@@ -190,7 +195,7 @@ export class ScheduleChecker extends HTMLElement {
             }
 
             // col index starts at 1 in table, offset by -1 to properly ref DAYS_OF_THE_WEEK
-            const dayStr = `${DAYS_OF_THE_WEEK[(s.coordinate.col - 1) % 7]} ${headers[s.weekday]}`;
+            const dayStr = getDateByColumn(s, this.headers);
 
             /** @type {HTMLTableRowElement} */
             let tr = this.scheduleTable.querySelector(`#row${s.coordinate.row}`);
@@ -245,76 +250,72 @@ export class ScheduleChecker extends HTMLElement {
     }
 
     /**
-     * Temp for showing shift counts if error
-     * @param {Roster} roster 
-     * @param {EmployeeShiftCount} employeeShiftCount
-     * @param {number} statsCount 
-     * @returns {HTMLParagraphElement | null} p html tag containing prompt regarding the correct/incorrect number of shifts counted in this biweekly for the employee.
+     * @param {WarningsGroup} warnings 
+     * @param {number} statCount 
      */
-    createShiftCountErrorDisplay(roster, employeeShiftCount, statsCount) {
+    applyEmployeeWarnings(warnings, statCount) {
+        const warningsToRender = [
+            { shifts: warnings.duplicate, type: "duplicate", title: "⚠️ Duplicate Shifts" },
+            { shifts: warnings.notAvailable, type: "unavailable", title: "🚫 Scheduled Unavailable Tech" },
+            { shifts: warnings.evening, type: "evening", title: "♂️ >1 Evening Male Tech" },
+        ];
 
-        // Go through FTR roster
-        for (const [name, employee] of Object.entries(roster)) {
-            // text element creation and styling
-            const p = document.createElement("p");
-            p.classList.add("comments");
-            p.style.maxWidth = "70vw";
-            p.style.padding = "1em";
-            p.style.borderRadius = "5px";
-            p.style.backgroundColor = WARNING_COLORS.lightRed;
+        const cellWarningsToRender = [
+            ...warningsToRender,
+            { shifts: warnings.regShiftMultiNames, type: "multiName", title: "Multiple Names in Cell" },
+            { shifts: warnings.standbyMultiNames, type: "standbyMultiName", title: "On-Call Standby Multiple Names in Cell" },
+            { shifts: warnings.emptyCells, type: "emptyCells", title: "Empty Shift Cells" },
+        ];
 
-            const successSpan = document.createElement("span");
-            successSpan.textContent = " ✅ ";
-            const errorSpan = document.createElement("span");
-            errorSpan.textContent = " ❌ ";
+        this.createShiftCountErrorDisplay(warnings.employeeShiftCount, statCount);
+        this.createWarningsDisplay(warningsToRender);
 
-            const promptSpan = document.createElement("span");
-            promptSpan.style.fontFamily = "sans-serif";
-            promptSpan.style.fontSize = "1.1em";
-            const shiftCount = employeeShiftCount.get(employee.str_alias)
-
-            // ftr employee was not found in current schedule
-            if (!shiftCount) {
-                p.appendChild(errorSpan);
-                promptSpan.textContent = `${capitalizeArray(name.split(" "))} has (0) shifts scheduled in the biweekly!`;
-                p.appendChild(promptSpan);
-            } else {
-                // skip non-FTR employees
-                if (!shiftCount.isFTR) continue;
-                // skip employees with no count errors
-                if (shiftCount.found === 0) continue;
-
-                if (shiftCount.found > 0) {
-                    p.appendChild(errorSpan);
-                    promptSpan.textContent = `${capitalizeArray(name.split(" "))} has (${shiftCount.expected + shiftCount.found}) shifts scheduled, MORE THAN (${shiftCount.expected}) shifts in the biweekly, (${statsCount}) of which would be stat holiday(s).`;
-                } else {
-                    p.appendChild(errorSpan);
-                    promptSpan.textContent = `${capitalizeArray(name.split(" "))} has (${shiftCount.expected + shiftCount.found}) shifts scheduled, LESS THAN (${shiftCount.expected}) shifts in the biweekly, (${statsCount}) of which would be stat holiday(s).`;
-                }
-                p.appendChild(promptSpan);
-            }
-            document.querySelector(".shiftCountErrors").appendChild(p);
-        }
+        // highlight shift cells with warnings found
+        warningsToRender.forEach(w => this.applyShiftWarnings(w.shifts, w.type));
+        cellWarningsToRender.forEach(w => this.applyShiftWarnings(w.shifts, w.type));
     }
 
     /**
-     * @param {WarningsGroup} warnings 
+     * @param {EmployeeShiftCount} employeeShiftCount
+     * @param {number} statCount 
      */
-    applyEmployeeWarnings(warnings, statCount) {
-        let appliedEmptyCells = false;
+    createShiftCountErrorDisplay(employeeShiftCount, statCount) {
+        const warningsContainer = document.createElement("div");
+        warningsContainer.classList.add("shiftCountErrors");
 
-        this.createShiftCountErrorDisplay(roster, warnings.employeeShiftCount, statCount);
 
-        this.applyShiftWarnings(warnings.duplicate, "duplicate");
-        this.applyShiftWarnings(warnings.regShiftMultiNames, "multiName");
-        this.applyShiftWarnings(warnings.standbyMultiNames, "standbyMultiName");
-        this.applyShiftWarnings(warnings.notAvailable, "unavailable");
-        this.applyShiftWarnings(warnings.evening, "evening");
+        const shiftCountErrorTable = document.createElement("shift-count-error-table");
+        shiftCountErrorTable.Render(employeeShiftCount, statCount);
 
-        if (!appliedEmptyCells) {
-            this.applyShiftWarnings(warnings.emptyCells, "emptyCells");
-            appliedEmptyCells = true;
-        }
+        warningsContainer.appendChild(shiftCountErrorTable);
+
+        const warningDOMBox = document.querySelector(".errorsWarnings");
+        warningDOMBox.append(warningsContainer);
+    }
+
+    /**
+     * @param {{shifts: Shift[]; type: string; title: string;}[]} warningsToRender
+     */
+    createWarningsDisplay(warningsToRender) {
+        const warningsContainer = document.createElement("div");
+        warningsContainer.classList.add("warnings");
+
+        warningsToRender.forEach(w => {
+            if (w.shifts.length === 0) return;
+
+            /* @typedef {WarningTable} warningTable */
+            const warningTable = document.createElement("warning-table");
+            warningTable.Render(
+                w.shifts.filter(s => s.shiftTime.toUpperCase() !== "AVAILABLE"),
+                w.title,
+                this.headers,
+                NAMED_WARNING_COLORS[w.type]
+            );
+            warningsContainer.appendChild(warningTable);
+        });
+
+        const warningDOMBox = document.querySelector(".errorsWarnings");
+        warningDOMBox.append(warningsContainer);
     }
 
     /**
@@ -708,6 +709,11 @@ export class ScheduleChecker extends HTMLElement {
             if (this.unrecognizedPanel.parentNode) {
                 this.#shadowRoot.removeChild(this.unrecognizedPanel);
             }
+        }
+
+        const warningBox = document.querySelector(".errorsWarnings");
+        if (warningBox) {
+            warningBox.replaceChildren();
         }
     }
 }

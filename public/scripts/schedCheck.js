@@ -53,7 +53,6 @@ export function checkSchedule() {
 
     // Reset state to beginning
     scheduleCheckTable.reset(); // remove old table
-    document.querySelector(".shiftCountErrors").textContent = "";
     selectFTR.selectFirstChild();
 
     // get grid, parse conflicts map set to true

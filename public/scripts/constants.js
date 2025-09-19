@@ -1,11 +1,20 @@
 export const WARNING_COLORS = {
     "red": "#FF0000",
-    "lightRed": "#F78F8F",
+    "lightRed": "#FACDCD",
+    "lightYellow": "#FFFAC7",
     "vibrantYellow": "#FFF075",
     "lightBlue": "#72C0FF",
     "pastelTeal": "#B7FFEC",
 };
 
+export const NAMED_WARNING_COLORS = {
+    "duplicate": "#FFF075",
+    "unavailable": "#FACDCD",
+    "evening": "#80BFF2",
+}
+
+
+export const FTR_HRS = 10;
 export const BIWEEKLY = 14;
 export const DAYS_OF_THE_WEEK = ["Sat", "Sun", "Mon", "Tues", "Wed", "Thurs", "Fri"];
 

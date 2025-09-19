@@ -1,11 +1,20 @@
-html,
+*,
+::before,
+::after {
+  box-sizing: border-box;
+}
+
+:root {
+  --gap-size: 1em;
+}
+
 body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
   min-height: 100%;
-  margin: 0;
+  margin: unset;
 }
 
 main {
@@ -182,6 +191,17 @@ ul>li {
 
 .errorHighlight {
   outline: 1px red solid;
+}
+
+.errorsWarnings {
+  margin-block: 1.5em;
+}
+
+.warnings {
+  display: grid;
+  gap: var(--gap-size);
+  grid-template-columns: repeat(3, 1fr);
+  max-inline-size: 1500px;
 }
 
 .imgTutorial {

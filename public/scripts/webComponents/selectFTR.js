@@ -3,7 +3,6 @@ import { capitalize } from "../utils.js";
 /**
  * @typedef {import("../warnings.js").ShiftCountError} ShiftCountError 
  * @typedef {import("../warnings.js").EmployeeShiftCount} EmployeeShiftCount 
- * @typedef {import("../warnings.js").WarningsGroup} WarningsGroup
  **/
 
 export class SelectFTR extends HTMLElement {
@@ -53,9 +52,10 @@ export class SelectFTR extends HTMLElement {
     }
 
     /**
-     * @param {EmployeeShiftCount} employeeSC 
+     * @param {EmployeeShiftCount} employeeShiftCount
      */
-    showEmployeeAndShiftCount(employeeSC) {
+    showEmployeeAndShiftCount(employeeShiftCounts) {
+
         for (const [fullName, employee] of Object.entries(roster)) {
 
             // remove prior stale employee option entry
@@ -67,7 +67,7 @@ export class SelectFTR extends HTMLElement {
             const option = document.createElement("option");
             option.value = fullName;
 
-            let employeeShiftCount = employeeSC.get(employee.str_alias);
+            let employeeShiftCount = employeeShiftCounts.get(employee.str_alias);
 
             const successSpan = document.createElement("span");
             const errorSpan = document.createElement("span");

@@ -161,6 +161,8 @@ export class ScheduleTimeSheetParser {
                     currLoc = "OCSC / CONSUMER";
                     break;
                 case "AVAILABLE":
+                case "available":
+                case "Available":
                     currLoc = "GENERAL";
                     break;
             }
@@ -649,7 +651,7 @@ export class ScheduleTimeSheetParser {
 
     /**
      * Public method to get the predetermined stand by hours by the day for selected employee.
-     * @param {Shift} shifts 
+     * @param {Shift[]} shifts 
      * @returns {StandbyHrs} standbyHours
      */
     getStandbyHourMap(shifts) {

@@ -1,0 +1,71 @@
+/** @typedef {import("../../parser.js").Shift} Shift */
+import { capitalizeArray, getDateByColumn, alphabetColumn } from "../../utils.js";
+
+export class WarningTable extends HTMLElement {
+    #shadowRoot;
+    css = `
+        .warningBox {
+            padding: 1em;
+            border: 1px solid #eee;
+            border-radius: 0.5em;
+        }
+    `;
+
+    warningBox;
+
+
+    /**
+    * @param {Shift[]} shifts 
+    * @param {string} warningType 
+    */
+    constructor(shifts, warningType, headers) {
+        super();
+        this.#shadowRoot = this.attachShadow({ mode: "closed" });
+        const style = document.createElement("style");
+        style.textContent = this.css;
+        this.#shadowRoot.appendChild(style);
+
+        this.warningBox = document.createElement("div");
+        this.warningBox.classList.add("warningBox");
+
+        const h3 = document.createElement("h3");
+        h3.textContent = warningType;
+        this.warningBox.appendChild(h3);
+
+        const errorListEl = this.BuildShiftErrorElement(shifts, headers);
+        this.warningBox.appendChild(errorListEl);
+
+        this.#shadowRoot.appendChild(this.warningBox);
+    }
+
+    RenderShiftCountErrors() {
+
+    }
+
+    /**
+    * @param {Shift[]} shifts 
+    * @param {string[]} headers 
+    */
+    BuildShiftErrorElement(shifts, headers) {
+        const ul = document.createElement("ul");
+
+        const items = shifts.map(s => {
+            let li = document.createElement("li");
+
+            const name = capitalizeArray(s.names[s.names.length - 1].split(" "));
+            const location = s.location;
+            const shiftTime = s.shiftTime;
+
+            const date = getDateByColumn(s, headers);
+            const alphaCol = alphabetColumn(s.coordinate.col);
+            const excelRow = s.coordinate.row + 1;
+
+            li.textContent = `${name}: [${alphaCol}${excelRow}] on ${date}, ${shiftTime} @ ${location}`;
+            return li;
+        });
+
+        ul.append(items);
+    }
+}
+
+customElements.define("warning-table", WarningTable);
