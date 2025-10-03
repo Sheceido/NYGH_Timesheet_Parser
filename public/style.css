@@ -198,9 +198,8 @@ ul>li {
 }
 
 .warnings {
-  display: grid;
+  display: flex;
   gap: var(--gap-size);
-  grid-template-columns: repeat(3, 1fr);
   max-inline-size: 1500px;
 }
 

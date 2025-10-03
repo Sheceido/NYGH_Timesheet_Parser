@@ -8,34 +8,57 @@ export class WarningTable extends HTMLElement {
             box-sizing: border-box;
             font-family: Arial, sans-serif;
         }
-        h3 {
+        h4 {
             margin: unset;
-            padding-inline-start: 2em;
+            padding-inline-start: 1em;
             text-transform: capitalize;
         }
         .titleBox {
             width: 100%;
             height: 100%;
-            border-bottom: 1px solid #eee;
             border-top-left-radius: 0.5em;
             border-top-right-radius: 0.5em;
-            padding-block: 1em;
+            padding-block: 0.5em;
+            font-size: 1.25rem;
         }
         .listBox {
-            max-width: 90%;
-            padding-inline-start: 2em;
+            padding-inline-start: 0.5em;
 
+            ul {
+                padding-left: 0.5em;
+            }
         }
         li {
-            margin-bottom: 0.8em;
+            margin-bottom: 1.2em;
+            font-size: 1.2rem;
+            list-style-type: none;
+            border-left: 4px solid #ff7f7f;
+            padding-left: 1em;
+            padding-top: 0.5em;
+            box-shadow: 0 0 0.2em #eee;
         }
         .warningBox {
-            border: 1px solid #eee;
             border-radius: 0.5em;
             display: grid;
             grid-template-rows: auto;
-            overflow: clip;
-            box-shadow: 0 0.1em 0.5em #eee;
+            box-shadow: 0 0 0.5em #eee;
+            padding-top: 1em;
+            padding-inline: 1em;
+        }
+        .subInfo {
+            margin-top: 0.5em;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+
+            p {
+                font-size: 0.9rem;
+                min-width: 7em;
+                text-align: center;
+                padding-inline: 0.5em;
+                padding-block: 0.2em;
+                margin: 0;
+            }
         }
     `;
 
@@ -60,14 +83,14 @@ export class WarningTable extends HTMLElement {
         this.warningBox = document.createElement("div");
         this.warningBox.classList.add("warningBox");
         this.warningBox.style.boxShadow = `0em 0.1em 0.5em #eee`;
+        this.warningBox.style.borderTop = `0.2em solid ${color}`;
 
-        const h3 = document.createElement("h3");
-        h3.textContent = warningTitle;
+        const h4 = document.createElement("h4");
+        h4.textContent = warningTitle;
 
         const titleBox = document.createElement("div");
         titleBox.classList.add("titleBox");
-        titleBox.style.background = `linear-gradient(${color}, white)`;
-        titleBox.appendChild(h3);
+        titleBox.appendChild(h4);
         this.warningBox.appendChild(titleBox);
 
         const listBox = document.createElement("div");
@@ -86,6 +109,7 @@ export class WarningTable extends HTMLElement {
     * @returns {HTMLUListElement}
     */
     BuildShiftErrorElement(shifts, headers) {
+        const excelSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16"><g fill="none" stroke="#a6da95" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 3.13c0-.77.86-1.63 1.62-1.63h9.76c.76 0 1.62.86 1.62 1.63v9.75c0 .76-.86 1.62-1.62 1.62H4.13c-.77 0-1.63-.86-1.63-1.62M.5 5.5l4 5m0-5l-4 5"/><path d="M7.5 5.5h5v5h-5zm2 0v5m-2-3h5"/></g></svg>`;
         const ul = document.createElement("ul");
 
         const items = shifts.map(s => {
@@ -99,7 +123,28 @@ export class WarningTable extends HTMLElement {
             const alphaCol = alphabetColumn(s.coordinate.col);
             const excelRow = s.coordinate.row + 1;
 
-            li.textContent = `${name}: [${alphaCol}${excelRow}] on ${date}, ${shiftTime} @ ${location} ❌`;
+            li.textContent = `${name}`
+
+            const subInfo = document.createElement("div");
+            subInfo.classList.add("subInfo");
+            subInfo.append(...
+                [
+                    `📅`,
+                    `🕓`,
+                    `📍`,
+                    `${excelSVG}`,
+                    `${date}`,
+                    `${shiftTime}`,
+                    `${location}`,
+                    `[${alphaCol} ${excelRow}]`,
+                ].map(str => {
+                    const entry = document.createElement("p");
+                    entry.innerHTML = str;
+                    return entry;
+                })
+            )
+            li.appendChild(subInfo);
+
             return li;
         });
 

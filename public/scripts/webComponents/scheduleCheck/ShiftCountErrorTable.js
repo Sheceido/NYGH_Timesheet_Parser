@@ -15,42 +15,67 @@ export class ShiftCountErrorTable extends HTMLElement {
             font-family: Arial, sans-serif;
         }
         .tableContainer {
-            display: grid;
+            display: flex;
+            flex-direction: row;
+            align-items: start;
             gap: 1em;
-            grid-template-columns: repeat(3, 1fr);
             max-inline-size: 1500px;
             margin-block: 1em;
         }
-        h3 {
+        h4 {
             margin: unset;
-            padding-inline-start: 2em;
             text-transform: capitalize;
         }
         .titleBox {
             width: 100%;
             height: 100%;
-            border-bottom: 1px solid #eee;
             border-top-left-radius: 0.5em;
             border-top-right-radius: 0.5em;
-            padding-block: 1em;
-            background: linear-gradient(#FF5C5C, white);
+            padding-block: 0.5em;
+            font-size: 1.25rem;
         }
         .listBox {
-            max-width: 90%;
-            padding-inline-start: 2em;
+            padding-inline-start: 0.5em;
 
+            ul {
+                padding-left: 0.5em;
+            }
+
+            p {
+                padding-left: 2em;
+            }
         }
         li {
-            margin-bottom: 0.8em;
+            margin-bottom: 1em;
+            font-size: 1.2rem;
+            list-style-type: none;
+            border-left: 4px solid #ff7f7f;
+            padding-block: 0.5em;
+            padding-left: 1em;
+            box-shadow: 0 0 0.2em #eee;
+
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            align-items: center;
+        
+            div {
+                padding-inline: 1em;
+            }
+
+            .shifts {
+                font-size: 0.9rem;
+            }
         }
         .warningBox {
+            padding-left: 1em;
+            padding-right: 2em;
+            padding-block: 1em;
             border: 1px solid #eee;
+            border-top: 0.2em solid #FF5C5C;
             border-radius: 0.5em;
             display: grid;
             grid-row: span 3;
-            grid-template-rows: subgrid;
-            overflow: clip;
-            box-shadow: 0 0.1em 0.5em #eee;
+            box-shadow: 0 0 0.5em #eee;
         }
     `;
 
@@ -78,8 +103,8 @@ export class ShiftCountErrorTable extends HTMLElement {
 
         const { overUl, underUl } = this.BuildShiftErrorElement(employeeShiftCount);
 
-        this.CreateListContainer(this.overScheduled, `⬆️ Too Many Shifts (expected: ${FTR_HRS - statCount})`, overUl);
-        this.CreateListContainer(this.underScheduled, `⬇️ Missing Shifts (expected: ${FTR_HRS - statCount})`, underUl);
+        this.CreateListContainer(this.overScheduled, `🔺 Too Many Shifts (expected: ${FTR_HRS - statCount})`, overUl);
+        this.CreateListContainer(this.underScheduled, `🔻 Missing Shifts (expected: ${FTR_HRS - statCount})`, underUl);
 
         const tableContainer = document.createElement("div");
         tableContainer.classList.add("tableContainer");
@@ -94,12 +119,12 @@ export class ShiftCountErrorTable extends HTMLElement {
      * @param {HTMLUListElement} ul 
      */
     CreateListContainer(parent, title, ul) {
-        const h3 = document.createElement("h3");
-        h3.textContent = title;
+        const h4 = document.createElement("h4");
+        h4.textContent = title;
 
         const titleBox = document.createElement("div");
         titleBox.classList.add("titleBox");
-        titleBox.appendChild(h3);
+        titleBox.appendChild(h4);
 
         const listBox = document.createElement("div");
         listBox.classList.add("listBox");
@@ -123,39 +148,39 @@ export class ShiftCountErrorTable extends HTMLElement {
             if (shiftCount.found === 0) continue;
 
             if (!shiftCount) {
-                under.push(`${capitalizeArray(name.split(" "))} (0 shifts) ❌`);
+                under.push(`<div>${capitalizeArray(name.split(" "))}</div><div class="shifts">0 shifts ❌</div>`);
             }
 
             if (shiftCount.found > 0) {
-                over.push(`${capitalizeArray(name.split(" "))} (${shiftCount.expected + shiftCount.found} shifts) ❌`);
+                over.push(`<div>${capitalizeArray(name.split(" "))}</div><div class="shifts">${shiftCount.expected + shiftCount.found} shifts ❌</div>`);
             }
             if (shiftCount.found < 0) {
-                under.push(`${capitalizeArray(name.split(" "))} (${shiftCount.expected + shiftCount.found} shifts) ❌`);
+                under.push(`<div>${capitalizeArray(name.split(" "))}</div><div class="shifts">${shiftCount.expected + shiftCount.found} shifts ❌</div>`);
             }
         }
 
         let overUl = document.createElement("ul");
         over.map(o => {
             let li = document.createElement("li");
-            li.textContent = o;
+            li.innerHTML = o;
             overUl.appendChild(li);
         });
 
         let underUl = document.createElement("ul");
         under.map(o => {
             let li = document.createElement("li");
-            li.textContent = o;
+            li.innerHTML = o;
             underUl.appendChild(li);
         });
 
         if (over.length < 1) {
             overUl = document.createElement("p");
-            overUl.textContent = "No employee over scheduled! ✅"
+            overUl.textContent = "No employee over-scheduled! ✅"
         }
 
         if (under.length < 1) {
             underUl = document.createElement("p");
-            underUl.textContent = "No employee under scheduled! ✅"
+            underUl.textContent = "No employee under-scheduled! ✅"
         }
 
         return { overUl, underUl };
