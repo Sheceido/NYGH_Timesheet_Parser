@@ -14,6 +14,12 @@
  * @type {Roster} roster
  */
 export const roster = {
+    "Adrienne Chang": {
+        "first_name": "ADRIENNE",
+        "str_alias": "ADRIENNE",
+        "abbrev": "AC",
+        "gender": "F"
+    },
     "Caroline Xie": {
         "first_name": "CAROLINE",
         "str_alias": "CAROLINE",
