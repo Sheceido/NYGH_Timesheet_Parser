@@ -7,20 +7,31 @@ import { ScheduleChecker } from "./webComponents/scheduleCheck/ScheduleChecker.j
 /** @type {ScheduleChecker} */
 const scheduleCheckTable = document.querySelector("schedule-checker");
 
-function onSelectChangeCallback(rosterName) {
-    if (rosterName === "ALL") {
-        scheduleCheckTable.unfadeAllCells();
-    } else {
-        scheduleCheckTable.fadeAllCellsExcept(rosterName);
-    }
-}
+const scheduleCheckContainer = document.querySelector(".scheduleCheckContainer");
+
 /** @type {SelectFTR} */
 const selectFTR = document.querySelector("#schedCheckSelectFTR");
-selectFTR.addShowAllOption();
-selectFTR.addDudOption();
-selectFTR.addOnChangeFn(onSelectChangeCallback);
-selectFTR.hideSelect();
-selectFTR.disableSelect();
+selectFTR.Init(onSelectChangeCallback);
+
+function onSelectChangeCallback(rosterName) {
+    switch (rosterName) {
+        case "HIDE":
+            scheduleCheckContainer.style.display = "none";
+            return;
+
+        case "ALL":
+            scheduleCheckContainer.style.display = "inline-block";
+            scheduleCheckTable.unfadeAllCells();
+            scheduleCheckTable.scrollIntoView({ behavior: "smooth", block: "start", inline: "nearest" });
+            break;
+
+        default:
+            scheduleCheckContainer.style.display = "inline-block";
+            scheduleCheckTable.fadeAllCellsExcept(rosterName);
+            scheduleCheckTable.scrollIntoView({ behavior: "smooth", block: "start", inline: "nearest" });
+            break;
+    }
+}
 
 export function checkSchedule() {
     // Check input for text area
@@ -79,11 +90,13 @@ export function checkSchedule() {
     // with functionality to filter schedule by these names
     scheduleCheckTable.renderUnrecognizedPanel(
         warnings.unknownEmployeeShifts,
-        selectFTR.selectDudOption.bind(selectFTR)
+        selectFTR.selectHideOption.bind(selectFTR)
     );
 
     // Update dropdown values to have a shift count summary
     selectFTR.showEmployeeAndShiftCount(warnings.employeeShiftCount);
     selectFTR.enableSelect(); // enable for filtering once schedule is generated
     selectFTR.showSelect();
+    selectFTR.selectHideOption();
+    scheduleCheckContainer.style.display = "none";
 }

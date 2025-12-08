@@ -107,6 +107,14 @@ button {
   background-color: white;
 }
 
+.scheduleCheckInit {
+  position: relative;
+  border-inline: 1px solid #ddd;
+  border-top: 1px solid #ddd;
+  background-color: white;
+  padding: 1em;
+}
+
 .timesheetContainer,
 .scheduleCheckContainer {
   display: none;

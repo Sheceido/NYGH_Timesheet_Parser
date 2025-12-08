@@ -21,7 +21,6 @@ export class SelectFTR extends HTMLElement {
         }
     `
     select;
-    DUD_VALUE = "---";
 
     constructor() {
         super();
@@ -33,6 +32,14 @@ export class SelectFTR extends HTMLElement {
 
         this.select = document.createElement("select");
         this.#shadowRoot.appendChild(this.select);
+    }
+
+    Init(onSelectChangeCallback) {
+        this.addShowAllOption();
+        this.addHideOption();
+        this.addOnChangeFn(onSelectChangeCallback);
+        this.hideSelect();
+        this.disableSelect();
     }
 
     get value() {
@@ -105,7 +112,7 @@ export class SelectFTR extends HTMLElement {
     * @param {() => void} callback 
     */
     addOnChangeFn(callback) {
-        if (this.select.value === this.DUD_VALUE) return;
+        if (this.select.value === this.hideScheduleState) return;
         this.select.onchange = () => callback(this.select.value);
     }
 
@@ -129,16 +136,16 @@ export class SelectFTR extends HTMLElement {
         this.select.prepend(showAllOption);
     }
 
-    addDudOption() {
-        const dudOption = document.createElement("option");
-        dudOption.value = this.DUD_VALUE;
-        dudOption.textContent = this.DUD_VALUE;
+    addHideOption() {
+        const hideOption = document.createElement("option");
+        hideOption.value = "HIDE";
+        hideOption.textContent = "--- hide schedule ---";
 
-        this.select.appendChild(dudOption);
+        this.select.appendChild(hideOption);
     }
 
-    selectDudOption() {
-        this.select.value = this.DUD_VALUE;
+    selectHideOption() {
+        this.select.value = "HIDE";
     }
 
     addErrorHighlight() {

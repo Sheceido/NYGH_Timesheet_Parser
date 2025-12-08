@@ -24,9 +24,8 @@ export class ScheduleChecker extends HTMLElement {
     #shadowRoot;
     css = `
         :host {
-            display: flex;
-            flex-direction: row;
-            justify-content: start;
+            display: grid;
+            grid-template-columns: 9fr 1fr;
             align-items: start;
         }
         table {
