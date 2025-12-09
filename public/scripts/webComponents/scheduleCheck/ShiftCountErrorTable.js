@@ -148,18 +148,23 @@ export class ShiftCountErrorTable extends HTMLElement {
         for (const [rosterName, employee] of Object.entries(roster)) {
             let shiftCount = employeeShiftCount.get(employee.str_alias);
 
-            if (!shiftCount || !shiftCount.isFTR) continue;
-
-            if (shiftCount.found === 0) continue;
-
+            // No shifts found for an employee with expected shifts
             if (!shiftCount) {
                 const li = this.createEventEmittingListItem(
                     rosterName,
                     `<div>${capitalize(employee.str_alias)}</div><div class="shifts">0 shifts ❌</div>`
                 );
                 underUl.appendChild(li);
+
+                continue;
             }
 
+            if (!shiftCount.isFTR) continue;
+
+            // Expected # shifts == total # shifts
+            if (shiftCount.found === 0) continue;
+
+            // Too many shifts
             if (shiftCount.found > 0) {
                 const li = this.createEventEmittingListItem(
                     rosterName,
@@ -168,6 +173,7 @@ export class ShiftCountErrorTable extends HTMLElement {
                 overUl.appendChild(li);
             }
 
+            // Too few shifts
             if (shiftCount.found < 0) {
                 const li = this.createEventEmittingListItem(
                     rosterName,

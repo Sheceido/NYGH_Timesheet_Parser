@@ -112,13 +112,13 @@
       </div>
       <timesheet-table></timesheet-table>
     </div>
-    <div class="scheduleCheckInit flex-row">
-      <input type="text" class="schedCheckHolidays" maxlength="2" size="6" placeholder="Holidays" />
-      <button type="button" class="checkBtn" onclick="window.checkSchedule()">Check Schedule</button>
-      <select-ftr id="schedCheckSelectFTR"></select-ftr>
-    </div>
-    <div class="errorsWarnings"></div>
     <div class="scheduleCheckContainer">
+      <div class="scheduleCheckInit flex-row">
+        <input type="text" class="schedCheckHolidays" maxlength="2" size="6" placeholder="Holidays" />
+        <button type="button" class="checkBtn" onclick="window.checkSchedule()">Check Schedule</button>
+        <select-ftr id="schedCheckSelectFTR"></select-ftr>
+      </div>
+      <div class="errorsWarnings"></div>
       <schedule-checker></schedule-checker>
     </div>
   </div>

@@ -134,10 +134,4 @@ export const roster = {
         "abbrev": "SS",
         "gender": "F"
     },
-    "Tim Dang": {
-        "first_name": "TIM",
-        "str_alias": "TIM",
-        "abbrev": "TD",
-        "gender": "M"
-    }
 };

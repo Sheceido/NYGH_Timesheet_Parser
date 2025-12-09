@@ -9,8 +9,6 @@ import { initScheduleCheckerEventListeners } from "./scheduleCheckerEventListene
 /** @type {ScheduleChecker} */
 const scheduleCheckTable = document.querySelector("schedule-checker");
 
-const scheduleCheckContainer = document.querySelector(".scheduleCheckContainer");
-
 /** @type {SelectFTR} */
 const selectFTR = document.querySelector("#schedCheckSelectFTR");
 selectFTR.Init(onSelectChangeCallback);
@@ -20,17 +18,17 @@ selectFTR.Init(onSelectChangeCallback);
 function onSelectChangeCallback(rosterName) {
     switch (rosterName) {
         case "HIDE":
-            scheduleCheckContainer.style.display = "none";
+            scheduleCheckTable.style.display = "none";
             return;
 
         case "ALL":
-            scheduleCheckContainer.style.display = "inline-block";
+            scheduleCheckTable.style.display = "grid";
             scheduleCheckTable.unfadeAllCells();
             scheduleCheckTable.scrollIntoView({ behavior: "smooth", block: "start", inline: "nearest" });
             break;
 
         default:
-            scheduleCheckContainer.style.display = "inline-block";
+            scheduleCheckTable.style.display = "grid";
             scheduleCheckTable.fadeAllCellsExcept(rosterName);
             scheduleCheckTable.scrollIntoView({ behavior: "smooth", block: "start", inline: "nearest" });
             break;
@@ -106,5 +104,5 @@ export function checkSchedule() {
     selectFTR.enableSelect(); // enable for filtering once schedule is generated
     selectFTR.showSelect();
     selectFTR.selectHideOption();
-    scheduleCheckContainer.style.display = "none";
+    scheduleCheckTable.style.display = "none";
 }
