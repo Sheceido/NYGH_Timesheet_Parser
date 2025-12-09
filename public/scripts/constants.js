@@ -1,3 +1,7 @@
+//Custom Event definitions
+export const WARNING_BOX_CLICKED = "warning-box:click";
+export const SHIFT_ERROR_CLICKED = "shift-error:click";
+
 export const WARNING_COLORS = {
     "red": "#FF0000",
     "lightRed": "#FACDCD",

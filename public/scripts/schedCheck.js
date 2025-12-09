@@ -1,5 +1,7 @@
 import { ScheduleTimeSheetParser } from "./parser.js";
 import { ScheduleChecker } from "./webComponents/scheduleCheck/ScheduleChecker.js";
+import { initScheduleCheckerEventListeners } from "./scheduleCheckerEventListeners.js";
+
 /** @typedef {import("./webComponents/selectFTR.js").SelectFTR} SelectFTR */
 /** @typedef {import("./parser.js").Shift} Shift */
 /** @typedef {import("./warnings.js").WarningsGroup} WarningsGroup */
@@ -13,6 +15,8 @@ const scheduleCheckContainer = document.querySelector(".scheduleCheckContainer")
 const selectFTR = document.querySelector("#schedCheckSelectFTR");
 selectFTR.Init(onSelectChangeCallback);
 
+/* Closure passed into SelectFTR custom element to trigger state changes
+ * in scheduleCheckTable */
 function onSelectChangeCallback(rosterName) {
     switch (rosterName) {
         case "HIDE":
@@ -32,6 +36,10 @@ function onSelectChangeCallback(rosterName) {
             break;
     }
 }
+
+/* Elements deeper into the DOM tree may emit a custom event to trigger 
+ * the closure in the SelectFTR custom element */
+initScheduleCheckerEventListeners(selectFTR.selectByValue.bind(selectFTR));
 
 export function checkSchedule() {
     // Check input for text area

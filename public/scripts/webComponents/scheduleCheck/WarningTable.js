@@ -1,5 +1,6 @@
 /** @typedef {import("../../parser.js").Shift} Shift */
 import { capitalizeArray, getDateByColumn, alphabetColumn } from "../../utils.js";
+import { WARNING_BOX_CLICKED } from "../../constants.js";
 
 export class WarningTable extends HTMLElement {
     #shadowRoot;
@@ -36,6 +37,10 @@ export class WarningTable extends HTMLElement {
             padding-left: 1em;
             padding-top: 0.5em;
             box-shadow: 0 0 0.2em #eee;
+            cursor: pointer;
+        }
+        li:hover {
+            background-color: #efefef;
         }
         .warningBox {
             border-radius: 0.5em;
@@ -144,6 +149,13 @@ export class WarningTable extends HTMLElement {
                 })
             )
             li.appendChild(subInfo);
+
+            li.addEventListener("click", _ => {
+                document.dispatchEvent(new CustomEvent(WARNING_BOX_CLICKED, {
+                    detail: { shift: s },
+                    bubbles: true,
+                }));
+            });
 
             return li;
         });

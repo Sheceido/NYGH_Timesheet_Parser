@@ -109,10 +109,12 @@ export class SelectFTR extends HTMLElement {
     }
 
     /**
+    * Registers a callback function to this custom element's onchange event hook.
+    * Allows user to trigger some change in state in another element if a closure
+    * is passed in.
     * @param {() => void} callback 
     */
     addOnChangeFn(callback) {
-        if (this.select.value === this.hideScheduleState) return;
         this.select.onchange = () => callback(this.select.value);
     }
 
@@ -178,6 +180,16 @@ export class SelectFTR extends HTMLElement {
 
     selectFirstChild() {
         this.select.value = this.select.firstChild.value;
+    }
+
+    /**
+    * Dispatches a change event, resulting in the onchange hook to be triggered
+    * for this custom element.
+    * @param {string} value 
+    */
+    selectByValue(value) {
+        this.select.value = value;
+        this.select.dispatchEvent(new Event("change"));
     }
 }
 

@@ -3,9 +3,9 @@
  * @typedef {import("../../warnings.js").EmployeeShiftCount} EmployeeShiftCount
  * @typedef {import("../../roster.js").Roster} Roster
  **/
-import { capitalizeArray } from "../../utils.js";
+import { capitalize } from "../../utils.js";
 import { roster } from "../../roster.js";
-import { FTR_HRS } from "../../constants.js";
+import { FTR_HRS, SHIFT_ERROR_CLICKED } from "../../constants.js";
 
 export class ShiftCountErrorTable extends HTMLElement {
     #shadowRoot;
@@ -53,6 +53,7 @@ export class ShiftCountErrorTable extends HTMLElement {
             padding-block: 0.5em;
             padding-left: 1em;
             box-shadow: 0 0 0.2em #eee;
+            cursor: pointer;
 
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -65,6 +66,9 @@ export class ShiftCountErrorTable extends HTMLElement {
             .shifts {
                 font-size: 0.9rem;
             }
+        }
+        li:hover {
+            background-color: #efefef;
         }
         .warningBox {
             padding-left: 1em;
@@ -138,9 +142,10 @@ export class ShiftCountErrorTable extends HTMLElement {
     */
     BuildShiftErrorElement(employeeShiftCount) {
 
-        const over = [];
-        const under = [];
-        for (const [name, employee] of Object.entries(roster)) {
+        let overUl = document.createElement("ul");
+        let underUl = document.createElement("ul");
+
+        for (const [rosterName, employee] of Object.entries(roster)) {
             let shiftCount = employeeShiftCount.get(employee.str_alias);
 
             if (!shiftCount || !shiftCount.isFTR) continue;
@@ -148,42 +153,53 @@ export class ShiftCountErrorTable extends HTMLElement {
             if (shiftCount.found === 0) continue;
 
             if (!shiftCount) {
-                under.push(`<div>${capitalizeArray(name.split(" "))}</div><div class="shifts">0 shifts ❌</div>`);
+                const li = this.createEventEmittingListItem(
+                    rosterName,
+                    `<div>${capitalize(employee.str_alias)}</div><div class="shifts">0 shifts ❌</div>`
+                );
+                underUl.appendChild(li);
             }
 
             if (shiftCount.found > 0) {
-                over.push(`<div>${capitalizeArray(name.split(" "))}</div><div class="shifts">${shiftCount.expected + shiftCount.found} shifts ❌</div>`);
+                const li = this.createEventEmittingListItem(
+                    rosterName,
+                    `<div>${capitalize(employee.str_alias)}</div><div class="shifts">${shiftCount.expected + shiftCount.found} shifts ❌</div>`
+                );
+                overUl.appendChild(li);
             }
+
             if (shiftCount.found < 0) {
-                under.push(`<div>${capitalizeArray(name.split(" "))}</div><div class="shifts">${shiftCount.expected + shiftCount.found} shifts ❌</div>`);
+                const li = this.createEventEmittingListItem(
+                    rosterName,
+                    `<div>${capitalize(employee.str_alias)}</div><div class="shifts">${shiftCount.expected + shiftCount.found} shifts ❌</div>`
+                );
+                underUl.appendChild(li);
             }
         }
 
-        let overUl = document.createElement("ul");
-        over.map(o => {
-            let li = document.createElement("li");
-            li.innerHTML = o;
-            overUl.appendChild(li);
-        });
-
-        let underUl = document.createElement("ul");
-        under.map(o => {
-            let li = document.createElement("li");
-            li.innerHTML = o;
-            underUl.appendChild(li);
-        });
-
-        if (over.length < 1) {
+        if (overUl.childElementCount < 1) {
             overUl = document.createElement("p");
             overUl.textContent = "No employee over-scheduled! ✅"
         }
 
-        if (under.length < 1) {
+        if (underUl.childElementCount < 1) {
             underUl = document.createElement("p");
             underUl.textContent = "No employee under-scheduled! ✅"
         }
-
         return { overUl, underUl };
+    }
+
+    createEventEmittingListItem(rosterName, innerHTML) {
+        let li = document.createElement("li");
+        li.innerHTML = innerHTML;
+
+        li.addEventListener("click", _ => {
+            document.dispatchEvent(new CustomEvent(SHIFT_ERROR_CLICKED, {
+                detail: { rosterName: rosterName },
+                bubbles: true,
+            }));
+        });
+        return li;
     }
 }
 
