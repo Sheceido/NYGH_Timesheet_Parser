@@ -43,11 +43,16 @@ textarea {
 
 .textareaPaste {
   position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   bottom: 20px;
   right: 30px;
-  border: none;
+  border: 1px solid #eee;
+  border-radius: 0.5em;
   margin: 0;
-  padding: 0.5em;
+  padding: 0.8em;
+  box-shadow: 1px 1px 5px #ddd;
   background-color: white;
   opacity: 0.3;
   transition: 300ms;
@@ -55,6 +60,7 @@ textarea {
 
 .textareaPaste:hover {
   opacity: 0.7;
+  border-color: #aaa;
 }
 
 select {
@@ -195,6 +201,13 @@ ul>li {
   font-weight: 500;
   margin: 0;
   text-align: center;
+}
+
+.errorMsg {
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0.5em 1.0em;
+  color: red;
 }
 
 .errorHighlight {

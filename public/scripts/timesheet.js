@@ -1,5 +1,5 @@
 import { roster } from "./roster.js";
-import { ScheduleTimeSheetParser } from "./parser.js";
+import { ScheduleParser } from "./parser.js";
 import { SelectFTR } from "./webComponents/selectFTR.js";
 import { TimesheetTable } from "./webComponents/timeSheetTable.js";
 import {
@@ -8,6 +8,7 @@ import {
     addToggleEventListener,
     addDialogEventListener,
 } from "./timesheetEventListeners.js";
+import { clearElementErrors, setElementErrors } from "./elementErrors.js";
 
 /** @typedef {import('./roster.js').Employee} Employee */
 /** @typedef {import('./parser.js').Shift} Shift */
@@ -65,9 +66,10 @@ addDialogEventListener(dialog, showBtn, closeBtn);
 const timesheetTable = document.querySelector("timesheet-table");
 
 /**
- * Instantiates a ScheduleTimeSheetParser to generate both a tsv timesheet and an HTML table for the user to review.
+ * Instantiates a ScheduleParser to generate both a tsv timesheet and an HTML table for the user to review.
  */
-export function parse() {
+export function parseTimesheet() {
+    clearElementErrors(null, "scheduleError");
     timesheetTable.reset();
 
     const scheduleTextArea = document.querySelector(".schedule");
@@ -86,38 +88,40 @@ export function parse() {
     let statHolidays = 0;
 
     if (scheduleStr === "") {
-        scheduleTextArea.classList.add("errorHighlight");
+        setElementErrors("schedule", "scheduleError", "[Error]: Empty schedule input!")
         return;
     }
-    scheduleTextArea.classList.remove("errorHighlight");
+    clearElementErrors("schedule", "scheduleError")
 
     if (!isCustomInput) {
         if (employeeDropdown.value === "") {
             employeeDropdown.addErrorHighlight();
+            setElementErrors(null, "timesheetError", "[Error]: Select FTR employee to find in the schedule.");
             return;
         }
         employeeDropdown.removeErrorHighlight();
+        clearElementErrors(null, "timesheetError");
 
         employee = roster[employeeDropdown.value];
     }
     else {
         if (customName.value === "") {
-            customName.classList.add("errorHighlight");
+            setElementErrors("customName", "timesheetError", "[Error]: Input custom name to look up.");
             return;
         }
-        customName.classList.remove("errorHighlight");
+        clearElementErrors("customName", "timesheetError");
 
         if (customAbbrev.value === "") {
-            customAbbrev.classList.add("errorHighlight");
+            setElementErrors("customAbbrev", "timesheetError", "[Error]: Input custom abbreviation / initials to look up.");
             return;
         }
-        customAbbrev.classList.remove("errorHighlight");
+        clearElementErrors("customAbbrev", "timesheetError");
 
         if (customGender.value === "") {
-            customGender.classList.add("errorHighlight");
+            setElementErrors("customGender", "timesheetError", "[Error]: Select gender option.");
             return;
         }
-        customGender.classList.remove("errorHighlight");
+        clearElementErrors("customGender", "timesheetError");
 
         employee.first_name = customName.value.trim().toUpperCase();
         employee.str_alias = customName.value.trim().toUpperCase();
@@ -130,18 +134,28 @@ export function parse() {
         if (!isNaN(numInput) || numInput >= 0 && numInput <= 14) {
             statHolidays = numInput;
         } else {
-            stats.classList.add("errorHighlight");
+            setElementErrors("holidays", "timesheetError", "[Error]: Invalid input for holidays entered. Holiday count must be between 0 to 14.");
             return;
         }
     }
-    stats.classList.remove("errorHighlight");
+    clearElementErrors("holidays", "timesheetError");
 
-    const parser = new ScheduleTimeSheetParser(scheduleStr, employee);
+    const { parser, errors } = ScheduleParser.create(scheduleStr, employee);
+    if (errors.length > 0) {
+        errors.forEach(error => {
+            setElementErrors("schedule", "scheduleError", error.message)
+        });
+        return
+    }
+    clearElementErrors("schedule", "scheduleError");
+
     const shifts = parser.findShifts();
     if (!shifts) {
+        setElementErrors(null, "timesheetError", `[Error]: No shifts found for ${employee.first_name}!`)
         console.log(`No shifts found for ${employee.first_name}!`);
         return;
     }
+    clearElementErrors(null, "timeSheetError");
 
     /** @type {string[]} weekdayHeaders */
     const weekdayHeaders = parser.getWeekdayHeader();

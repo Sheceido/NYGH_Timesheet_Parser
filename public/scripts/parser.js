@@ -1,6 +1,12 @@
 import { Warnings } from './warnings.js';
 import { roster } from './roster.js';
 
+const ErrorCodes = {
+    ROW_COUNT: "ROW_COUNT",
+    COLUMN_COUNT: "COLUMN_COUNT",
+    MISSING_HEADER: "MISSING_HEADER",
+}
+
 /**
  * @typedef {Object} Shift 
  * @property {{row: number, col: number}} coordinate - [row][col] identifier
@@ -14,7 +20,7 @@ import { roster } from './roster.js';
 /** @typedef {Map<number, Shift>} ShiftMap */
 /** @typedef {Map<number, number>} StandbyHrs */
 
-export class ScheduleTimeSheetParser {
+export class ScheduleParser {
 
     employee;
     schedule;
@@ -27,18 +33,29 @@ export class ScheduleTimeSheetParser {
 
     warnings;
 
+    constructor(scheduleData) {
+        this.schedule = this.parseScheduleToGrid(scheduleData)
+    }
 
     /**
-     * @param {string} scheduleStr
-     * @param {Employee} employee 
-    */
-    constructor(scheduleStr, employee) {
-        this.employee = employee;
-        this.schedule = this.parseScheduleToGrid(scheduleStr);
-        this.shiftTimes = this.getShiftTimeRows();
-        this.warnings = new Warnings();
-        this.mapPossibleConflicts();
-        this.findUnknownEmployeeShifts();
+    * @param {string} scheduleStr
+    * @param {Employee | null} employee
+   */
+    static create(scheduleData, employee) {
+        const parser = new ScheduleParser(scheduleData)
+        const errors = parser.validateScheduleGrid();
+
+        if (errors.length > 0) {
+            return { parser: null, errors: errors }
+        }
+
+        parser.employee = employee;
+        parser.shiftTimes = parser.getShiftTimeRows();
+        parser.warnings = new Warnings();
+        parser.mapPossibleConflicts();
+        parser.findUnknownEmployeeShifts();
+
+        return { parser, errors: [] }
     }
 
     /**
@@ -70,6 +87,55 @@ export class ScheduleTimeSheetParser {
             .map(s => s.split("\t"));
 
         return scheduleGrid;
+    }
+
+    validateScheduleGrid() {
+        const errors = [];
+
+        if (this.schedule.length < 45) {
+            errors.push({
+                code: ErrorCodes.ROW_COUNT,
+                message: `[Error] ${ErrorCodes.ROW_COUNT}: < 45 rows detected, may not have included certain rows.`,
+            });
+        }
+
+        if (!this.schedule[0][0]) {
+            errors.push({
+                code: ErrorCodes.MISSING_HEADER,
+                message: `[Error] ${ErrorCodes.MISSING_HEADER}: Missing required header data.`,
+            });
+        }
+
+        const over = [];
+        const under = [];
+
+        for (let i = 0; i < this.schedule.length; i++) {
+            if (this.schedule[i].length > 15) {
+                over.push(i);
+            }
+            if (this.schedule[i].length < 15) {
+                under.push(i);
+            }
+        }
+
+        if (over.length > 0) {
+            const overRanges = this.groupIndicesIntoRanges(over);
+            errors.push({
+                code: ErrorCodes.COLUMN_COUNT,
+                message: `[Error] ${ErrorCodes.COLUMN_COUNT}: Expected 15 columns each row, found row(s) ${overRanges.join(", ")} with > 15 columns.`,
+            });
+        }
+
+        if (under.length > 0) {
+            const underRanges = this.groupIndicesIntoRanges(under);
+            errors.push({
+                code: ErrorCodes.COLUMN_COUNT,
+                message: `[Error] ${ErrorCodes.COLUMN_COUNT}: Expected 15 columns each row, found row(s) ${underRanges.join(", ")} with < 15 columns.`,
+            });
+        }
+
+
+        return errors
     }
 
     /**
@@ -757,5 +823,35 @@ export class ScheduleTimeSheetParser {
     getWarningsGroup(statCount) {
         this.warnings.employeeShiftCountCheck(statCount);
         return this.warnings.warningsGroup;
+    }
+
+    /**
+    * @param {number[]} idxArray 
+    * @returns {string[]}
+    */
+    groupIndicesIntoRanges(idxArray) {
+
+        if (idxArray.length === 1) {
+            return [`[${idxArray[0] + 1}]`]
+        }
+
+        const groupedRanges = [];
+        let currPtr = 1
+        let startPtr = 0
+        for (; currPtr < idxArray.length; currPtr++) {
+            if (idxArray[currPtr] === idxArray[currPtr - 1] + 1) {
+                // current number is prior numbers increment
+                continue;
+            } else {
+                // current number is not an increment from prior number
+                // +1 for both values to change from index by 0 to index by 1
+                groupedRanges.push(`[${idxArray[startPtr] + 1} - ${idxArray[currPtr - 1] + 1}]`);
+                startPtr = currPtr
+            }
+        }
+        // flush final range if for loop ended on a range that has sequential numbers
+        groupedRanges.push(`[${idxArray[startPtr] + 1} - ${idxArray[currPtr - 1] + 1}]`);
+
+        return groupedRanges
     }
 }

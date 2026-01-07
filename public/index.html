@@ -27,7 +27,10 @@
         placeholder="Copy and Paste schedule grid here!"></textarea>
       <button class="textareaPaste">
         <img src="./images/icons8-paste-32.png" width="24" height="24" />
+        Paste
       </button>
+    </div>
+    <div id="scheduleError" class="errorMsg">
     </div>
     <div class="flex-row">
       <div class="tabContainer">
@@ -46,16 +49,17 @@
             <span class="slider round"></span>
           </label>
           <div class="flex-row flex-center">
-            <input type="text" class="customName" maxlength="256" placeholder="Non-FTR Name" disabled />
-            <input type="text" class="customAbbrev" maxlength="5" size="5" placeholder="Initials" disabled />
+            <input type="text" id="customName" class="customName" maxlength="256" placeholder="Non-FTR Name" disabled />
+            <input type="text" id="customAbbrev" class="customAbbrev" maxlength="5" size="5" placeholder="Initials"
+              disabled />
             <select name="customGender" id="customGender" class="customGender" disabled>
               <option value="" disabled selected>Gender</option>
               <option value="F">F</option>
               <option value="M">M</option>
             </select>
-            <input type="text" class="holidays" maxlength="2" size="6" placeholder="Holidays" />
+            <input type="text" id="holidays" class="holidays" maxlength="2" size="6" placeholder="Holidays" />
           </div>
-          <button type="button" class="submitBtn" onclick="window.parse()">Generate Timesheet</button>
+          <button type="button" class="submitBtn" onclick="window.parseTimesheet()">Generate Timesheet</button>
         </div>
         <dialog>
           <button class="modalCloseBtn" style="position: sticky;" autofocus>X</button>
@@ -110,15 +114,18 @@
         </dialog>
         <button>Video Clip Tutorial</button>
       </div>
+      <div>
+        <p id="timesheetError" class="errorMsg"></p>
+      </div>
       <timesheet-table></timesheet-table>
     </div>
     <div class="scheduleCheckContainer">
       <div class="scheduleCheckInit flex-row">
-        <input type="text" class="schedCheckHolidays" maxlength="2" size="6" placeholder="Holidays" />
+        <input type="text" id="holidays" class="schedCheckHolidays" maxlength="2" size="6" placeholder="Holidays" />
         <button type="button" class="checkBtn" onclick="window.checkSchedule()">Check Schedule</button>
         <select-ftr id="schedCheckSelectFTR"></select-ftr>
       </div>
-      <div class="errorsWarnings"></div>
+      <div id="errorsWarnings" class="errorsWarnings"></div>
       <schedule-checker></schedule-checker>
     </div>
   </div>
@@ -126,10 +133,10 @@
     <p>&copy; <span id="year"></span> Leon Poon. All rights reserved.</p>
   </footer>
   <script type="module">
-    import {parse} from "./scripts/timesheet.js";
+    import {parseTimesheet} from "./scripts/timesheet.js";
     import {checkSchedule} from "./scripts/schedCheck.js";
     // attach functions to be accessible in browser.
-    window.parse = parse;
+    window.parseTimesheet = parseTimesheet;
     window.checkSchedule = checkSchedule;
 
     // footer date

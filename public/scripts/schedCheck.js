@@ -1,6 +1,7 @@
-import { ScheduleTimeSheetParser } from "./parser.js";
+import { ScheduleParser } from "./parser.js";
 import { ScheduleChecker } from "./webComponents/scheduleCheck/ScheduleChecker.js";
 import { initScheduleCheckerEventListeners } from "./scheduleCheckerEventListeners.js";
+import { setElementErrors, clearElementErrors } from "./elementErrors.js";
 
 /** @typedef {import("./webComponents/selectFTR.js").SelectFTR} SelectFTR */
 /** @typedef {import("./parser.js").Shift} Shift */
@@ -40,14 +41,17 @@ function onSelectChangeCallback(rosterName) {
 initScheduleCheckerEventListeners(selectFTR.selectByValue.bind(selectFTR));
 
 export function checkSchedule() {
+    clearElementErrors(null, "scheduleError");
+    clearElementErrors(null, "errorsWarnings");
+
     // Check input for text area
     const schedTextArea = document.querySelector(".schedule");
 
     if (schedTextArea.value === "") {
-        schedTextArea.classList.add("errorHighlight");
+        setElementErrors("schedule", "scheduleError", "[Error]: Empty schedule input!")
         return;
     }
-    schedTextArea.classList.remove("errorHighlight");
+    clearElementErrors("schedule", "scheduleError")
 
     const scheduleStr = schedTextArea.value;
 
@@ -61,25 +65,32 @@ export function checkSchedule() {
         const numInput = Number(stats.value);
 
         if (isNaN(numInput) || numInput < 0 || numInput > 14) {
-            stats.classList.add("errorHighlight");
+            setElementErrors("holidays", "errorsWarnings", "Error: Invalid holiday input, holiday must be between 0 and 14.");
             return;
         }
         holidayCount = numInput;
     }
-    stats.classList.remove("errorHighlight");
+    clearElementErrors("holidays", "errorsWarnings");
 
     // Reset state to beginning
     scheduleCheckTable.reset(); // remove old table
     selectFTR.selectFirstChild();
 
     // get grid, parse conflicts map set to true
-    const schedParse = new ScheduleTimeSheetParser(scheduleStr, null);
+    const { parser, errors } = ScheduleParser.create(scheduleStr, null);
+    if (errors.length > 0) {
+        errors.forEach(error => {
+            setElementErrors("schedule", "scheduleError", error.message);
+        });
+        return
+    }
+    clearElementErrors("schedule", "scheduleError");
 
-    const scheduleGrid = schedParse.scheduleGrid;
-    const headers = schedParse.getWeekdayHeader();
-    const shiftTimes = schedParse.getShiftTimeRows();
-    const allShifts = schedParse.findAllShifts();
-    const warnings = schedParse.getWarningsGroup(holidayCount);
+    const scheduleGrid = parser.scheduleGrid;
+    const headers = parser.getWeekdayHeader();
+    const shiftTimes = parser.getShiftTimeRows();
+    const allShifts = parser.findAllShifts();
+    const warnings = parser.getWarningsGroup(holidayCount);
 
     // Generate Schedule Table with the above data
     scheduleCheckTable.createScheduleTable(

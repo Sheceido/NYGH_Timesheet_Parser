@@ -3,8 +3,6 @@ import { roster } from "../../roster.js";
 import { WarningPopup } from "../warningPopup.js";
 import { WARNING_COLORS, DAYS_OF_THE_WEEK, NAMED_WARNING_COLORS } from "../../constants.js";
 import { UnrecognizedPanelEntry } from "./UnrecognizedPanelEntry.js";
-import { WarningTable } from "./WarningTable.js";
-import { ShiftCountErrorTable } from "./ShiftCountErrorTable.js";
 import { CellIdentifier } from "./CellIdentifier.js";
 /** @typedef {import("../../roster.js").Roster} Roster */
 /** @typedef {import("../../roster.js").Employee} Employee */
