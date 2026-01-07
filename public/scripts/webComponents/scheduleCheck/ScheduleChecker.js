@@ -4,6 +4,8 @@ import { WarningPopup } from "../warningPopup.js";
 import { WARNING_COLORS, DAYS_OF_THE_WEEK, NAMED_WARNING_COLORS } from "../../constants.js";
 import { UnrecognizedPanelEntry } from "./UnrecognizedPanelEntry.js";
 import { CellIdentifier } from "./CellIdentifier.js";
+import { ShiftCountErrorTable } from "./ShiftCountErrorTable.js";
+import { WarningTable } from "./WarningTable.js";
 /** @typedef {import("../../roster.js").Roster} Roster */
 /** @typedef {import("../../roster.js").Employee} Employee */
 /** @typedef {import("../../parser.js").ShiftMap} ShiftMap */

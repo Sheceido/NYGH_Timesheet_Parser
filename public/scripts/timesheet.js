@@ -155,7 +155,7 @@ export function parseTimesheet() {
         console.log(`No shifts found for ${employee.first_name}!`);
         return;
     }
-    clearElementErrors(null, "timeSheetError");
+    clearElementErrors(null, "timesheetError");
 
     /** @type {string[]} weekdayHeaders */
     const weekdayHeaders = parser.getWeekdayHeader();
