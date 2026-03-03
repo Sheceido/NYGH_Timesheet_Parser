@@ -418,3 +418,8 @@ export class Warnings {
         }
     }
 }
+
+export class ScheduleWarning {
+
+
+}

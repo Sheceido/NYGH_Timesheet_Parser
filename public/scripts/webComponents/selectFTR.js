@@ -1,4 +1,4 @@
-import { roster } from "../roster.js";
+import { ROSTER } from "../roster.js";
 import { capitalize } from "../utils.js";
 /**
  * @typedef {import("../warnings.js").ShiftCountError} ShiftCountError 
@@ -50,7 +50,7 @@ export class SelectFTR extends HTMLElement {
     }
 
     showEmployeeOptions() {
-        for (const [fullName, employee] of Object.entries(roster)) {
+        for (const [fullName, employee] of Object.entries(ROSTER)) {
             const option = document.createElement("option");
             option.value = fullName;
             option.textContent = capitalize(employee.str_alias);
@@ -63,7 +63,7 @@ export class SelectFTR extends HTMLElement {
      */
     showEmployeeAndShiftCount(employeeShiftCounts) {
 
-        for (const [fullName, employee] of Object.entries(roster)) {
+        for (const [fullName, employee] of Object.entries(ROSTER)) {
 
             // remove prior stale employee option entry
             const staleOption = this.select.querySelector(`option[value="${fullName}"]`);

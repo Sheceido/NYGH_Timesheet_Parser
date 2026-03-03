@@ -1,10 +1,10 @@
 /**
  * @typedef {import("../../parser.js").Shift} Shift
  * @typedef {import("../../warnings.js").EmployeeShiftCount} EmployeeShiftCount
- * @typedef {import("../../roster.js").Roster} Roster
+ * @typedef {import("../../ROSTER.js").Roster} Roster
  **/
 import { capitalize } from "../../utils.js";
-import { roster } from "../../roster.js";
+import { ROSTER } from "../../roster.js";
 import { FTR_HRS, SHIFT_ERROR_CLICKED } from "../../constants.js";
 
 export class ShiftCountErrorTable extends HTMLElement {
@@ -145,7 +145,7 @@ export class ShiftCountErrorTable extends HTMLElement {
         let overUl = document.createElement("ul");
         let underUl = document.createElement("ul");
 
-        for (const [rosterName, employee] of Object.entries(roster)) {
+        for (const [rosterName, employee] of Object.entries(ROSTER)) {
             let shiftCount = employeeShiftCount.get(employee.str_alias);
 
             // No shifts found for an employee with expected shifts

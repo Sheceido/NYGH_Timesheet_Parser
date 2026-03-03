@@ -1,5 +1,5 @@
 import { capitalizeArray, getDateByColumn } from "../../utils.js";
-import { roster } from "../../roster.js";
+import { ROSTER } from "../../roster.js";
 import { WarningPopup } from "../warningPopup.js";
 import { WARNING_COLORS, DAYS_OF_THE_WEEK, NAMED_WARNING_COLORS } from "../../constants.js";
 import { UnrecognizedPanelEntry } from "./UnrecognizedPanelEntry.js";
@@ -572,9 +572,9 @@ export class ScheduleChecker extends HTMLElement {
     }
 
     fadeAllCellsExcept(name) {
-        const employee = roster[name];
+        const employee = ROSTER[name];
         if (!employee) {
-            console.error(`${name} was not found in roster!`);
+            console.error(`${name} was not found in ROSTER!`);
             return;
         }
 

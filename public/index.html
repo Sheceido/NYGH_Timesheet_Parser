@@ -8,138 +8,123 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>Timesheet Schedule Parser</title>
+  <title>Medical Imaging - Ultrasound Schedule Parser</title>
   <link rel="stylesheet" href="./style.css">
   <link rel="icon" href="./icons8-timesheet-favicon.ico" type="image/x-icon">
 </head>
 
 <body>
-  <div>
-    <main style="position: relative;">
-      <h1 style="text-align: center;">Timesheet Schedule Parser
-        <span style="margin-inline: 0.2em;">
-          <img class="icon" src="icons8-timesheet-favicon.png" width="32" height="32" />
-        </span>
-      </h1>
-    </main>
-    <div class="textareaContainer">
-      <textarea id="schedule" name="schedule" class="schedule" rows="10"
-        placeholder="Copy and Paste schedule grid here!"></textarea>
-      <button class="textareaPaste">
-        <img src="./images/icons8-paste-32.png" width="24" height="24" />
-        Paste
-      </button>
-    </div>
-    <div id="scheduleError" class="errorMsg">
-    </div>
-    <div class="flex-row">
-      <div class="tabContainer">
-        <button class="tab timesheetTab" value="0">Timesheet Maker</button>
-      </div>
-      <div class="tabContainer">
-        <button class="tab scheduleCheckTab" value="1">Schedule Checker</button>
-      </div>
-    </div>
-    <div class="timesheetContainer">
-      <div class="flex-row" style="justify-content: space-between; margin-top: 1em;">
-        <div class="flex-row">
-          <select-ftr id="timesheetSelectFTR"></select-ftr>
-          <label class="switch">
-            <input type="checkbox" class="toggleSwitch">
-            <span class="slider round"></span>
-          </label>
-          <div class="flex-row flex-center">
-            <input type="text" id="customName" class="customName" maxlength="256" placeholder="Non-FTR Name" disabled />
-            <input type="text" id="customAbbrev" class="customAbbrev" maxlength="5" size="5" placeholder="Initials"
-              disabled />
-            <select name="customGender" id="customGender" class="customGender" disabled>
-              <option value="" disabled selected>Gender</option>
-              <option value="F">F</option>
-              <option value="M">M</option>
-            </select>
-            <input type="text" id="holidays" class="holidays" maxlength="2" size="6" placeholder="Holidays" />
-          </div>
-          <button type="button" class="submitBtn" onclick="window.parseTimesheet()">Generate Timesheet</button>
-        </div>
-        <dialog>
-          <button class="modalCloseBtn" style="position: sticky;" autofocus>X</button>
-          <div>
-            <h1 style="text-align: center;">How to Use:</h1>
-            <div class="flex-col flex-center">
-              <ol>
-                <li>Copy Ultrasound Schedule from the top-left cell (1A) to the last "FLOAT" cell</li>
-                <img class="imgTutorial" src="./gifs/cpSchedule.gif" alt="Copy US schedule region">
-                <li>Paste schedule into text area.</li>
-                <img class="imgTutorial" src="./gifs/pasteSchedule.gif" alt="Paste schedule into text area." />
-                <li>Choose the employee you want to generate a timesheet in the "Choose FTR..." dropdown, then click
-                  "Generate Timesheet". <span style="font-size: 12px;">(PTRs and Casuals can use the sliding toggle to
-                    manually input their usually
-                    used
-                    alias name and initials.)</span></li>
-                <img class="imgTutorial" src="./images/chooseEmployee.png" alt="Choose employee and submit" />
-                <li>Review the generated timesheet - then click the "Copy Timesheet" button. An alert notification will
-                  indicate that your timesheet has been successfully copied onto the clipboard.</li>
-                <img class="imgTutorial" src="./images/timesheetCheck.png"
-                  alt="Check the generated timesheet output, then click copy to have values copied onto the browser clipboard" />
-                <li>In the Excel Timesheet, paste <code>[Ctrl-v]</code> the copied values into the first empty cell in
-                  your row
-                  (column C).</li>
-                <img class="imgTutorial" src="./gifs/pasteTimesheet.gif"
-                  alt="Paste copied generated values into Excel spreadsheet into Column C, first of the three rows allotted for the employee." />
-                <li>Double check your timesheet to make sure the values correctly reflect your biweekly shifts.</li>
-                <li> If you've incorrectly pasted the whole schedule into the Excel spreadsheet (not following step 4),
-                  remember to Undo in Excel via <code>[Ctrl-z]</code> hotkey or by clicking the "Undo" button located on
-                  the top-left
-                  of the
-                  Excel toolbar.</li>
-                <img class="imgTutorial" src="./images/excelUndo.png" alt="Undo errors in Excel's spreadsheet." />
-              </ol>
-              <hr style="width: 100%; margin-top: 3em;" />
-              <div style="width: 80%; margin-top: 3em;">
-                <h4>Technical Notes:</h4>
-                <ul>
-                  <li>The <b>last</b> listed name within the cell will always be the one taking the shift. Since
-                    copy-pasting the US schedule from Excel does not include any formatting, such as a crossout of a
-                    certain name, there is no ability to differentiate between a cell that contains two names because of
-                    switches, or multiple names because the shift is covered by multiple people.</li>
-                  <li>The program will check for duplicates names on the same day, and display a conflict box under the
-                    day it occurred in.</li>
-                  <li>Name matching is based on: first name, name alias, or by initials, in that order. To view the
-                    hard-coded roster list and the name matchings used, append the website url with
-                    "<em>/scripts/roster.js</em>"</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </dialog>
-        <button>Video Clip Tutorial</button>
-      </div>
-      <div id="timesheetError" class="errorMsg"></div>
-      <timesheet-table></timesheet-table>
-    </div>
-    <div class="scheduleCheckContainer">
-      <div class="scheduleCheckInit flex-row">
-        <input type="text" id="holidays" class="schedCheckHolidays" maxlength="2" size="6" placeholder="Holidays" />
-        <button type="button" class="checkBtn" onclick="window.checkSchedule()">Check Schedule</button>
-        <select-ftr id="schedCheckSelectFTR"></select-ftr>
-      </div>
-      <div id="errorsWarnings" class="errorsWarnings"></div>
-      <schedule-checker></schedule-checker>
-    </div>
-  </div>
-  <footer>
-    <p>&copy; <span id="year"></span> Leon Poon. All rights reserved.</p>
-  </footer>
-  <script type="module">
-    import {parseTimesheet} from "./scripts/timesheet.js";
-    import {checkSchedule} from "./scripts/schedCheck.js";
-    // attach functions to be accessible in browser.
-    window.parseTimesheet = parseTimesheet;
-    window.checkSchedule = checkSchedule;
+  <div class="container">
+    <header>
+      <h1>Medical Imaging - Ultrasound Schedule Parser</h1>
+    </header>
 
-    // footer date
-    document.getElementById("year").textContent = new Date().getFullYear();
-  </script>
+    <mode-select-tab></mode-select-tab>
+    <div id="timesheetMakerMode" class="container">
+      <paste-area></paste-area>
+      <pre id="textAreaError" class="error"></pre>
+      <control-panel textContent="Generate Timesheet"></control-panel>
+      <pre id="holidaysError" class="error"></pre>
+    </div>
+    <div id="scheduleCheckerMode" class="container not-visible">
+      <paste-area></paste-area>
+      <pre id="textAreaError" class="error"></pre>
+      <control-panel textContent="Check Schedule"></control-panel>
+      <pre id="holidaysError" class="error"></pre>
+    </div>
+    <div class="alerts"></div>
+
+    <!-- <div style="display: grid; grid-template-columns: 1fr 300px; gap: 1.5rem;"> -->
+    <!--   <div class="calendar-wrapper"> -->
+    <!--     <table class="calendar"> -->
+    <!--       <thead> -->
+    <!--         <tr> -->
+    <!--           <th></th> -->
+    <!--           <th>Sat<br>17</th> -->
+    <!--           <th>Sun<br>18</th> -->
+    <!--           <th>Mon<br>19</th> -->
+    <!--           <th>Tues<br>20</th> -->
+    <!--           <th>Wed<br>21</th> -->
+    <!--           <th>Thurs<br>22</th> -->
+    <!--           <th>Fri<br>23</th> -->
+    <!--           <th>Sat<br>24</th> -->
+    <!--           <th>Sun<br>25</th> -->
+    <!--           <th>Mon<br>26</th> -->
+    <!--           <th>Tues<br>27</th> -->
+    <!--           <th>Wed<br>28</th> -->
+    <!--           <th>Thurs<br>29</th> -->
+    <!--           <th>Fri<br>30</th> -->
+    <!--         </tr> -->
+    <!--       </thead> -->
+    <!--       <tbody> -->
+    <!--         <tr> -->
+    <!--           <td style="font-weight: 600; background: #f9fafb;">Jan</td> -->
+    <!--           <td></td> -->
+    <!--           <td></td> -->
+    <!--           <td> -->
+    <!--             <div class="shift shift-jenny">Jenny</div> -->
+    <!--           </td> -->
+    <!--           <td></td> -->
+    <!--           <td> -->
+    <!--             <div class="shift shift-jenny">Jenny</div> -->
+    <!--           </td> -->
+    <!--           <td> -->
+    <!--             <div class="shift shift-jenny">Jenny</div> -->
+    <!--           </td> -->
+    <!--           <td> -->
+    <!--             <div class="shift shift-orange">Jenny ✓</div> -->
+    <!--           </td> -->
+    <!--           <td></td> -->
+    <!--           <td> -->
+    <!--             <div class="shift shift-highlight">JJ<br>🎯</div> -->
+    <!--           </td> -->
+    <!--           <td> -->
+    <!--             <div class="shift shift-blue">Jenny</div> -->
+    <!--           </td> -->
+    <!--           <td> -->
+    <!--             <div class="shift shift-blue">Jenny</div> -->
+    <!--           </td> -->
+    <!--           <td> -->
+    <!--             <div class="shift shift-blue">Jenny</div> -->
+    <!--           </td> -->
+    <!--           <td> -->
+    <!--             <div class="shift shift-blue">Jenny</div> -->
+    <!--           </td> -->
+    <!--           <td> -->
+    <!--             <div class="shift shift-blue">Jenny</div> -->
+    <!--           </td> -->
+    <!--         </tr> -->
+    <!--         <tr> -->
+    <!--           <td style="font-weight: 600; background: #f9fafb;">9:00-1:00</td> -->
+    <!--           <td colspan="14"></td> -->
+    <!--         </tr> -->
+    <!--         <tr> -->
+    <!--           <td style="font-weight: 600; background: #f9fafb;">10:00-6:00pm</td> -->
+    <!--           <td colspan="14"></td> -->
+    <!--         </tr> -->
+    <!--         <tr> -->
+    <!--           <td style="font-weight: 600; background: #f9fafb;">8:00-4:00</td> -->
+    <!--           <td colspan="14"></td> -->
+    <!--         </tr> -->
+    <!--         <tr> -->
+    <!--           <td style="font-weight: 600; background: #f9fafb;">4:00-12:00am</td> -->
+    <!--           <td colspan="14"></td> -->
+    <!--         </tr> -->
+    <!--         <tr> -->
+    <!--           <td style="font-weight: 600; background: #f9fafb;">Not Available</td> -->
+    <!--           <td colspan="14"></td> -->
+    <!--         </tr> -->
+    <!--       </tbody> -->
+    <!--     </table> -->
+    <!--   </div> -->
+    <!-- </div> -->
+
+    <footer>
+      © 2026 Leon Poon. All Rights Reserved.
+    </footer>
+  </div>
+
+  <script type="module" src="/scripts/main.js"></script>
 </body>
 
 </html>

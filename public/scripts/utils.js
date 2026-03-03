@@ -1,5 +1,4 @@
-/** @typedef {import("./parser.js").Shift} Shift */
-import { DAYS_OF_THE_WEEK } from "./constants.js";
+import { DAYS_OF_THE_WEEK } from "./data/constants.js";
 
 /**
  * Capitalize first letter of a given string

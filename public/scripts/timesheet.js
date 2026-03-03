@@ -1,4 +1,4 @@
-import { roster } from "./roster.js";
+import { ROSTER } from "./roster.js";
 import { ScheduleParser } from "./parser.js";
 import { SelectFTR } from "./webComponents/selectFTR.js";
 import { TimesheetTable } from "./webComponents/timeSheetTable.js";
@@ -102,7 +102,7 @@ export function parseTimesheet() {
         employeeDropdown.removeErrorHighlight();
         clearElementErrors(null, "timesheetError");
 
-        employee = roster[employeeDropdown.value];
+        employee = ROSTER[employeeDropdown.value];
     }
     else {
         if (customName.value === "") {

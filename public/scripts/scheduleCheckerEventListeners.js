@@ -1,5 +1,5 @@
-import { SHIFT_ERROR_CLICKED, WARNING_BOX_CLICKED } from "./constants.js";
-import { roster } from "./roster.js";
+import { SHIFT_ERROR_CLICKED, WARNING_BOX_CLICKED } from "./data/constants.js";
+import { ROSTER } from "./data/roster.js";
 
 
 /**
@@ -14,12 +14,12 @@ export function initScheduleCheckerEventListeners(dispatchSelectEvent) {
         const nameSize = e.detail.shift.names.length;
         const emittedName = e.detail.shift.names[nameSize - 1];
 
-        for (const [rosterName, employee] of Object.entries(roster)) {
+        for (const [rosterName, employee] of Object.entries(ROSTER)) {
             if (emittedName === employee.str_alias) {
                 dispatchSelectEvent(rosterName);
                 return;
             }
         }
-        console.log(`No roster name by "${emittedName}!"`);
+        console.log(`No ROSTER name by "${emittedName}!"`);
     });
 }
