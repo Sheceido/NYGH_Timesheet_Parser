@@ -50,7 +50,6 @@ export class ScheduleValidationAuditor {
                 auditEntries,
                 ftrShiftCountAuditEntries
             );
-
         }
         return auditEntries;
     }
@@ -212,6 +211,7 @@ export class ScheduleValidationAuditor {
     checkOnCallShifts(shiftList) {
         const onCallShifts = shiftList.filter(s => s.category === ShiftCategory.ONCALL);
         const foundShifts = this.findMultiNameShifts(onCallShifts);
+        if (foundShifts.length < 1) return null;
 
         return {
             code: AuditCode.ON_CALL_MULTIPLE_NAMES,

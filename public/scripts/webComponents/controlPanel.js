@@ -1,11 +1,16 @@
-import { ANALYZE_SCHEDULE, SYNC_HOLIDAYS_INPUT } from "../data/constants.js";
+import { AppMode, ANALYZE_SCHEDULE } from "../data/constants.js";
 
 export class ControlPanel extends HTMLElement {
 
+    buttonTextOpt = {
+        [AppMode.TIMESHEET]: "Generate Timesheet",
+        [AppMode.SCHEDULE_CHECK]: "Check Schedule",
+    }
     buttonText = null;
+    mode = null;
 
     static get observedAttributes() {
-        return ["textcontent"];
+        return ["mode"];
     }
 
     constructor() {
@@ -13,59 +18,63 @@ export class ControlPanel extends HTMLElement {
     }
 
     attributeChangedCallback(name, _, newValue) {
+
         switch (name) {
-            case "textcontent":
-                this.buttonText = newValue;
+            case "mode":
+                this.mode = newValue;
+                const newBtnText = this.buttonTextOpt[newValue];
+                if (!newBtnText) {
+                    console.error(`Expected mode "${newValue}" to be defined, found ${newBtnText}.`);
+                    return;
+                }
+                this.buttonText = newBtnText;
+
+                break;
+            default:
+                console.error(`"${name}" attribute not defined in control panel change callback.`);
                 break;
         }
+        // update control panel UI with changes based on mode change
+        this.render();
     }
 
     connectedCallback() {
-        if (this.hasAttribute("textcontent")) {
-            this.buttonText = this.getAttribute("textcontent");
+        if (this.hasAttribute("mode")) {
+            this.mode = this.getAttribute("mode");
         }
         this.render();
     }
 
-    syncHolidaysInput(data) {
-        document.dispatchEvent(new CustomEvent(SYNC_HOLIDAYS_INPUT, {
-            detail: data,
-            bubbles: true,
-        }));
-    }
-
     emitEventAuditSchedule() {
         document.dispatchEvent(new CustomEvent(ANALYZE_SCHEDULE, {
+            detail: this.mode,
             bubbles: true,
         }));
     }
 
     /** @param {string} type */
     render() {
-        if (!this.buttonText) {
-            console.error("Unable to render ControlPanel, undefined textcontent attribute");
+        if (!this.mode) {
+            console.error("Unable to render ControlPanel, undefined mode attribute");
             return;
         }
 
+        const employeeSelect = (this.mode === AppMode.TIMESHEET)
+            ? `<employee-selector></employee-selector>` // refer to EmployeeSelector Custom Component Class
+            : "";
+
         this.innerHTML = `
            <input id="holidays" placeholder="Holidays" size="6" maxlength="2"></input>
-           <button id="auditScheduleBtn" class="btn" onclick="${this.emitEventAuditSchedule}">${this.buttonText}</button>
-           <!-- <div class="select-wrapper"> -->
-           <!--   <select> -->
-           <!--     <option>Jenny</option> -->
-           <!--     <option>Esther</option> -->
-           <!--     <option>Erica</option> -->
-           <!--   </select> -->
-           <!-- </div> -->
-           `;
+           ${employeeSelect}
+           <button id="auditScheduleBtn" class="btn">${this.buttonText}</button>
+        `;
 
-        document.querySelectorAll("#holidays").forEach(input => {
-            input.addEventListener("input", (e) => this.syncHolidaysInput(e.target.value));
-        });
-
-        document.querySelectorAll("#auditScheduleBtn").forEach(btn => {
-            btn.onclick = () => this.emitEventAuditSchedule();
-        });
+        const auditScheduleBtn = document.getElementById(`auditScheduleBtn`);
+        if (!auditScheduleBtn) {
+            console.error(`Invalid id query for "#auditScheduleBtn", element did not exist.`);
+            return;
+        }
+        auditScheduleBtn.onclick = () => this.emitEventAuditSchedule();
     }
 }
 

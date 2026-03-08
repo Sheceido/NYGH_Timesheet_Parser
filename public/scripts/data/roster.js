@@ -3,12 +3,12 @@
 
 /** @type {Roster} ROSTER */
 export const ROSTER = {
-    // "Ayesha Ayub": {
-    //     "first_name": "AYESHA",
-    //     "str_alias": "AYESHA",
-    //     "abbrev": "AA",
-    //     "gender": "F"
-    // },
+    "Ayesha Ayub": {
+        "first_name": "AYESHA",
+        "str_alias": "AYESHA",
+        "abbrev": "AA",
+        "gender": "F"
+    },
     "Adrienne Chang": {
         "first_name": "ADRIENNE",
         "str_alias": "ADRIENNE",
@@ -75,6 +75,12 @@ export const ROSTER = {
         "abbrev": "KT",
         "gender": "M"
     },
+    // "Latoya Smith": {
+    //     "first_name": "LATOYA",
+    //     "str_alias": "LATOYA",
+    //     "abbrev": "LS",
+    //     "gender": "F"
+    // },
     "Leon Poon": {
         "first_name": "LEON",
         "str_alias": "LEON",
@@ -129,15 +135,21 @@ export const ROSTER = {
         "abbrev": "SS",
         "gender": "F"
     },
-    // "Wendy Wen": {
-    //     "first_name": "WENDY",
-    //     "str_alias": "WENDY",
-    //     "abbrev": "WW",
-    //     "gender": "F"
-    // },
+    "Wendy Wen": {
+        "first_name": "WENDY",
+        "str_alias": "WENDY",
+        "abbrev": "WW",
+        "gender": "F"
+    },
 };
 
 export const CASUAL_ROSTER = {
+    "Alleth Gordon": {
+        "first_name": "ALLETH",
+        "str_alias": "ALLETH",
+        "abbrev": "AG",
+        "gender": "F"
+    },
     "Alona Aizenshted": {
         "first_name": "ALONA",
         "str_alias": "ALONA",
@@ -192,10 +204,22 @@ export const CASUAL_ROSTER = {
         "abbrev": "LC",
         "gender": "F"
     },
+    "Mandy Li": {
+        "first_name": "MANDY",
+        "str_alias": "LI",
+        "abbrev": "ML",
+        "gender": "F"
+    },
     "Nadine Habboub": {
         "first_name": "NADINE",
         "str_alias": "NADINE",
         "abbrev": "NH",
+        "gender": "F"
+    },
+    "Ning Zhu": {
+        "first_name": "NING",
+        "str_alias": "NING",
+        "abbrev": "NZ",
         "gender": "F"
     },
     "Sheree Persaud": {
@@ -217,3 +241,9 @@ export const CASUAL_ROSTER = {
         "gender": "M"
     }
 };
+
+/** @type {Roster} FULL_ROSTER */
+export const FULL_ROSTER = {
+    ...ROSTER,
+    ...CASUAL_ROSTER,
+}

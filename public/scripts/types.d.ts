@@ -43,6 +43,10 @@ export type RowSemantic = {
     value: string;
 }
 
+export type AppMode =
+    | "#timesheetMakerMode"
+    | "#scheduleCheckerMode";
+
 export type ShiftCategory =
     | "DAY"
     | "NOON"
@@ -85,12 +89,19 @@ export type Period = {
 export type EmployeeMetrics = {
     employee: Employee;
     scheduledShifts: Shift[];
-    standbyHrs: StandbyHoursMap;
+    standbyHrs: StandbyHoursMap | null;
 }
 
 export type ScheduleAuditReport = {
     validationIssues: AuditEntry[];
     employeeMetrics: EmployeeMetrics[];
+}
+
+export type TimesheetColumn = {
+    shiftId: number,
+    shiftTime: string,
+    standby: number,
+    location: string,
 }
 
 export type InputError = {

@@ -1,5 +1,7 @@
 /** @typedef {import("../types.d.ts").InputError} InputError */
 /** @typedef {import("../types.d.ts").ValidationError} ValidationError */
+/** @typedef {import("../types.d.ts").AppMode} AppMode */
+/** @typedef {import("../types.d.ts").EmployeeMetrics} EmployeeMetrics */
 /** @typedef {import("../types.d.ts").AuditEntry} AuditEntry */
 
 import { ErrorFieldsId } from "../data/constants.js";
@@ -55,12 +57,17 @@ export class Renderer {
     renderAuditTable() { }
 
     /**
+     * @param {string} elementId 
      * @param {string} icon
      * @param {string} header
      * @param {AuditEntry[]} auditEntries
      */
-    static renderAuditEntriesCard(icon, header, auditEntries) {
-        const alertContainer = document.querySelector(".alerts");
+    static renderAuditEntriesCard(elementId, icon, header, auditEntries) {
+        const renderContainer = document.querySelector(elementId);
+        if (!renderContainer) {
+            console.error(`Undefined parent container query by id "${elementId}" when attempting to render an Audit Entry Card"`);
+            return;
+        }
 
         const auditEntryCard = document.createElement("audit-entries-card");
         auditEntryCard.data = {
@@ -69,16 +76,38 @@ export class Renderer {
             auditEntries: auditEntries,
         }
 
-        alertContainer.appendChild(auditEntryCard);
+        renderContainer.appendChild(auditEntryCard);
     }
 
-    static clearAuditEntries() {
-        const alertContainer = document.querySelector(".alerts");
-        alertContainer.replaceChildren();
+    /**
+     * @param {string} elementId 
+     * @param {string[]} header 
+     * @param {EmployeeMetrics} metric 
+     */
+    static renderTimesheet(elementId, header, metric) {
+        const renderContainer = document.querySelector(elementId);
+        if (!renderContainer) {
+            console.error(`Undefined parent container query by id "${elementId}" when attempting to render Timesheet."`);
+            return;
+        }
+
+        const timesheetTable = document.createElement("timesheet-table");
+        timesheetTable.data = { header: header, metrics: metric };
+
+        renderContainer.appendChild(timesheetTable);
     }
 
-    renderSchedule() { }
+    static highlightTimesheetIssue(shiftId) {
+        /** @type {HTMLElement[]} foundCells */
+        const foundCells = document.querySelectorAll(`.id-${shiftId}`);
+        if (foundCells.length < 1) return;
 
-    filterSchedule() { }
+        foundCells.forEach(el => el.classList.add("conflict-bg-color"));
+    }
 
+    /** @param {AppMode} mode */
+    static clearStaleContainer(mode) {
+        const staleContainer = document.querySelector(mode);
+        staleContainer.replaceChildren();
+    }
 }

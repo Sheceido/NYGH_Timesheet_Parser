@@ -19,20 +19,14 @@
       <h1>Medical Imaging - Ultrasound Schedule Parser</h1>
     </header>
 
+    <paste-area></paste-area>
+    <pre id="textAreaError" class="error"></pre>
+    <control-panel mode="#timesheetMakerMode"></control-panel>
+    <pre id="holidaysError" class="error"></pre>
     <mode-select-tab></mode-select-tab>
-    <div id="timesheetMakerMode" class="container">
-      <paste-area></paste-area>
-      <pre id="textAreaError" class="error"></pre>
-      <control-panel textContent="Generate Timesheet"></control-panel>
-      <pre id="holidaysError" class="error"></pre>
-    </div>
-    <div id="scheduleCheckerMode" class="container not-visible">
-      <paste-area></paste-area>
-      <pre id="textAreaError" class="error"></pre>
-      <control-panel textContent="Check Schedule"></control-panel>
-      <pre id="holidaysError" class="error"></pre>
-    </div>
-    <div class="alerts"></div>
+
+    <div id="timesheetMakerMode"></div>
+    <div id="scheduleCheckerMode" class="not-visible"></div>
 
     <!-- <div style="display: grid; grid-template-columns: 1fr 300px; gap: 1.5rem;"> -->
     <!--   <div class="calendar-wrapper"> -->

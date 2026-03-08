@@ -43,7 +43,6 @@ export class AuditEntriesCard extends HTMLElement {
       return;
     }
 
-
     issueCountEl.textContent = `${this._data.auditEntries.length} issues detected.`;
 
     // Create and append entry elements

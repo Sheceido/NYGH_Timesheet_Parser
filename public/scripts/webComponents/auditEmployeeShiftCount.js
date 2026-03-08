@@ -1,6 +1,5 @@
 /** @typedef {import("../types.d.ts").AuditEntry} AuditEntry */
 import { capitalize } from "../utils.js";
-import { FTR_HRS } from "../data/constants.js";
 
 export class AuditEmployeeShiftCount extends HTMLElement {
 

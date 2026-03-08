@@ -1,4 +1,4 @@
-import { MODE_SELECTION_CHANGE } from "../data/constants.js";
+import { AppMode, MODE_SELECTION_CHANGE } from "../data/constants.js";
 
 export class ModeSelectTab extends HTMLElement {
 
@@ -29,7 +29,7 @@ export class ModeSelectTab extends HTMLElement {
             timesheetBtn.classList.add("active");
 
             document.dispatchEvent(new CustomEvent(MODE_SELECTION_CHANGE, {
-                detail: { id: "#timesheetMakerMode" },
+                detail: { id: AppMode.TIMESHEET },
                 bubbles: true,
             }));
         });
@@ -39,7 +39,7 @@ export class ModeSelectTab extends HTMLElement {
             schedCheckBtn.classList.add("active");
 
             document.dispatchEvent(new CustomEvent(MODE_SELECTION_CHANGE, {
-                detail: { id: "#scheduleCheckerMode" },
+                detail: { id: AppMode.SCHEDULE_CHECK },
                 bubbles: true,
             }));
         });

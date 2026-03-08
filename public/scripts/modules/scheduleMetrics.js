@@ -26,7 +26,7 @@ export class ScheduleMetricsAuditor {
             employeeMetrics.push({
                 employee: employee,
                 scheduledShifts: foundShifts,
-                standbyHours: foundStandbyHrs,
+                standbyHrs: foundStandbyHrs,
             });
         }
 

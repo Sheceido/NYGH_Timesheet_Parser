@@ -66,6 +66,9 @@
     --font-monospace: "Courier New", Courier, monospace;
     --gap-size: 1.5rem;
 
+    --hover-error-bg-highlight: hsl(0, 100%, 95%);
+    --hover-error-outline-highlight: hsl(0, 100%, 90%);
+
     accent-color: var(--brand-color);
     color-scheme: light;
   }
@@ -91,6 +94,7 @@
   h1 {
     font-family: var(--font-main);
     font-size: 2.0rem;
+    margin-top: 0;
   }
 
   h2 {
@@ -160,15 +164,17 @@
 
   #timesheetMakerMode,
   #scheduleCheckerMode {
-    opacity: 1;
-    overflow: hidden;
-    max-height: 500px;
-    transition: opacity 500ms ease-in-out, max-height 50ms ease-out;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: var(--gap-size);
 
     &.not-visible {
-      opacity: 0;
-      max-height: 0;
+      display: none;
     }
+  }
+
+  timesheet-table {
+    grid-column: 1/ 4;
   }
 
   textarea {
@@ -178,6 +184,7 @@
     margin-block: 0.2em;
     padding: 0.5em;
     font-family: var(--font-monospace);
+    font-size: 0.8rem;
     /* Prevent text-wrapping */
     white-space: pre;
     overflow-wrap: normal;
@@ -260,6 +267,7 @@
     color: #6b7280;
   }
 
+
   .alerts {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
@@ -307,15 +315,15 @@
     justify-content: space-between;
     align-items: center;
     padding: 0.75rem 1rem;
+    margin-block: 0.5rem;
+    border-radius: 0.5rem;
+    transition: background-color 150ms ease-in;
 
     &:hover {
       cursor: pointer;
-      background-color: #eee;
+      outline: 1px solid var(--hover-error-outline-highlight);
+      background-color: var(--hover-error-bg-highlight);
     }
-  }
-
-  .alert-item:last-child {
-    border-bottom: none;
   }
 
   .alert-name {
@@ -405,7 +413,7 @@
       background: hsl(0, 100%, 98.43%);
 
       &:hover {
-        background: hsl(0, 100%, 95.43%);
+        background: var(--hover-error-bg-highlight);
       }
     }
   }
@@ -456,6 +464,7 @@
   .shift-detail-row {
     display: flex;
     gap: 0.375rem;
+    font-size: 0.75rem;
     margin-bottom: 0.5rem;
   }
 
@@ -472,36 +481,41 @@
     background: white;
     border: 1px solid #e5e7eb;
     border-radius: 0.5rem;
-    padding: 1.5rem;
     margin-bottom: 2rem;
   }
 
   .calendar {
     width: 100%;
     border-collapse: collapse;
-  }
+    font-size: 0.75rem;
 
-  .calendar th {
-    padding: 0.75rem;
-    text-align: center;
-    font-weight: 600;
-    color: #374151;
-    border-bottom: 2px solid #e5e7eb;
-  }
+    & th {
+      padding: 0.25rem;
+      text-align: center;
+      font-weight: 600;
+      color: #374151;
+      border-bottom: 1px solid #e5e7eb;
+    }
 
-  .calendar td {
-    padding: 0.5rem;
-    text-align: center;
-    vertical-align: top;
-    border: 1px solid #f3f4f6;
-    min-height: 100px;
-    position: relative;
-  }
 
-  .date-number {
-    font-weight: 600;
-    color: #1a1a1a;
-    margin-bottom: 0.5rem;
+    & td {
+      padding-block: 0.8rem;
+      padding-inline: 0.6rem;
+      text-align: center;
+      vertical-align: center;
+      border: 1px solid #f3f4f6;
+      min-width: 90px;
+      max-width: 90px;
+      position: relative;
+    }
+
+
+    & .date-number {
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 0.5rem;
+    }
+
   }
 
   .shift {
@@ -594,12 +608,18 @@
 
 
   @media (max-width: 1200px) {
+
+    #timesheetMakerMode,
+    #scheduleCheckerMode,
     .alerts {
       grid-template-columns: 1fr 1fr;
     }
   }
 
   @media (max-width: 768px) {
+
+    #timesheetMakerMode,
+    #scheduleCheckerMode,
     .alerts {
       grid-template-columns: 1fr;
     }
@@ -616,16 +636,16 @@
     text-align: center;
   }
 
-  .m-half {
-    margin: 0.5rem;
-  }
-
   .success {
     color: #27ae60;
   }
 
   .hidden {
     display: none;
+  }
+
+  .conflict-bg-color {
+    background: hsl(0, 100%, 90%);
   }
 
   .border-radius {

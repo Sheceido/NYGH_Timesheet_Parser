@@ -1,3 +1,9 @@
+/** @type {import("../types.d.ts").AppMode} */
+export const AppMode = Object.freeze({
+    TIMESHEET: "#timesheetMakerMode",
+    SCHEDULE_CHECK: "#scheduleCheckerMode",
+});
+
 /** @type {import("../types.d.ts").ShiftCategory} */
 export const ShiftCategory = Object.freeze({
     DAY: "DAY",
@@ -36,6 +42,17 @@ export const AuditEntryElementRefs = Object.freeze({
     ON_CALL_MULTIPLE_NAMES: "ON_CALL_MULTIPLE_NAMES",
 });
 
+export const AuditDescriptors = {
+    [AuditCode.FTR_OVER_SCHEDULED]: { icon: "▲", header: "Too Many Shifts" },
+    [AuditCode.FTR_UNDER_SCHEDULED]: { icon: "▼", header: "Missing Shifts" },
+    [AuditCode.MALE_CONFLICT]: { icon: "♂️", header: "Evening Male Tech Conflicts" },
+    [AuditCode.DUPLICATE_EMPLOYEE]: { icon: "⚠️", header: "Dulicate Shifts" },
+    [AuditCode.NOT_AVAILABLE]: { icon: "🚫", header: "Not Available Conflicts" },
+    [AuditCode.EMPTY_SHIFT]: { icon: "x", header: "Empty Shifts" },
+    [AuditCode.MULTIPLE_NAMES]: { icon: "x", header: "Multiple Names in Cell" },
+    [AuditCode.ON_CALL_MULTIPLE_NAMES]: { icon: "x", header: "Multiple Names in On-Call" },
+}
+
 /** @type {import("../types.d.ts").RowSemanticKind} */
 export const RowSemanticKind = Object.freeze({
     HEADER: "HEADER",
@@ -55,7 +72,6 @@ export const SHIFT_ERROR_CLICKED = "shift-error:click";
 
 export const MODE_SELECTION_CHANGE = "mode-select-tab:change";
 export const SYNC_PASTE_AREA = "paste-area:sync";
-export const SYNC_HOLIDAYS_INPUT = "control-panel:sync-holidays";
 export const ANALYZE_SCHEDULE = "analyze-schedule-button:analyze";
 
 export const WARNING_COLORS = {

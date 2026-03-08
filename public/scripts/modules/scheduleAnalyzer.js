@@ -158,13 +158,15 @@ export class ScheduleAnalyzer {
                     category = ShiftCategory.HEADER;
                 }
 
+                const employee = this.matchEmployeeByRoster(names[names.length - 1])
+
                 shifts.push({
                     id: newUUID,
                     names: names,
-                    employee: this.matchEmployeeByRoster(names[names.length - 1]),
+                    employee: employee,
                     weekday: colNum,
                     date: this.getDate(colNum),
-                    location: rowSemantic.location,
+                    location: this.setLocationByGender(rowSemantic.location, employee),
                     shiftTime: rowSemantic.value,
                     rowKind: rowSemantic.kind,
                     category: category,
@@ -261,12 +263,32 @@ export class ScheduleAnalyzer {
                 return employee;
             }
         }
-
         return null;
     }
 
     getDate(col) {
         return `${DAYS_OF_THE_WEEK[col - 1]} ${this.weekdayHeader[col]}`
+    }
+
+    /**
+     * @param {Employee | null} employee
+     * @returns {string}
+     */
+    setLocationByGender(location, employee) {
+        if (location !== "OCSC / CONSUMER" || employee === null) {
+            return location;
+
+        } else {
+            switch (employee.gender) {
+                case "M":
+                    return "CONSUMER";
+                case "F":
+                    return "OCSC";
+                default:
+                    console.error(`Undefined Gender "${employee.gender}" for ${employee.str_alias}`);
+                    return;
+            }
+        }
     }
 }
 
