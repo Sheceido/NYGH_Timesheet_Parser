@@ -54,8 +54,6 @@ export class Renderer {
         }
     }
 
-    renderAuditTable() { }
-
     /**
      * @param {string} elementId 
      * @param {string} icon
@@ -98,11 +96,17 @@ export class Renderer {
     }
 
     static highlightTimesheetIssue(shiftId) {
+        const timesheetTable = document.querySelector("timesheet-table");
+        if (!timesheetTable) {
+            console.error("timesheet-table element is undefined in DOM!");
+            return;
+        }
+
         /** @type {HTMLElement[]} foundCells */
-        const foundCells = document.querySelectorAll(`.id-${shiftId}`);
+        const foundCells = timesheetTable.querySelectorAll(`[id="${shiftId}"]`);
         if (foundCells.length < 1) return;
 
-        foundCells.forEach(el => el.classList.add("conflict-bg-color"));
+        foundCells.forEach(el => el.classList.add("shift-highlight"));
     }
 
     /** @param {AppMode} mode */
@@ -110,4 +114,53 @@ export class Renderer {
         const staleContainer = document.querySelector(mode);
         staleContainer.replaceChildren();
     }
+
+    /** @param {string[]} shiftIDs  */
+    static highlightSpreadsheetCells(shiftIDs) {
+        if (shiftIDs.length < 1) {
+            console.warn(`No shiftIDs were provided in argument to highlight spreadsheet cells.`);
+            return;
+        }
+
+        const modalSpreadsheetEl = document.querySelector("schedule-spreadsheet");
+        if (!modalSpreadsheetEl) {
+            console.error("Modal spreadsheet undefined in DOM!");
+            return;
+        }
+
+        shiftIDs.forEach(id => {
+            const cell = modalSpreadsheetEl.querySelector(`[id="${id}"]`);
+            if (!cell) {
+                console.error(`Unable to find cell in spreadsheet with shift id "${id}".`);
+                return;
+            }
+
+            cell.classList.add("shift-highlight");
+        });
+    }
+
+    static clearSpreadsheetHighlights() {
+        const modalSpreadsheetEl = document.querySelector("schedule-spreadsheet");
+        if (!modalSpreadsheetEl) {
+            console.error("Modal spreadsheet undefined in DOM!");
+            return;
+        }
+
+        const cells = modalSpreadsheetEl.querySelectorAll("td");
+        if (cells.length < 1) {
+            console.error("No cells were found in spreadsheet to clear highlights!");
+            return;
+        }
+
+        cells.forEach(cell => {
+            cell.classList.remove("shift-highlight");
+
+            if (cell.cellIndex !== 0) {
+                // fade all cells except the shift time column
+                cell.classList.add("shift-faded");
+            }
+        });
+    }
+
+
 }

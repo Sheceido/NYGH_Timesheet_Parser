@@ -1,5 +1,3 @@
-import { SYNC_PASTE_AREA } from "../data/constants.js";
-
 export class PasteArea extends HTMLElement {
 
     constructor() {
@@ -13,19 +11,7 @@ export class PasteArea extends HTMLElement {
         textarea.rows = "5";
         textarea.placeholder = "Copy and Paste schedule grid here!"
 
-        textarea.addEventListener("input", (e) => {
-            this.emitSyncEvent(e.target.value);
-        });
-
         this.appendChild(textarea);
-    }
-
-    emitSyncEvent(data) {
-        document.dispatchEvent(new CustomEvent(SYNC_PASTE_AREA, {
-            detail: data,
-            bubbles: true,
-        }));
-
     }
 }
 

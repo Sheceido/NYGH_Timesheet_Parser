@@ -1,4 +1,5 @@
 /** @typedef {import("../types.d.ts").AuditEntry} AuditEntry */
+import { MODAL_OPEN } from "../data/constants.js";
 import { capitalize } from "../utils.js";
 
 export class AuditEmployeeShiftCount extends HTMLElement {
@@ -13,9 +14,11 @@ export class AuditEmployeeShiftCount extends HTMLElement {
   }
 
   render() {
-    const shiftCountDisplay = this._data.shifts.length === this._data.expectedShiftCount
-      ? `~ ${this._data.shifts.length} / ${this._data.expectedShiftCount} shifts ( +${this._data.duplicateCount} duplicate${this._data.duplicateCount > 1 ? "s" : ""} )`
-      : `${this._data.shifts.length} / ${this._data.expectedShiftCount} shifts`;
+    let shiftCountDisplay = `${this._data.shifts.length} / ${this._data.expectedShiftCount} shifts`;
+
+    if (this._data.duplicateCount > 0) {
+      shiftCountDisplay = `~ ${this._data.shifts.length - this._data.duplicateCount} / ${this._data.expectedShiftCount} shifts ( +${this._data.duplicateCount} duplicate${this._data.duplicateCount > 1 ? "s" : ""} )`;
+    }
 
     this.innerHTML = `
       <div class="alert-item">
@@ -26,6 +29,11 @@ export class AuditEmployeeShiftCount extends HTMLElement {
         </div>
       </div>
     `;
+
+    this.onclick = () => document.dispatchEvent(new CustomEvent(MODAL_OPEN, {
+      detail: { shiftIds: this._data.shifts.map(s => s.id) },
+      bubbles: true,
+    }));
   }
 }
 

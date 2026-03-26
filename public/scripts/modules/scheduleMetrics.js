@@ -8,6 +8,7 @@
 import { ShiftCategory } from "../data/constants.js";
 import { ShiftQueryUtils } from "./shiftQueryUtils.js";
 
+//TODO: ?reduce O(n^2) shift finding with Map and allShift iteration for O(n)
 export class ScheduleMetricsAuditor {
 
     /**

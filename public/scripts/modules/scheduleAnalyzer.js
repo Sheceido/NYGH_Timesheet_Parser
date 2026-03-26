@@ -2,8 +2,9 @@
 /** @typedef {import("../types.d.ts").Employee} Employee */
 /** @typedef {import("../types.d.ts").ShiftOrigin} ShiftOrigin */
 /** @typedef {import("../types.d.ts").RowSemantic} RowSemantic */
+/** @typedef {import("../types.d.ts").ScheduleRenderDataset} ScheduleRenderDataset */
 
-import { DAYS_OF_THE_WEEK, RowSemanticKind, ShiftCategory } from "../data/constants.js";
+import { DAYS_OF_THE_WEEK, RowSemanticKind, ShiftCategory, categoryMap, locationMap, shiftTimeMap } from "../data/constants.js";
 import { CASUAL_ROSTER, ROSTER } from "../data/roster.js";
 
 export class ScheduleAnalyzer {
@@ -25,6 +26,16 @@ export class ScheduleAnalyzer {
         const { shifts, shiftOrigin } = this.discoverShiftsAndOrigin(scheduleGrid);
         this.shiftList = shifts;
         this.shiftOrigin = shiftOrigin;
+    }
+
+    /** @returns {ScheduleRenderDataset} */
+    get scheduleRenderDataset() {
+        return {
+            header: this.weekdayHeader,
+            rowSemantics: this.rowSemanticList,
+            shifts: this.shiftList,
+            shiftOrigin: this.shiftOrigin,
+        }
     }
 
     /**
@@ -69,7 +80,7 @@ export class ScheduleAnalyzer {
             // extract semantic Location for row
             const foundLocationChange = locationMap.get(cellValue)
             if (foundLocationChange) {
-                currLocation = foundLocationChange
+                currLocation = foundLocationChange;
             }
 
             // extract semantic shiftTime for row
@@ -93,10 +104,14 @@ export class ScheduleAnalyzer {
                     value: foundShiftTime
                 });
             } else {
+                const precedingSemanticRow = rowSemanticList.length > 0
+                    ? rowSemanticList[rowSemanticList.length - 1]
+                    : null;
+
                 rowSemanticList.push({
                     row: i,
                     location: currLocation,
-                    kind: this.classifyRowKind(i),
+                    kind: this.classifyRowKind(i, precedingSemanticRow, shiftTimeInherited),
                     value: cellValue
                 });
             }
@@ -106,10 +121,19 @@ export class ScheduleAnalyzer {
 
     /**
      * @param {number} row 
+     * @param {RowSemantic | null} precedingRowSemantic
+     * @param {boolean} inheritPreviousRow 
      * @return {string}
      */
-    classifyRowKind(row) {
-        if (row === 0 || row === 1) {
+    classifyRowKind(row, precedingRowSemantic, inheritPreviousRow) {
+        // if first row, precedingRowSemantic will be null, moving to next if case
+        // if flagged as an empty cell, default to inheriting the previous row's kind
+        if (precedingRowSemantic && inheritPreviousRow) {
+            const priorRowKind = precedingRowSemantic.kind;
+            return priorRowKind;
+        }
+        // default assume first 3 rows can be headers
+        if (row < 3) {
             return "HEADER";
         } else {
             return "STATUS";
@@ -191,6 +215,7 @@ export class ScheduleAnalyzer {
             }
             return diff;
         });
+
         return { shifts, shiftOrigin };
     }
 
@@ -291,57 +316,3 @@ export class ScheduleAnalyzer {
         }
     }
 }
-
-/** @type {Map<string, string>} shiftTimeMap */
-const shiftTimeMap = new Map()
-    .set("0700-1500", "07:00-15:00")
-    .set("0730-1530", "07:30-15:30")
-    .set("7:30-3:30", "07:30-15:30")
-    .set("0800-1600", "08:00-16:00")
-    .set("8:00-4:00", "08:00-16:00")
-    .set("NEW! 0800-1600", "08:00-16:00")
-    .set("0830-1630", "08:30-16:30")
-    .set("0900-1700", "09:00-17:00")
-    .set("9:00-5:00", "09:00-17:00")
-    .set("9:00- 5:00", "09:00-17:00")
-    .set("10:00-6:00PM", "10:00-18:00")
-    .set("1100-7:00PM", "11:00-19:00")
-    .set("12:00-8:00PM", "12:00-20:00")
-    .set(`12:00-8:00PM ON CALL SHIFT`, "12:00-20:00")
-    .set("3:00-11:00PM", "15:00-23:00")
-    .set("4:00-12:00AM", "16:00-24:00")
-    .set("ON-CALL", "ON-CALL");
-
-/** @type {Map<string, string>} categoryMap */
-const categoryMap = new Map()
-    .set("07:00-15:00", ShiftCategory.DAY)
-    .set("07:30-15:30", ShiftCategory.DAY)
-    .set("07:30-15:30", ShiftCategory.DAY)
-    .set("08:00-16:00", ShiftCategory.DAY)
-    .set("08:30-16:30", ShiftCategory.DAY)
-    .set("09:00-17:00", ShiftCategory.DAY)
-    .set("09:00-17:00", ShiftCategory.DAY)
-    .set("10:00-18:00", ShiftCategory.DAY)
-    .set("11:00-19:00", ShiftCategory.DAY)
-    .set("12:00-20:00", ShiftCategory.NOON)
-
-    .set("ON-CALL", ShiftCategory.ONCALL)
-
-    .set("15:00-23:00", ShiftCategory.EVENING)
-    .set("16:00-24:00", ShiftCategory.NIGHT)
-
-    .set("VACATION", ShiftCategory.VACATION)
-    .set("NOT AVAILABLE", ShiftCategory.NOTAVAILABLE)
-    .set("ABSENT", ShiftCategory.ABSENT)
-
-    .set("AVAILABLE", ShiftCategory.STATUS)
-    .set("FLOAT", ShiftCategory.STATUS)
-    .set("LIEU TIME", ShiftCategory.STATUS)
-    .set("ML", ShiftCategory.STATUS)
-
-/** @type {Map<string, string>} locationMap */
-const locationMap = new Map()
-    .set("BDC / BREAST", "BDC")
-    .set("1100-7:00PM", "GENERAL")
-    .set("CONSUMERS", "OCSC / CONSUMER")
-    .set("AVAILABLE", "GENERAL")

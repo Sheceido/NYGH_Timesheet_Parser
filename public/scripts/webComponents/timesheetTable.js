@@ -61,24 +61,6 @@ export class TimesheetTable extends HTMLElement {
     }
   }
 
-  render() {
-    this.innerHTML = `
-      <div class="calendar-wrapper">
-        <table class="calendar"></table>
-      </div>
-      <button class="btn">Copy Timesheet</button>
-    `;
-
-    /** @type {HTMLButtonElement} copyBtn */
-    const copyBtn = this.querySelector("button.btn");
-    if (!copyBtn) {
-      console.error("Undefined copy button on query!");
-      return;
-    }
-
-    copyBtn.onclick = () => this.copyToClipboard(this._timesheetColumns);
-  }
-
   /** @returns {HTMLTableRowElement[]} */
   generateHeaderRows() {
     const daysOfWeekRow = document.createElement("tr");
@@ -128,7 +110,7 @@ export class TimesheetTable extends HTMLElement {
         const foundShift = shiftsByDayMap.get(i);
         shiftTime = foundShift.shiftTime;
         location = foundShift.location;
-        shiftId = `id-${foundShift.id}`;
+        shiftId = `${foundShift.id}`;
       }
 
       dataByDay.push({
@@ -173,9 +155,14 @@ export class TimesheetTable extends HTMLElement {
   getTDElement(shiftId, textContent) {
     const td = document.createElement("td");
     if (shiftId !== "") {
-      td.classList.add(shiftId);
+      td.id = shiftId;
     }
-    td.textContent = textContent;
+
+    if (textContent !== null) {
+      td.textContent = textContent;
+    } else {
+      td.textContent = "";
+    }
     return td;
   }
 
@@ -206,6 +193,24 @@ export class TimesheetTable extends HTMLElement {
 
     const tsv = row1.concat(row2, row3).join("");
     return tsv;
+  }
+
+  render() {
+    this.innerHTML = `
+      <div class="calendar-wrapper">
+        <table class="calendar"></table>
+      </div>
+      <button class="btn">Copy Timesheet</button>
+    `;
+
+    /** @type {HTMLButtonElement} copyBtn */
+    const copyBtn = this.querySelector("button.btn");
+    if (!copyBtn) {
+      console.error("Undefined copy button on query!");
+      return;
+    }
+
+    copyBtn.onclick = () => this.copyToClipboard(this._timesheetColumns);
   }
 }
 

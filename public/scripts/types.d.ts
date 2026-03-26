@@ -119,3 +119,10 @@ export type AuditEntriesSet = {
     header: string;
     auditEntries: AuditEntry[];
 }
+
+export type ScheduleRenderDataset = {
+    header: string[];
+    rowSemantics: RowSemantic[];
+    shifts: Shift[];
+    shiftOrigin: ShiftOrigin;
+}

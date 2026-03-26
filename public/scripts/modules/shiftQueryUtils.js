@@ -3,7 +3,7 @@
 /** @typedef {import("../types.d.ts").Period} Period */
 /** @typedef {import("../types.d.ts").ShiftCategory} ShiftCategory */
 
-import { ShiftCategory } from "../data/constants.js";
+import { FRIDAYS, ShiftCategory, THURSDAYS, WEEKEND_DAYS } from "../data/constants.js";
 
 export class ShiftQueryUtils {
     /**
@@ -44,9 +44,9 @@ export class ShiftQueryUtils {
         /** @type {Period[]} periods */
         const periods = [];
         const day = shift.weekday;
-        const isWeekend = [1, 2, 8, 9].includes(day);
-        const isFriday = [7, 14].includes(day);
-        const isThursday = [6, 13].includes(day);
+        const isWeekend = this.dayIsWeekend(day);
+        const isFriday = FRIDAYS.includes(day);
+        const isThursday = THURSDAYS.includes(day);
 
         if (isWeekend) {
             periods.push({ weekday: day, hours: 24 });      // Standard weekend
@@ -66,6 +66,14 @@ export class ShiftQueryUtils {
     }
 
     /**
+     * @param {number} biweeklyDay
+     * @returns {boolean}
+     */
+    static dayIsWeekend(biweeklyDay) {
+        return WEEKEND_DAYS.includes(biweeklyDay);
+    }
+
+    /**
      * @param {Employee} employee 
      * @param {Shift} s 
      * @returns {boolean}
@@ -81,15 +89,31 @@ export class ShiftQueryUtils {
     }
 
     /**
-    * @param {string} name 
-    * @param {Employee} employee 
+    * @param {string[]} names
+    * @param {Employee | null} employee 
     * @returns {boolean}
     */
-    static nameIsEmployee(name, employee) {
+    static nameIsEmployee(names, employee) {
+        if (names.length < 1 || employee === null) {
+            return false;
+        }
+        const name = names[names.length - 1];
         return (
             name === employee.first_name ||
             name === employee.str_alias ||
             name === employee.abbrev
+        );
+    }
+
+    /**
+    * @param {Shift} s
+    * @returns {boolean}
+    */
+    static isWorkableShift(s) {
+        return (
+            s.category != ShiftCategory.ONCALL &&
+            s.category != ShiftCategory.NOTAVAILABLE &&
+            s.category != ShiftCategory.STATUS
         );
     }
 }

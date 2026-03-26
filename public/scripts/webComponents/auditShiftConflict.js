@@ -1,7 +1,7 @@
-import { AuditCode } from "../data/constants.js";
-import { capitalize } from "../utils.js";
 /** @typedef {import("../types.d.ts").AuditEntry} AuditEntry */
 /** @typedef {import("../types.d.ts").Shift} Shift */
+import { MODAL_OPEN } from "../data/constants.js";
+import { capitalize } from "../utils.js";
 
 export class AuditShiftConflict extends HTMLElement {
 
@@ -55,6 +55,12 @@ export class AuditShiftConflict extends HTMLElement {
     this.innerHTML = `
       <div id="${this._id}" class="conflict-comparison"></div>
     `;
+
+    this.onclick = () => document.dispatchEvent(new CustomEvent(MODAL_OPEN, {
+      detail: { shiftIds: this._data.shifts.map(s => s.id) },
+      bubbles: true,
+    }));
+
   }
 }
 customElements.define("audit-shift-conflict", AuditShiftConflict);
@@ -84,7 +90,7 @@ export class AuditShiftConflictCard extends HTMLElement {
     }
 
     const gender = this._shift.employee.gender === "M" ? "👨‍⚕️" : "👩‍⚕️";
-    const includedName = `${gender} - <b>${capitalize(this._shift.employee.str_alias)}</b>`;
+    const includedName = `${gender} <b>${capitalize(this._shift.employee.str_alias)}</b>`;
 
     this.innerHTML = `
       <div class="conflict-box ${existingVsConflict[0]}">

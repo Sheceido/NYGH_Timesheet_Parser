@@ -8,9 +8,12 @@ import { AuditEmployeeShiftCount } from "./webComponents/auditEmployeeShiftCount
 import { AuditAvailability } from "./webComponents/auditAvailability.js";
 import { AuditShiftConflict, AuditShiftConflictCard } from "./webComponents/auditShiftConflict.js";
 import { TimesheetTable } from "./webComponents/timesheetTable.js";
+import { ModalSchedule } from "./webComponents/modalSchedule.js";
+import { ScheduleSpreadsheet } from "./webComponents/scheduleSpreadsheet.js";
 
 /** @typedef {import('./types.d.ts').ScheduleAuditReport} ScheduleAuditReport */
 /** @typedef {import('./types.d.ts').AppMode} AppMode */
+/** @typedef {import('./types.d.ts').ScheduleRenderDataset} ScheduleRenderDataset */
 
 import { initDocumentEventListeners } from "./initEventListeners.js";
 import { ScheduleParser } from "./modules/scheduleParser.js";
@@ -19,7 +22,7 @@ import { ScheduleAnalyzer } from "./modules/scheduleAnalyzer.js";
 import { ScheduleMetricsAuditor } from "./modules/scheduleMetrics.js";
 import { ScheduleValidationAuditor } from "./modules/scheduleValidation.js";
 import { Renderer } from "./modules/renderer.js";
-import { FULL_ROSTER, ROSTER } from "./data/roster.js";
+import { FULL_ROSTER, ROSTER, CASUAL_ROSTER } from "./data/roster.js";
 import { AppMode, AuditCode, AuditDescriptors } from "./data/constants.js";
 
 
@@ -64,13 +67,21 @@ export function auditSchedule(mode) {
 
     /** @type {ScheduleAuditReport} auditReport */
     const auditReport = {
-        validationIssues: auditor.auditSchedule(analyzer.shiftList, ROSTER, holidayCount),
+        validationIssues: auditor.auditSchedule(analyzer.shiftList, ROSTER, CASUAL_ROSTER, holidayCount),
         employeeMetrics: metrics.calculateScheduleMetrics(analyzer.shiftList, FULL_ROSTER),
     }
 
     console.log(auditReport);
 
     Renderer.clearStaleContainer(mode);
+
+    // Send schedule data to modal for rendering
+    const scheduleSpreadsheet = document.querySelector("schedule-spreadsheet");
+    if (!scheduleSpreadsheet) {
+        console.error("schedule-spreadsheet element is undefined!");
+        return;
+    }
+    scheduleSpreadsheet.data = analyzer.scheduleRenderDataset;
 
     switch (mode) {
         // Generate a timesheet and flag errors for specific employee
@@ -152,3 +163,15 @@ export function auditSchedule(mode) {
             break;
     }
 }
+
+function footerDate() {
+    const footer = document.querySelector("footer");
+    if (!footer) {
+        console.error("Footer not in DOM!");
+        return;
+    }
+
+    footer.textContent = `© ${(new Date()).getFullYear()} Leon Poon. All Rights Reserved.`;
+}
+footerDate();
+

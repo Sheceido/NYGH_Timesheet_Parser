@@ -8,7 +8,7 @@
 /** @typedef {import("../types.d.ts").Employee} Employee */
 /** @typedef {import("../types.d.ts").Roster} Roster */
 
-import { BIWEEKLY, FTR_HRS, WEEKDAY_SHIFT_TIMES, WEEKEND_DAYS, WEEKEND_LOCATIONS, WEEKEND_SHIFT_TIMES } from "../data/constants.js";
+import { FTR_HRS, WEEKDAY_SHIFT_TIMES, WEEKEND_DAYS, WEEKEND_LOCATIONS, WEEKEND_SHIFT_TIMES } from "../data/constants.js";
 import { RowSemanticKind, ShiftCategory, AuditCode } from "../data/constants.js";
 import { ShiftQueryUtils } from "./shiftQueryUtils.js";
 
@@ -18,10 +18,11 @@ export class ScheduleValidationAuditor {
 
     /**
      * @param {Shift[]} allShifts 
-     * @param {Roster} roster 
+     * @param {Roster} ftrRoster 
+     * @param {Roster} casRoster
      * @param {number} holidayCount 
      */
-    auditSchedule(allShifts, roster, holidayCount) {
+    auditSchedule(allShifts, ftrRoster, casRoster, holidayCount) {
         /** @type {AuditEntry[]} auditEntries */
         const auditEntries = [];
 
@@ -31,26 +32,55 @@ export class ScheduleValidationAuditor {
         this._addAuditEntry(auditEntries, this.checkNotAvailableConflicts(allShifts));
         this._addAuditEntry(auditEntries, this.checkOnCallShifts(allShifts));
 
-        for (const [_, employee] of Object.entries(roster)) {
-            const employeeShifts = ShiftQueryUtils.findEmployeeShifts(employee, allShifts);
+        const ftrEmployeeShiftMap = this.initEmployeeShiftMap(ftrRoster);
+        const casEmployeeShiftMap = this.initEmployeeShiftMap(casRoster);
 
-            const dupAuditEntry = this.checkDuplicateShifts(employee, employeeShifts)
-            this._addAuditEntry(
-                auditEntries,
-                dupAuditEntry
-            );
+        // Populate employee's shift list
+        allShifts.forEach(shift => {
+            if (!shift.employee || !ShiftQueryUtils.isWorkableShift(shift)) {
+                return;
+            }
+
+            let shiftList;
+
+            if (ftrEmployeeShiftMap.has(shift.employee)) {
+                shiftList = ftrEmployeeShiftMap.get(shift.employee);
+
+            } else if (casEmployeeShiftMap.has(shift.employee)) {
+                shiftList = casEmployeeShiftMap.get(shift.employee);
+
+            } else {
+                console.error(`Employee in shift ${shift.id} "${shift.employee.str_alias}" not defined in roster list: `, shift);
+                return;
+            }
+
+            shiftList.push(shift);
+        });
+
+        // Check duplicate shifts and shift count for FTR employees
+        ftrEmployeeShiftMap.forEach((shiftList, employee, _) => {
+            const dupAuditEntries = this.checkDuplicateShifts(employee, shiftList);
+            if (dupAuditEntries) {
+                dupAuditEntries.forEach(d => this._addAuditEntry(auditEntries, d));
+            }
 
             const ftrShiftCountAuditEntries = this.checkFTREmployeeScheduledShifts(
                 employee,
-                employeeShifts,
+                shiftList,
                 holidayCount,
-                dupAuditEntry,
+                dupAuditEntries,
             );
-            this._addAuditEntry(
-                auditEntries,
-                ftrShiftCountAuditEntries
-            );
-        }
+            this._addAuditEntry(auditEntries, ftrShiftCountAuditEntries);
+        });
+
+        // Check duplicate shifts for casual employees
+        casEmployeeShiftMap.forEach((shiftList, employee, _) => {
+            const dupAuditEntries = this.checkDuplicateShifts(employee, shiftList);
+            if (dupAuditEntries) {
+                dupAuditEntries.forEach(d => this._addAuditEntry(auditEntries, d));
+            }
+        });
+
         return auditEntries;
     }
 
@@ -67,51 +97,43 @@ export class ScheduleValidationAuditor {
      * @param {Employee} employee 
      * @param {Shift[]} employeeShiftList 
      * @param {number} holidayCount 
-     * @param {AuditEntry | null} dupAudit
+     * @param {AuditEntry[] | null} dupAudits
      * @returns {AuditEntry | null}
      * Takes a list of shifts of FTR employee, and checks for over/underscheduling
      */
-    checkFTREmployeeScheduledShifts(employee, employeeShiftList, holidayCount, dupAudit) {
-        const expectedCount = FTR_HRS - holidayCount;
-        const duplicateCount = (dupAudit === null) ? 0 : (dupAudit.shifts.length - 1);
+    checkFTREmployeeScheduledShifts(employee, employeeShiftList, holidayCount, dupAudits) {
 
-        if (
-            employeeShiftList.length === expectedCount &&
-            dupAudit === null
-        ) {
+        const expectedCount = FTR_HRS - holidayCount;
+
+        if (employeeShiftList.length === expectedCount && dupAudits === null) {
             return null;
+        }
+
+        let duplicateCount, issueCode, issueLabel;
+
+        if (dupAudits === null) {
+            duplicateCount = 0;
+        } else {
+            // -1 for each dup set found, as that is the existing shift while the rest are dups
+            duplicateCount = dupAudits.reduce((dupCount, audit) => dupCount + (audit.shifts.length - 1), 0);
         }
 
         const effectiveShiftCount = employeeShiftList.length - duplicateCount;
 
-        let issueCode, issueLabel, effectiveShiftList;
         if (effectiveShiftCount >= expectedCount) {
             issueCode = AuditCode.FTR_OVER_SCHEDULED;
             issueLabel = "Overscheduled";
+
         } else {
             issueCode = AuditCode.FTR_UNDER_SCHEDULED;
             issueLabel = "Underscheduled";
-
-        }
-
-        if (dupAudit === null) {
-            effectiveShiftList = employeeShiftList;
-        } else {
-            effectiveShiftList = employeeShiftList.filter(s => {
-                const foundDup = dupAudit.shifts.find((dupShift, i) => {
-                    if (i === 0) return false;
-                    return (dupShift.id === s.id);
-                });
-
-                return (!foundDup);
-            });
         }
 
         return {
             code: issueCode,
             severity: "ERROR",
             employees: [employee],
-            shifts: effectiveShiftList,
+            shifts: employeeShiftList,
             message: `${issueLabel}: ${employee.str_alias} has ${employeeShiftList.length} shifts with +${duplicateCount} duplicate shift(s), expectedCount ${expectedCount}.`,
             expectedShiftCount: expectedCount, // specifically for over/under scheduled UI
             duplicateCount: duplicateCount, // specifically for over/under scheduled UI
@@ -155,19 +177,13 @@ export class ScheduleValidationAuditor {
     /**
      * @param {Employee} employee 
      * @param {Shift[]} shiftList 
-     * @returns {AuditEntry | null}
+     * @returns {AuditEntry[] | null}
      */
     checkDuplicateShifts(employee, shiftList) {
-        const foundShifts = this.findDuplicateEmployee(employee, shiftList);
-        if (foundShifts.length < 1) return null;
+        const audits = this.findDuplicateEmployeeByDay(employee, shiftList);
+        if (audits.length < 1) return null;
 
-        return {
-            code: AuditCode.DUPLICATE_EMPLOYEE,
-            severity: "ERROR",
-            employees: this.getUniqueEmployees(foundShifts),
-            shifts: foundShifts,
-            message: `${employee.str_alias} found to have more than one shift in a weekday.`,
-        }
+        return audits;
     }
 
     /**
@@ -266,39 +282,45 @@ export class ScheduleValidationAuditor {
 
     /**
      * @param {Employee} employee 
-     * @param {Shift[]} shiftList 
-     * @returns {Shift[]}
+     * @param {Shift[]} employeeShifts 
+     * @returns {AuditEntry[]}
      */
-    findDuplicateEmployee(employee, shiftList) {
-        /** @type {Shift[]} duplicateShifts */
-        const duplicateShifts = [];
-        /** @type {Map<number, Shift>} weekdayMap */
+    findDuplicateEmployeeByDay(employee, employeeShifts) {
+        /** @type {Map<number, Shift[]>} weekdayMap */
         const weekdayMap = new Map();
 
-        shiftList.forEach(s => {
-            if (s.names.length < 1) return;
+        employeeShifts.forEach(s => {
+            if (s.category === ShiftCategory.ONCALL || s.category === ShiftCategory.STATUS) {
+                return;
+            }
 
-            const name = s.names[s.names.length - 1];
+            if (!weekdayMap.has(s.weekday)) {
+                weekdayMap.set(s.weekday, [s]);
 
-            if (
-                s.category != ShiftCategory.ONCALL &&
-                s.category != ShiftCategory.STATUS &&
-                ShiftQueryUtils.nameIsEmployee(name, employee)
-            ) {
-                if (weekdayMap.has(s.weekday)) {
-                    const existingShift = weekdayMap.get(s.weekday);
-
-                    if (duplicateShifts.filter(s => s.id === existingShift.id).length < 1) {
-                        duplicateShifts.push(existingShift);
-                    }
-
-                    duplicateShifts.push(s);
-                } else {
-                    weekdayMap.set(s.weekday, s);
-                }
+            } else {
+                const existingShifts = weekdayMap.get(s.weekday);
+                existingShifts.push(s);
             }
         });
-        return duplicateShifts;
+
+        /** @type {AuditEntry[]} auditEntries */
+        const auditEntries = [];
+
+        weekdayMap.forEach((shifts, day, _) => {
+            if (shifts.length <= 1) {
+                return;
+            }
+            // push only when we have >1 shift per day/column
+            auditEntries.push({
+                code: AuditCode.DUPLICATE_EMPLOYEE,
+                severity: "ERROR",
+                employees: [employee],
+                shifts: shifts,
+                message: `${employee.str_alias} found to have more than one shift on weekday #${day}.`,
+            });
+        });
+
+        return auditEntries;
     }
 
     /**
@@ -310,56 +332,34 @@ export class ScheduleValidationAuditor {
         const notAvailableConflicts = [];
         const notAvailShifts = shiftList.filter(s => s.category === ShiftCategory.NOTAVAILABLE);
 
-        /** @typedef {Set<string>} SetOfNames */
-        /** @type {Map<number, SetOfNames>} */
-        const weekdaysOfNames = new Map();
+        /** @type {Map<number, Set<string>>} */
+        const notAvailNamesByDay = new Map();
 
-        // Populate names of employees marked as not available
-        for (let i = 1; i <= BIWEEKLY; i++) {
-            const ithWeekdayNotAvailables = notAvailShifts.filter(s => s.weekday === i);
+        // Build a map of day -> set of unavailable name tokens
+        for (const shift of notAvailShifts) {
+            const tokens = this.getShiftNameTokens(shift);
+            if (tokens.length === 0) continue;
 
-            /** @type SetOfNames */
-            const names = new Set();
-            ithWeekdayNotAvailables.forEach(nas => {
-
-                if (nas.names.length < 1) { return; }
-
-                names.add(nas.names[nas.names.length - 1]);
-
-                if (nas.employee != null) {
-                    names.add(nas.employee.first_name);
-                    names.add(nas.employee.str_alias);
-                    names.add(nas.employee.abbrev);
-                }
-            });
-            weekdaysOfNames.set(i, names);
+            if (!notAvailNamesByDay.has(shift.weekday)) {
+                notAvailNamesByDay.set(shift.weekday, new Set());
+            }
+            tokens.forEach(t => notAvailNamesByDay.get(shift.weekday).add(t));
         }
 
-        // Check each shift that conflicts with any names marked as not available in their associated column/weekday
+        // Check each shift for conflicts with name tokens found on the same day
         shiftList.forEach(s => {
-            if (
-                s.category === ShiftCategory.NOTAVAILABLE ||
-                s.category === ShiftCategory.HEADER
-            ) {
+            if (s.category === ShiftCategory.HEADER || !notAvailNamesByDay.has(s.weekday)) {
                 return;
             }
+            const weekdaySet = notAvailNamesByDay.get(s.weekday);
 
-            const weekdaySet = weekdaysOfNames.get(s.weekday);
-            if (!weekdaySet) {
-                console.error("ERROR: Expected Set to be initialized within weekday-name mapping, got undefined.");
-                return;
-            }
+            const tokens = this.getShiftNameTokens(s);
 
-            if (
-                weekdaySet.has(s.names[s.names.length - 1]) ||
-                s.employee != null &&
-                (
-                    weekdaySet.has(s.employee.first_name) ||
-                    weekdaySet.has(s.employee.str_alias) ||
-                    weekdaySet.has(s.employee.abbrev)
-                )
-            ) {
-                notAvailableConflicts.push(s);
+            for (let i = 0; i < tokens.length; i++) {
+                if (weekdaySet.has(tokens[i])) {
+                    notAvailableConflicts.push(s);
+                    break;
+                }
             }
         });
         return notAvailableConflicts;
@@ -379,16 +379,28 @@ export class ScheduleValidationAuditor {
 
             return (
                 s.names.length < 1 &&
-                s.category != ShiftCategory.STATUS &&
-                s.category != ShiftCategory.VACATION &&
-                s.category != ShiftCategory.NOTAVAILABLE &&
-                s.rowKind != RowSemanticKind.INHERITED_SHIFT &&
+                s.category !== ShiftCategory.STATUS &&
+                s.category !== ShiftCategory.VACATION &&
+                s.category !== ShiftCategory.NOTAVAILABLE &&
+                s.rowKind !== RowSemanticKind.INHERITED_SHIFT &&
                 (
                     (!isWeekendColumn && isWeekdayShiftTime) ||
                     (isWeekendColumn && isWeekendShiftTime && isWeekendLocation)
                 )
             );
         });
+    }
+
+    /**
+     * @param {Roster} roster 
+     * @returns {Map<Employee, Shift[]>}
+     */
+    initEmployeeShiftMap(roster) {
+        const employeeShiftMap = new Map();
+        for (const [_, employee] of Object.entries(roster)) {
+            employeeShiftMap.set(employee, []);
+        }
+        return employeeShiftMap;
     }
 
     /**
@@ -399,5 +411,21 @@ export class ScheduleValidationAuditor {
         const employeeSet = new Set();
         shiftList.forEach(s => employeeSet.add(s.employee));
         return [...employeeSet];
+    }
+
+    /**
+     * @param {Shift} s 
+     * @returns {string[]}
+     */
+    getShiftNameTokens(s) {
+        const tokens = [];
+
+        if (s.names.length > 0) {
+            tokens.push(s.names[s.names.length - 1]);
+        }
+        if (s.employee !== null) {
+            tokens.push(s.employee.first_name, s.employee.str_alias, s.employee.abbrev);
+        }
+        return tokens;
     }
 }
