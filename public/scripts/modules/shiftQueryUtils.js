@@ -1,44 +1,94 @@
 /** @typedef {import("../types.d.ts").Employee} Employee */
 /** @typedef {import("../types.d.ts").Shift} Shift */
+/** @typedef {import("../types.d.ts").Roster} Roster */
 /** @typedef {import("../types.d.ts").Period} Period */
 /** @typedef {import("../types.d.ts").ShiftCategory} ShiftCategory */
+/** @typedef {import("../types.d.ts").StandbyHoursMap} StandbyHoursMap */
 
 import { FRIDAYS, ShiftCategory, THURSDAYS, WEEKEND_DAYS } from "../data/constants.js";
 
 export class ShiftQueryUtils {
     /**
-     * @param {Employee} employee 
-     * @param {Shift[]} shiftList 
-     * @returns {Shift[]}
+     * @param {Roster} roster 
+     * @param {Shift[]} shifts 
+     * @returns {Map<Employee, Shift[]>}
+     *
+     * Sort shifts into a list associated with each employee in roster
      */
-    static findEmployeeShifts(employee, shiftList) {
-        return shiftList.filter(s => {
-            return (
-                this.isEmployeeFoundInShift(employee, s) &&
-                s.category != ShiftCategory.ONCALL &&
-                s.category != ShiftCategory.NOTAVAILABLE &&
-                s.category != ShiftCategory.STATUS
-            );
+    static getEmployeeShiftMap(roster, shifts) {
+        const employeeShiftMap = new Map();
+        for (const [_, employee] of Object.entries(roster)) {
+            employeeShiftMap.set(employee, []);
+        }
+
+        shifts.forEach(shift => {
+            if (!shift.employee) {
+                return;
+            }
+            if (!employeeShiftMap.has(shift.employee)) {
+                // console.warn(`Employee in shift ${shift.id} "${shift.employee.str_alias}" not defined in roster list: `, shift);
+                return;
+            }
+            let shiftList = employeeShiftMap.get(shift.employee);
+            shiftList.push(shift);
         });
+
+        return employeeShiftMap;
     }
 
     /**
-     * @param {Employee} employee 
+     * @param {Shift[]} shiftList 
+     * @returns {Shift[]}
+     * Filters employee's shift list to just shifts that isn't an on-call or a status row
+     */
+    static getScheduledShifts(shiftList) {
+        return shiftList.filter(s => this.isWorkableShift(s));
+    }
+
+    /**
+     * @param {Shift[]} shiftList 
+     * @returns {StandbyHoursMap | null}
+     * Filters employee shifts to just on-call, then find the associated standby hours
+     * for each day/column to which they are on standby, or null if they are not on-call
+     */
+    static getEmployeeStandbyHours(shiftList) {
+        const onCallShifts = ShiftQueryUtils.findOnCallShifts(shiftList);
+
+        if (onCallShifts.length < 1) {
+            return null;
+        }
+
+        /** @type {StandbyHoursMap} standbyHoursMap */
+        const standbyHoursMap = new Map();
+
+        onCallShifts.forEach(s => {
+            const periods = ShiftQueryUtils.getShiftStandbyHours(s);
+
+            periods.forEach(p => {
+                if (standbyHoursMap.has(p.weekday)) {
+                    standbyHoursMap.set(p.weekday, standbyHoursMap.get(p.weekday) + p.hours);
+                } else {
+                    standbyHoursMap.set(p.weekday, p.hours);
+                }
+            });
+        });
+
+        return standbyHoursMap;
+    }
+
+    /**
      * @param {Shift[]} shiftList 
      * @returns {Shift[]}
      */
-    static findOnCallShifts(employee, shiftList) {
-        return shiftList.filter(s => {
-            return (
-                this.isEmployeeFoundInShift(employee, s) &&
-                s.category === ShiftCategory.ONCALL
-            );
-        });
+    static findOnCallShifts(shiftList) {
+        return shiftList.filter(s => s.category === ShiftCategory.ONCALL);
     }
 
     /**
      * @param {Shift} shift 
      * @return {Period[]}
+     * Periods can have >1 in length, for the edge case on a Thursday
+     * when we must take into account standby hours through to Friday morning.
      */
     static getShiftStandbyHours(shift) {
         /** @type {Period[]} periods */
@@ -74,46 +124,50 @@ export class ShiftQueryUtils {
     }
 
     /**
-     * @param {Employee} employee 
-     * @param {Shift} s 
-     * @returns {boolean}
-     */
-    static isEmployeeFoundInShift(employee, s) {
-        if (!s.employee) return false;
-
-        return (
-            s.employee.first_name === employee.first_name &&
-            s.employee.str_alias === employee.str_alias &&
-            s.employee.abbrev === employee.abbrev
-        );
-    }
-
-    /**
-    * @param {string[]} names
-    * @param {Employee | null} employee 
-    * @returns {boolean}
-    */
-    static nameIsEmployee(names, employee) {
-        if (names.length < 1 || employee === null) {
-            return false;
-        }
-        const name = names[names.length - 1];
-        return (
-            name === employee.first_name ||
-            name === employee.str_alias ||
-            name === employee.abbrev
-        );
-    }
-
-    /**
     * @param {Shift} s
     * @returns {boolean}
     */
     static isWorkableShift(s) {
         return (
-            s.category != ShiftCategory.ONCALL &&
-            s.category != ShiftCategory.NOTAVAILABLE &&
-            s.category != ShiftCategory.STATUS
+            s.category !== ShiftCategory.ONCALL &&
+            s.category !== ShiftCategory.NOTAVAILABLE &&
+            s.category !== ShiftCategory.STATUS
         );
     }
+
+    /**
+    * @param {Shift[]} shiftList 
+    * @returns {Employee[]}
+    */
+    static getUniqueEmployees(shiftList) {
+        const employeeSet = new Set();
+        shiftList.forEach(s => employeeSet.add(s.employee));
+        return [...employeeSet];
+    }
+
+    /**
+     * @param {Shift} s 
+     * @returns {string[]}
+     */
+    static getShiftNameTokens(s) {
+        const tokens = [];
+
+        if (s.names.length > 0) {
+            tokens.push(s.names[s.names.length - 1]);
+        }
+        if (s.employee !== null) {
+            tokens.push(s.employee.first_name, s.employee.str_alias, s.employee.abbrev);
+        }
+        return tokens;
+    }
+
+    /**
+    * @param {Shift[]} shiftList 
+    * @returns {Shift[]}
+    */
+    static getAllVacationShifts(shiftList) {
+        return shiftList.filter(s => s.category === ShiftCategory.VACATION);
+    }
+    //TODO: validation audit for when FTR staff on weekend dont have a "<name> W/E" marked
+    // in the vacation section.
 }

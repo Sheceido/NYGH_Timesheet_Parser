@@ -90,6 +90,7 @@ export type EmployeeMetrics = {
     employee: Employee;
     scheduledShifts: Shift[];
     standbyHrs: StandbyHoursMap | null;
+    allAssociatedShifts: Shift[];
 }
 
 export type ScheduleAuditReport = {

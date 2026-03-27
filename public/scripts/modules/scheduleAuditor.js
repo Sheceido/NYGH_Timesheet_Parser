@@ -10,8 +10,8 @@ export class ScheduleAuditor {
     #metricsAuditor;
 
     constructor() {
-        this.#validationAuditor = new ScheduleValidationAuditor();
         this.#metricsAuditor = new ScheduleMetricsAuditor();
+        this.#validationAuditor = new ScheduleValidationAuditor();
     }
 
     /**

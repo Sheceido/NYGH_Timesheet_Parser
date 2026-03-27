@@ -32,30 +32,8 @@ export class ScheduleValidationAuditor {
         this._addAuditEntry(auditEntries, this.checkNotAvailableConflicts(allShifts));
         this._addAuditEntry(auditEntries, this.checkOnCallShifts(allShifts));
 
-        const ftrEmployeeShiftMap = this.initEmployeeShiftMap(ftrRoster);
-        const casEmployeeShiftMap = this.initEmployeeShiftMap(casRoster);
-
-        // Populate employee's shift list
-        allShifts.forEach(shift => {
-            if (!shift.employee || !ShiftQueryUtils.isWorkableShift(shift)) {
-                return;
-            }
-
-            let shiftList;
-
-            if (ftrEmployeeShiftMap.has(shift.employee)) {
-                shiftList = ftrEmployeeShiftMap.get(shift.employee);
-
-            } else if (casEmployeeShiftMap.has(shift.employee)) {
-                shiftList = casEmployeeShiftMap.get(shift.employee);
-
-            } else {
-                console.error(`Employee in shift ${shift.id} "${shift.employee.str_alias}" not defined in roster list: `, shift);
-                return;
-            }
-
-            shiftList.push(shift);
-        });
+        const ftrEmployeeShiftMap = ShiftQueryUtils.getEmployeeShiftMap(ftrRoster, allShifts);
+        const casEmployeeShiftMap = ShiftQueryUtils.getEmployeeShiftMap(casRoster, allShifts);
 
         // Check duplicate shifts and shift count for FTR employees
         ftrEmployeeShiftMap.forEach((shiftList, employee, _) => {
@@ -66,7 +44,7 @@ export class ScheduleValidationAuditor {
 
             const ftrShiftCountAuditEntries = this.checkFTREmployeeScheduledShifts(
                 employee,
-                shiftList,
+                ShiftQueryUtils.getScheduledShifts(shiftList),
                 holidayCount,
                 dupAuditEntries,
             );
@@ -118,7 +96,7 @@ export class ScheduleValidationAuditor {
             duplicateCount = dupAudits.reduce((dupCount, audit) => dupCount + (audit.shifts.length - 1), 0);
         }
 
-        const effectiveShiftCount = employeeShiftList.length - duplicateCount;
+        const effectiveShiftCount = employeeShiftList.length;
 
         if (effectiveShiftCount >= expectedCount) {
             issueCode = AuditCode.FTR_OVER_SCHEDULED;
@@ -151,7 +129,7 @@ export class ScheduleValidationAuditor {
         return {
             code: AuditCode.MULTIPLE_NAMES,
             severity: "INFO",
-            employees: this.getUniqueEmployees(foundShifts),
+            employees: ShiftQueryUtils.getUniqueEmployees(foundShifts),
             shifts: foundShifts,
             message: `Multiple names found in shift cells resulting in ambiguous reasoning for whom is scheduled.`,
         }
@@ -168,7 +146,7 @@ export class ScheduleValidationAuditor {
         return {
             code: AuditCode.MALE_CONFLICT,
             severity: "WARNING",
-            employees: this.getUniqueEmployees(foundShifts),
+            employees: ShiftQueryUtils.getUniqueEmployees(foundShifts),
             shifts: foundShifts,
             message: "More than one male employee found scheduled for night shift.",
         }
@@ -197,7 +175,7 @@ export class ScheduleValidationAuditor {
         return {
             code: AuditCode.NOT_AVAILABLE,
             severity: "ERROR",
-            employees: this.getUniqueEmployees(foundShifts),
+            employees: ShiftQueryUtils.getUniqueEmployees(foundShifts),
             shifts: foundShifts,
             message: `${foundShifts.length} shift(s) found to be in conflict with previously scheduled as "Not Available".`,
         }
@@ -232,7 +210,7 @@ export class ScheduleValidationAuditor {
         return {
             code: AuditCode.ON_CALL_MULTIPLE_NAMES,
             severity: "WARNING",
-            employees: this.getUniqueEmployees(foundShifts),
+            employees: ShiftQueryUtils.getUniqueEmployees(foundShifts),
             shifts: foundShifts,
             message: `Multiple names found in on-call standby shift cells resulting in ambiguous reasoning for whom is scheduled.`,
         }
@@ -337,7 +315,7 @@ export class ScheduleValidationAuditor {
 
         // Build a map of day -> set of unavailable name tokens
         for (const shift of notAvailShifts) {
-            const tokens = this.getShiftNameTokens(shift);
+            const tokens = ShiftQueryUtils.getShiftNameTokens(shift);
             if (tokens.length === 0) continue;
 
             if (!notAvailNamesByDay.has(shift.weekday)) {
@@ -353,7 +331,7 @@ export class ScheduleValidationAuditor {
             }
             const weekdaySet = notAvailNamesByDay.get(s.weekday);
 
-            const tokens = this.getShiftNameTokens(s);
+            const tokens = ShiftQueryUtils.getShiftNameTokens(s);
 
             for (let i = 0; i < tokens.length; i++) {
                 if (weekdaySet.has(tokens[i])) {
@@ -389,43 +367,5 @@ export class ScheduleValidationAuditor {
                 )
             );
         });
-    }
-
-    /**
-     * @param {Roster} roster 
-     * @returns {Map<Employee, Shift[]>}
-     */
-    initEmployeeShiftMap(roster) {
-        const employeeShiftMap = new Map();
-        for (const [_, employee] of Object.entries(roster)) {
-            employeeShiftMap.set(employee, []);
-        }
-        return employeeShiftMap;
-    }
-
-    /**
-    * @param {Shift[]} shiftList 
-    * @returns {Employee[]}
-    */
-    getUniqueEmployees(shiftList) {
-        const employeeSet = new Set();
-        shiftList.forEach(s => employeeSet.add(s.employee));
-        return [...employeeSet];
-    }
-
-    /**
-     * @param {Shift} s 
-     * @returns {string[]}
-     */
-    getShiftNameTokens(s) {
-        const tokens = [];
-
-        if (s.names.length > 0) {
-            tokens.push(s.names[s.names.length - 1]);
-        }
-        if (s.employee !== null) {
-            tokens.push(s.employee.first_name, s.employee.str_alias, s.employee.abbrev);
-        }
-        return tokens;
     }
 }
