@@ -6,6 +6,8 @@
 /** @typedef {import("../types.d.ts").AuditCode} AuditCode */
 /** @typedef {import("../types.d.ts").AuditEntry} AuditEntry */
 /** @typedef {import("../types.d.ts").Employee} Employee */
+/** @typedef {import("../types.d.ts").EmployeeShiftMap} EmployeeShiftMap */
+/** @typedef {import("../types.d.ts").EmployeeMetrics} EmployeeMetrics */
 /** @typedef {import("../types.d.ts").Roster} Roster */
 
 import { FTR_HRS, WEEKDAY_SHIFT_TIMES, WEEKEND_DAYS, WEEKEND_LOCATIONS, WEEKEND_SHIFT_TIMES } from "../data/constants.js";
@@ -14,15 +16,13 @@ import { ShiftQueryUtils } from "./shiftQueryUtils.js";
 
 export class ScheduleValidationAuditor {
 
-    constructor() { }
-
     /**
      * @param {Shift[]} allShifts 
-     * @param {Roster} ftrRoster 
-     * @param {Roster} casRoster
+     * @param {EmployeeShiftMap} ftrMetrics 
+     * @param {EmployeeShiftMap} casMetrics 
      * @param {number} holidayCount 
      */
-    auditSchedule(allShifts, ftrRoster, casRoster, holidayCount) {
+    auditSchedule(allShifts, ftrShiftMap, casShiftMap, holidayCount) {
         /** @type {AuditEntry[]} auditEntries */
         const auditEntries = [];
 
@@ -32,11 +32,8 @@ export class ScheduleValidationAuditor {
         this._addAuditEntry(auditEntries, this.checkNotAvailableConflicts(allShifts));
         this._addAuditEntry(auditEntries, this.checkOnCallShifts(allShifts));
 
-        const ftrEmployeeShiftMap = ShiftQueryUtils.getEmployeeShiftMap(ftrRoster, allShifts);
-        const casEmployeeShiftMap = ShiftQueryUtils.getEmployeeShiftMap(casRoster, allShifts);
-
         // Check duplicate shifts and shift count for FTR employees
-        ftrEmployeeShiftMap.forEach((shiftList, employee, _) => {
+        ftrShiftMap.forEach((shiftList, employee, _) => {
             const dupAuditEntries = this.checkDuplicateShifts(employee, shiftList);
             if (dupAuditEntries) {
                 dupAuditEntries.forEach(d => this._addAuditEntry(auditEntries, d));
@@ -52,7 +49,7 @@ export class ScheduleValidationAuditor {
         });
 
         // Check duplicate shifts for casual employees
-        casEmployeeShiftMap.forEach((shiftList, employee, _) => {
+        casShiftMap.forEach((shiftList, employee, _) => {
             const dupAuditEntries = this.checkDuplicateShifts(employee, shiftList);
             if (dupAuditEntries) {
                 dupAuditEntries.forEach(d => this._addAuditEntry(auditEntries, d));

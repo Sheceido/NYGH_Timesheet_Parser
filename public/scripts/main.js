@@ -36,19 +36,25 @@ initDocumentEventListeners();
 export function auditSchedule(mode) {
 
     const pasteArea = document.querySelector(".pasteArea");
-    const holidays = document.querySelector("#holidays");
     if (!pasteArea) {
         console.error(`Expected element paste-area, got ${pasteArea}`);
         return;
     }
+    const holidays = document.querySelector("#holidays");
     if (!holidays) {
         console.error(`Expected element #holidays, got ${holidays}`);
+        return;
+    }
+    const scheduleSpreadsheet = document.querySelector("schedule-spreadsheet");
+    if (!scheduleSpreadsheet) {
+        console.error("schedule-spreadsheet element is undefined!");
         return;
     }
 
     const scheduleStr = pasteArea.value;
     const holidayCount = holidays.value;
 
+    // Parse and validate schedule string
     const parser = new ScheduleParser(scheduleStr);
     const validator = new ScheduleValidator(parser.schedule);
 
@@ -61,109 +67,127 @@ export function auditSchedule(mode) {
         return;
     }
 
+    // Analyze -> scheduleMetrics -> scheduleValidation
     const analyzer = new ScheduleAnalyzer(parser.schedule);
     const metrics = new ScheduleMetricsAuditor();
     const auditor = new ScheduleValidationAuditor();
 
+    const { shiftMap: ftrShiftMap, metrics: ftrMetrics } = metrics.calculateScheduleMetrics(analyzer.shiftList, ROSTER);
+    const { shiftMap: casShiftMap, metrics: casMetrics } = metrics.calculateScheduleMetrics(analyzer.shiftList, CASUAL_ROSTER);
+
     /** @type {ScheduleAuditReport} auditReport */
     const auditReport = {
-        validationIssues: auditor.auditSchedule(analyzer.shiftList, ROSTER, CASUAL_ROSTER, holidayCount),
-        employeeMetrics: metrics.calculateScheduleMetrics(analyzer.shiftList, FULL_ROSTER),
+        employeeMetrics: [...ftrMetrics, ...casMetrics],
+        validationIssues: auditor.auditSchedule(analyzer.shiftList, ftrShiftMap, casShiftMap, holidayCount),
     }
-
     console.log(auditReport);
 
+    // Begin rendering pipeline
     Renderer.clearStaleContainer(mode);
 
-    // Send schedule data to modal for rendering
-    const scheduleSpreadsheet = document.querySelector("schedule-spreadsheet");
-    if (!scheduleSpreadsheet) {
-        console.error("schedule-spreadsheet element is undefined!");
-        return;
-    }
+    // set schedule data to modal custom web component reactive rendering
     scheduleSpreadsheet.data = analyzer.scheduleRenderDataset;
 
     switch (mode) {
         // Generate a timesheet and flag errors for specific employee
         case AppMode.TIMESHEET:
-            const employeeSelector = document.querySelector("employee-selector");
-            if (!employeeSelector) {
-                console.error("Unexpected 'employee-selector' custom component to be undefined.");
-                return;
-            }
-
-            const selectedEmployee = ROSTER[employeeSelector.selected];
-            if (!selectedEmployee) {
-                console.error(`Invalid employee selected: "${employeeSelector.selected}"`);
-                return;
-            }
-
-            const foundMetric = auditReport.employeeMetrics.find(metric => (
-                metric.employee.abbrev === selectedEmployee.abbrev &&
-                metric.employee.str_alias === selectedEmployee.str_alias
-            ));
-            if (!foundMetric) {
-                console.error(`No metrics found for employee "${selectedEmployee.str_alias}".`);
-                return;
-            }
-
-            const foundIssues = auditReport.validationIssues.filter(ae =>
-                ae.employees.some(e => (
-                    e && // null-check before field check
-                    e.abbrev === selectedEmployee.abbrev &&
-                    e.str_alias === selectedEmployee.str_alias
-                ))
-            );
-
-            // render timesheet
-            Renderer.renderTimesheet(mode, analyzer.weekdayHeader, foundMetric, foundIssues);
-
-            // render issues found for specific employee
-            foundIssues.forEach(audit => {
-                // ignore multiple names warning
-                if (audit.code === AuditCode.MULTIPLE_NAMES) {
-                    return;
-                }
-
-                // highlight issues by querying class name based on a shift id 
-                if (audit.code !== AuditCode.FTR_OVER_SCHEDULED &&
-                    audit.code !== AuditCode.FTR_UNDER_SCHEDULED) {
-                    audit.shifts.forEach(s => {
-                        Renderer.highlightTimesheetIssue(s.id);
-                    });
-                }
-
-                // render audit cards
-                Renderer.renderAuditEntriesCard(
-                    mode,
-                    AuditDescriptors[audit.code].icon,
-                    AuditDescriptors[audit.code].header,
-                    [audit],
-                )
-            });
+            generateTimesheet(mode, analyzer.weekdayHeader, auditReport);
             break;
 
-        // Generate errors for any issues found for all employees
+        // Generate Audit Entry containers on issues found for all employees
         case AppMode.SCHEDULE_CHECK:
-
-            for (const code of Object.values(AuditCode)) {
-                if (code === AuditCode.MULTIPLE_NAMES ||
-                    code === AuditCode.ON_CALL_MULTIPLE_NAMES ||
-                    code === AuditCode.EMPTY_SHIFT) {
-                    continue;
-                }
-
-                Renderer.renderAuditEntriesCard(
-                    mode,
-                    AuditDescriptors[code].icon,
-                    AuditDescriptors[code].header,
-                    auditReport.validationIssues.filter(ae => ae.code === code)
-                );
-            }
+            generateAudit(mode, auditReport);
             break;
     }
 }
 
+/**
+ * @param {AppMode} mode 
+ * @param {string[]} weekdayHeader 
+ * @param {ScheduleAuditReport} auditReport 
+ */
+function generateTimesheet(mode, weekdayHeader, auditReport) {
+
+    const employeeSelector = document.querySelector("employee-selector");
+    if (!employeeSelector) {
+        console.error("Unexpected 'employee-selector' custom component to be undefined.");
+        return;
+    }
+
+    const selectedEmployee = ROSTER[employeeSelector.selected];
+    if (!selectedEmployee) {
+        console.error(`Invalid employee selected: "${employeeSelector.selected}"`);
+        return;
+    }
+
+    const foundMetric = auditReport.employeeMetrics.find(metric => (
+        metric.employee.abbrev === selectedEmployee.abbrev &&
+        metric.employee.str_alias === selectedEmployee.str_alias
+    ));
+    if (!foundMetric) {
+        console.error(`No metrics found for employee "${selectedEmployee.str_alias}".`);
+        return;
+    }
+
+    const foundIssues = auditReport.validationIssues.filter(ae =>
+        ae.employees.some(e => (
+            e && // null-check before field check
+            e.abbrev === selectedEmployee.abbrev &&
+            e.str_alias === selectedEmployee.str_alias
+        ))
+    );
+
+    // render timesheet
+    Renderer.renderTimesheet(mode, weekdayHeader, foundMetric, foundIssues);
+
+    // render issues found for specific employee
+    foundIssues.forEach(audit => {
+        // ignore multiple names warning
+        if (audit.code === AuditCode.MULTIPLE_NAMES) {
+            return;
+        }
+
+        // highlight issues by querying class name based on a shift id 
+        if (audit.code !== AuditCode.FTR_OVER_SCHEDULED &&
+            audit.code !== AuditCode.FTR_UNDER_SCHEDULED) {
+            audit.shifts.forEach(s => {
+                Renderer.highlightTimesheetIssue(s.id);
+            });
+        }
+
+        Renderer.renderAuditEntriesCard(
+            mode,
+            AuditDescriptors[audit.code].icon,
+            AuditDescriptors[audit.code].header,
+            [audit],
+        )
+    });
+}
+
+/**
+ * @param {AppMode} mode 
+ * @param {ScheduleAuditReport} auditReport 
+ */
+function generateAudit(mode, auditReport) {
+
+    for (const code of Object.values(AuditCode)) {
+        // Skip these for audit display
+        if (code === AuditCode.MULTIPLE_NAMES ||
+            code === AuditCode.ON_CALL_MULTIPLE_NAMES ||
+            code === AuditCode.EMPTY_SHIFT) {
+            continue;
+        }
+
+        Renderer.renderAuditEntriesCard(
+            mode,
+            AuditDescriptors[code].icon,
+            AuditDescriptors[code].header,
+            auditReport.validationIssues.filter(ae => ae.code === code)
+        );
+    }
+}
+
+/** Programmatically updates footer to have current year */
 function footerDate() {
     const footer = document.querySelector("footer");
     if (!footer) {
@@ -174,4 +198,3 @@ function footerDate() {
     footer.textContent = `© ${(new Date()).getFullYear()} Leon Poon. All Rights Reserved.`;
 }
 footerDate();
-

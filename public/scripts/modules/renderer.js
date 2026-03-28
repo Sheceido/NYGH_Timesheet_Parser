@@ -95,6 +95,9 @@ export class Renderer {
         renderContainer.appendChild(timesheetTable);
     }
 
+    /**
+     * @param {string} shiftId 
+     */
     static highlightTimesheetIssue(shiftId) {
         const timesheetTable = document.querySelector("timesheet-table");
         if (!timesheetTable) {

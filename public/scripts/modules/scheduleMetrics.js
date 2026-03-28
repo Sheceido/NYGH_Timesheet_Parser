@@ -3,6 +3,7 @@
 /** @typedef {import("../types.d.ts").Shift} Shift */
 /** @typedef {import("../types.d.ts").StandbyHoursMap} StandbyHoursMap */
 /** @typedef {import("../types.d.ts").ShiftCategory} ShiftCategory */
+/** @typedef {import("../types.d.ts").EmployeeShiftMap} EmployeeShiftMap */
 /** @typedef {import("../types.d.ts").EmployeeMetrics} EmployeeMetrics */
 
 import { ShiftCategory } from "../data/constants.js";
@@ -13,7 +14,7 @@ export class ScheduleMetricsAuditor {
     /**
      * @param {Shift[]} allShifts
      * @param {Roster} roster
-     * @returns {EmployeeMetrics[]}
+     * @returns {{shiftMap: EmployeeShiftMap, metrics: EmployeeMetrics[]}}
      */
     calculateScheduleMetrics(allShifts, roster) {
         /** @type {EmployeeMetrics[]} employeeMetrics */
@@ -30,6 +31,6 @@ export class ScheduleMetricsAuditor {
             });
         });
 
-        return employeeMetrics;
+        return { shiftMap: employeeShiftMap, metrics: employeeMetrics };
     }
 }

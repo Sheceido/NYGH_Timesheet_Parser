@@ -86,6 +86,8 @@ export type Period = {
     hours: number;
 }
 
+export type EmployeeShiftMap = Map<Employee, Shift[]>;
+
 export type EmployeeMetrics = {
     employee: Employee;
     scheduledShifts: Shift[];
@@ -94,8 +96,8 @@ export type EmployeeMetrics = {
 }
 
 export type ScheduleAuditReport = {
-    validationIssues: AuditEntry[];
     employeeMetrics: EmployeeMetrics[];
+    validationIssues: AuditEntry[];
 }
 
 export type TimesheetColumn = {

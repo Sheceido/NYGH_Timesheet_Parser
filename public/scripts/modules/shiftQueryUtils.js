@@ -4,6 +4,7 @@
 /** @typedef {import("../types.d.ts").Period} Period */
 /** @typedef {import("../types.d.ts").ShiftCategory} ShiftCategory */
 /** @typedef {import("../types.d.ts").StandbyHoursMap} StandbyHoursMap */
+/** @typedef {import("../types.d.ts").EmployeeShiftMap} EmployeeShiftMap */
 
 import { FRIDAYS, ShiftCategory, THURSDAYS, WEEKEND_DAYS } from "../data/constants.js";
 
@@ -11,7 +12,7 @@ export class ShiftQueryUtils {
     /**
      * @param {Roster} roster 
      * @param {Shift[]} shifts 
-     * @returns {Map<Employee, Shift[]>}
+     * @returns {EmployeeShiftMap}
      *
      * Sort shifts into a list associated with each employee in roster
      */
