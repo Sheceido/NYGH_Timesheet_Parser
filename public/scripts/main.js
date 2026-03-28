@@ -114,7 +114,7 @@ function generateTimesheet(mode, weekdayHeader, auditReport) {
         return;
     }
 
-    const selectedEmployee = ROSTER[employeeSelector.selected];
+    const selectedEmployee = FULL_ROSTER[employeeSelector.selected];
     if (!selectedEmployee) {
         console.error(`Invalid employee selected: "${employeeSelector.selected}"`);
         return;

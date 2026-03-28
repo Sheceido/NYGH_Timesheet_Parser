@@ -323,7 +323,9 @@ export class ScheduleValidationAuditor {
 
         // Check each shift for conflicts with name tokens found on the same day
         shiftList.forEach(s => {
-            if (s.category === ShiftCategory.HEADER || !notAvailNamesByDay.has(s.weekday)) {
+            if (s.category === ShiftCategory.HEADER ||
+                s.category === ShiftCategory.NOTAVAILABLE ||
+                !notAvailNamesByDay.has(s.weekday)) {
                 return;
             }
             const weekdaySet = notAvailNamesByDay.get(s.weekday);

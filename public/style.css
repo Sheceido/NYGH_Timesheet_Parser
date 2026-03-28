@@ -85,6 +85,7 @@
     background-color: var(--background-color-1);
     color: var(--foreground-color-1);
     padding: 2rem;
+    min-height: 100svh;
   }
 
   a:any-link {
@@ -125,7 +126,7 @@
     color: #aaa;
     text-align: center;
     padding-block: 1em;
-    z-index: 999;
+    margin-top: 4rem;
   }
 }
 
@@ -151,6 +152,7 @@
 
   .container {
     max-width: 1400px;
+    min-height: 70svh;
     margin: 0 auto;
   }
 }

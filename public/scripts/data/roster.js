@@ -75,12 +75,12 @@ export const ROSTER = {
         "abbrev": "KT",
         "gender": "M"
     },
-    // "Latoya Smith": {
-    //     "first_name": "LATOYA",
-    //     "str_alias": "LATOYA",
-    //     "abbrev": "LS",
-    //     "gender": "F"
-    // },
+    "Latoya Smith": {
+        "first_name": "LATOYA",
+        "str_alias": "LATOYA",
+        "abbrev": "LS",
+        "gender": "F"
+    },
     "Leon Poon": {
         "first_name": "LEON",
         "str_alias": "LEON",
@@ -206,7 +206,7 @@ export const CASUAL_ROSTER = {
     },
     "Mandy Li": {
         "first_name": "MANDY",
-        "str_alias": "LI",
+        "str_alias": "MANDY",
         "abbrev": "ML",
         "gender": "F"
     },

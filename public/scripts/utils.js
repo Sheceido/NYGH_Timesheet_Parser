@@ -13,6 +13,14 @@ export function capitalize(s) {
  * @returns {string} capitalized string of words joined together
  */
 export function capitalizeArray(s) {
+    if (s.length === 0) {
+        return "";
+    }
+
+    if (s.length === 1) {
+        return capitalize(s[0]);
+    }
+
     const newStrArr = [];
     for (let i = 0; i < s.length; i++) {
         if (s[i] === "") {
