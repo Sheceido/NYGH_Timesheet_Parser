@@ -403,10 +403,10 @@
 
     &.existing {
       border-color: hsl(214.3 31.8% 91.4%);
-      background: hsl(210, 20%, 98.04%);
+      background: hsl(210, 20%, 99%);
 
       &:hover {
-        background: hsl(210, 20%, 95.04%);
+        background: hsl(210, 20%, 97%);
       }
     }
 
@@ -416,6 +416,34 @@
 
       &:hover {
         background: var(--hover-error-bg-highlight);
+      }
+    }
+
+    >details {
+      border: 1px solid hsl(0, 93.55%, 81.76%);
+      border-radius: 0.5rem;
+      background: hsl(0, 100%, 98.43%);
+
+      >summary {
+        padding: 1rem;
+        text-align: center;
+        font-size: 0.75rem;
+        color: #1a1a1a;
+      }
+
+      >#seeAllEmpty {
+        border: 1px solid hsl(225, 100%, 70%);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin: 0.4rem;
+        background-color: white;
+        text-align: center;
+        transition: all 100ms ease-in;
+
+        &:hover {
+          background-color: hsl(225, 100%, 98%);
+          color: black;
+        }
       }
     }
   }
@@ -461,6 +489,26 @@
       display: flex;
       justify-content: space-between;
       gap: 1rem;
+    }
+
+    &.grid-col-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+
+    }
+
+    &.boxed-grid-item {
+      border: 1px solid hsl(0, 93.55%, 81.76%);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      margin: 0.4rem;
+      background-color: white;
+      text-align: center;
+
+      &:hover {
+        background-color: hsl(0, 100%, 98%);
+        color: black;
+      }
     }
   }
 

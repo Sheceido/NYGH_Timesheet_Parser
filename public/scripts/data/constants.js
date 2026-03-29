@@ -108,7 +108,7 @@ export const AuditEntryElementRefs = Object.freeze({
     MALE_CONFLICT: "audit-shift-conflict",
     DUPLICATE_EMPLOYEE: "audit-shift-conflict",
     NOT_AVAILABLE: "audit-availability",
-    EMPTY_SHIFT: "EMPTY_SHIFT",
+    EMPTY_SHIFT: "audit-empty-shifts",
     MULTIPLE_NAMES: "MULTIPLE_NAMES",
     ON_CALL_MULTIPLE_NAMES: "ON_CALL_MULTIPLE_NAMES",
 });
@@ -119,7 +119,7 @@ export const AuditDescriptors = {
     [AuditCode.MALE_CONFLICT]: { icon: "♂️", header: "Evening Male Tech Conflicts" },
     [AuditCode.DUPLICATE_EMPLOYEE]: { icon: "⚠️", header: "Dulicate Shifts" },
     [AuditCode.NOT_AVAILABLE]: { icon: "🚫", header: "Not Available Conflicts" },
-    [AuditCode.EMPTY_SHIFT]: { icon: "x", header: "Empty Shifts" },
+    [AuditCode.EMPTY_SHIFT]: { icon: "🔲", header: "Empty Shifts" },
     [AuditCode.MULTIPLE_NAMES]: { icon: "x", header: "Multiple Names in Cell" },
     [AuditCode.ON_CALL_MULTIPLE_NAMES]: { icon: "x", header: "Multiple Names in On-Call" },
 }

@@ -6,6 +6,7 @@ import { ControlPanel } from "./webComponents/controlPanel.js";
 import { AuditEntriesCard } from "./webComponents/auditEntriesCard.js";
 import { AuditEmployeeShiftCount } from "./webComponents/auditEmployeeShiftCount.js";
 import { AuditAvailability } from "./webComponents/auditAvailability.js";
+import { AuditEmptyShifts } from "./webComponents/auditEmptyShifts.js";
 import { AuditShiftConflict, AuditShiftConflictCard } from "./webComponents/auditShiftConflict.js";
 import { TimesheetTable } from "./webComponents/timesheetTable.js";
 import { ModalSchedule } from "./webComponents/modalSchedule.js";
@@ -173,8 +174,8 @@ function generateAudit(mode, auditReport) {
     for (const code of Object.values(AuditCode)) {
         // Skip these for audit display
         if (code === AuditCode.MULTIPLE_NAMES ||
-            code === AuditCode.ON_CALL_MULTIPLE_NAMES ||
-            code === AuditCode.EMPTY_SHIFT) {
+            code === AuditCode.ON_CALL_MULTIPLE_NAMES
+        ) {
             continue;
         }
 
