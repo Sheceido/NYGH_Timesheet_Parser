@@ -12,17 +12,14 @@ import { ShiftQueryUtils } from "./shiftQueryUtils.js";
 export class ScheduleMetricsAuditor {
 
     /**
-     * @param {Shift[]} allShifts
-     * @param {Roster} roster
-     * @returns {{shiftMap: EmployeeShiftMap, metrics: EmployeeMetrics[]}}
+     * @param {EmployeeShiftMap} shiftMap
+     * @returns EmployeeMetrics[]
      */
-    calculateScheduleMetrics(allShifts, roster) {
+    calculateScheduleMetrics(shiftMap) {
         /** @type {EmployeeMetrics[]} employeeMetrics */
         const employeeMetrics = [];
 
-        const employeeShiftMap = ShiftQueryUtils.getEmployeeShiftMap(roster, allShifts);
-
-        employeeShiftMap.forEach((shiftList, employee, _) => {
+        shiftMap.forEach((shiftList, employee, _) => {
             employeeMetrics.push({
                 employee: employee,
                 scheduledShifts: ShiftQueryUtils.getScheduledShifts(shiftList),
@@ -31,6 +28,6 @@ export class ScheduleMetricsAuditor {
             });
         });
 
-        return { shiftMap: employeeShiftMap, metrics: employeeMetrics };
+        return employeeMetrics;
     }
 }

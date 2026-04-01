@@ -6,6 +6,7 @@ import { ControlPanel } from "./webComponents/controlPanel.js";
 import { AuditEntriesCard } from "./webComponents/auditEntriesCard.js";
 import { AuditEmployeeShiftCount } from "./webComponents/auditEmployeeShiftCount.js";
 import { AuditAvailability } from "./webComponents/auditAvailability.js";
+import { AuditMissingWeekendFlag } from "./webComponents/auditMissingWeekendFlag.js";
 import { AuditEmptyShifts } from "./webComponents/auditEmptyShifts.js";
 import { AuditShiftConflict, AuditShiftConflictCard } from "./webComponents/auditShiftConflict.js";
 import { TimesheetTable } from "./webComponents/timesheetTable.js";
@@ -25,6 +26,7 @@ import { ScheduleValidationAuditor } from "./modules/scheduleValidation.js";
 import { Renderer } from "./modules/renderer.js";
 import { FULL_ROSTER, ROSTER, CASUAL_ROSTER } from "./data/roster.js";
 import { AppMode, AuditCode, AuditDescriptors } from "./data/constants.js";
+import { ShiftQueryUtils } from "./modules/shiftQueryUtils.js";
 
 
 // Initialize event listeners for interactivity between web components
@@ -73,8 +75,11 @@ export function auditSchedule(mode) {
     const metrics = new ScheduleMetricsAuditor();
     const auditor = new ScheduleValidationAuditor();
 
-    const { shiftMap: ftrShiftMap, metrics: ftrMetrics } = metrics.calculateScheduleMetrics(analyzer.shiftList, ROSTER);
-    const { shiftMap: casShiftMap, metrics: casMetrics } = metrics.calculateScheduleMetrics(analyzer.shiftList, CASUAL_ROSTER);
+    const ftrShiftMap = ShiftQueryUtils.getEmployeeShiftMap(ROSTER, analyzer.shiftList);
+    const casShiftMap = ShiftQueryUtils.getEmployeeShiftMap(CASUAL_ROSTER, analyzer.shiftList);
+
+    const ftrMetrics = metrics.calculateScheduleMetrics(ftrShiftMap);
+    const casMetrics = metrics.calculateScheduleMetrics(casShiftMap);
 
     /** @type {ScheduleAuditReport} auditReport */
     const auditReport = {

@@ -6,7 +6,7 @@
 /** @typedef {import("../types.d.ts").StandbyHoursMap} StandbyHoursMap */
 /** @typedef {import("../types.d.ts").EmployeeShiftMap} EmployeeShiftMap */
 
-import { FRIDAYS, ShiftCategory, THURSDAYS, WEEKEND_DAYS } from "../data/constants.js";
+import { FRIDAYS, RowSemanticKind, ShiftCategory, THURSDAYS, WEEKEND_DAYS } from "../data/constants.js";
 
 export class ShiftQueryUtils {
     /**
@@ -163,11 +163,47 @@ export class ShiftQueryUtils {
     }
 
     /**
+    * @param {EmployeeShiftMap} ftrShiftMap 
     * @param {Shift[]} shiftList 
-    * @returns {Shift[]}
+    * @returns {{weekendShifts: Shift[], workedWeekendFlags: Shift[]}}
     */
-    static getAllVacationShifts(shiftList) {
-        return shiftList.filter(s => s.category === ShiftCategory.VACATION);
+    static getFTRWeekendsAndWeekdayFlags(ftrShiftMap, shiftList) {
+        const ftrWeekendShifts = [];
+        const workedWeekendFlags = [];
+
+        shiftList.forEach(s => {
+            if (this.dayIsWeekend(s.weekday)) {
+                if (
+                    s.employee &&
+                    this.isWeekendWorkableShift(s) &&
+                    ftrShiftMap.has(s.employee)
+                ) {
+                    ftrWeekendShifts.push(s);
+                }
+            } else {
+                if (s.category === ShiftCategory.VACATION &&
+                    s.names.some(name => name.includes("W/E"))
+                ) {
+                    workedWeekendFlags.push(s);
+                }
+            }
+        });
+
+        return { weekendShifts: ftrWeekendShifts, workedWeekendFlags: workedWeekendFlags };
+    }
+
+    /**
+    * @param {Shift} s 
+    * @returns {boolean}
+    */
+    static isWeekendWorkableShift(s) {
+        return (
+            s.category !== ShiftCategory.ONCALL &&
+            (
+                s.rowKind === RowSemanticKind.SHIFT ||
+                s.rowKind === RowSemanticKind.INHERITED_SHIFT
+            )
+        )
     }
     //TODO: validation audit for when FTR staff on weekend dont have a "<name> W/E" marked
     // in the vacation section.

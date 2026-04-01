@@ -32,6 +32,11 @@ export class ScheduleValidationAuditor {
         this._addAuditEntry(auditEntries, this.checkNotAvailableConflicts(allShifts));
         this._addAuditEntry(auditEntries, this.checkOnCallShifts(allShifts));
 
+        const missingFlags = this.checkWeekendFlagsMatchWeekendShifts(ftrShiftMap, allShifts);
+        if (missingFlags.length > 0) {
+            missingFlags.forEach(a => this._addAuditEntry(auditEntries, a));
+        }
+
         // Check duplicate shifts and shift count for FTR employees
         ftrShiftMap.forEach((shiftList, employee, _) => {
             const dupAuditEntries = this.checkDuplicateShifts(employee, shiftList);
@@ -214,6 +219,32 @@ export class ScheduleValidationAuditor {
     }
 
     /**
+     * @param {EmployeeShiftMap} ftrShiftMap 
+     * @param {Shift[]} shiftList 
+     * @returns {AuditEntry[]}
+     */
+    checkWeekendFlagsMatchWeekendShifts(ftrShiftMap, shiftList) {
+        const audits = [];
+        const tally = this.findWorkedWeekendFlaggedAsOffTally(ftrShiftMap, shiftList);
+
+        tally.forEach((t, employee, _) => {
+            if (t.weekendsWorked.length === t.flagsFounds.length) {
+                return;
+            }
+
+            audits.push({
+                code: AuditCode.MISSING_WORKED_WEEKEND_FLAG,
+                severity: "WARNING",
+                employees: [employee],
+                shifts: [...t.weekendsWorked, ...t.flagsFounds],
+                message: `${employee.str_alias} has ${t.weekendsWorked.length} weekend shifts, but ${t.flagsFounds.length} off days flagged with "W/E"`,
+            });
+        });
+
+        return audits;
+    }
+
+    /**
     * @param {Shift[]} shiftList
     * @returns {Shift[]}
     */
@@ -366,5 +397,56 @@ export class ScheduleValidationAuditor {
                 )
             );
         });
+    }
+
+    /**
+     * @param {EmployeeShiftMap} ftrShiftMap 
+     * @param {Shift[]} shiftList 
+     * @returns {Map<Employee, { weekendsWorked: Shift[], flaggedShifts: Shift[] }>}
+     */
+    findWorkedWeekendFlaggedAsOffTally(ftrShiftMap, shiftList) {
+        const { weekendShifts, workedWeekendFlags } = ShiftQueryUtils.getFTRWeekendsAndWeekdayFlags(ftrShiftMap, shiftList);
+
+        /** @type {Map<string, Employee>} employeeMatcher */
+        const employeeMatcher = new Map();
+        ftrShiftMap.forEach((v, e, _) => {
+            employeeMatcher.set(e.first_name, e);
+            employeeMatcher.set(e.str_alias, e);
+            employeeMatcher.set(e.abbrev, e);
+        });
+
+        /** @type {Map<Employee, { weekendsWorked: Shift[], flagsFounds: Shift[] }>} tally */
+        const tally = new Map();
+        weekendShifts.forEach(s => {
+            if (tally.has(s.employee)) {
+                tally.get(s.employee).weekendsWorked.push(s);
+            } else {
+                tally.set(s.employee, { weekendsWorked: [s], flagsFounds: [] });
+            }
+        });
+
+        workedWeekendFlags.forEach(s => {
+            if (s.names.length > 1) {
+                console.error("Unexpected state: number of names should be 1 for <name> W/E name fields");
+                return;
+            }
+
+            const foundFlaggedName = s.names[0].split(" ")[0];
+            if (!employeeMatcher.has(foundFlaggedName)) {
+                console.error(`Undefined named flagged as working the weekend: ${foundFlaggedName}`);
+                return;
+            }
+
+            const foundEmployee = employeeMatcher.get(foundFlaggedName);
+
+            // If employee wasn't scheduled on weekend but was flagged as having worked the weekend
+            if (!tally.has(foundEmployee)) {
+                tally.set(foundEmployee, { weekendsWorked: [], flagsFounds: [s] });
+            } else {
+                tally.get(foundEmployee).flagsFounds.push(s);
+            }
+        });
+
+        return tally;
     }
 }

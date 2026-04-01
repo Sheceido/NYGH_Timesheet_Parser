@@ -13,6 +13,10 @@ export class AuditAvailability extends HTMLElement {
     this.render();
   }
 
+  constructor() {
+    super();
+  }
+
   render() {
     const shiftRef = this._data.shifts[0];
     const gender = shiftRef.employee.gender === "M" ? "👨‍⚕️" : "👩‍⚕️";

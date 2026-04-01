@@ -100,6 +100,7 @@ export const AuditCode = Object.freeze({
     NOT_AVAILABLE: "NOT_AVAILABLE",
     EMPTY_SHIFT: "EMPTY_SHIFT",
     ON_CALL_MULTIPLE_NAMES: "ON_CALL_MULTIPLE_NAMES",
+    MISSING_WORKED_WEEKEND_FLAG: "MISSING_WORKED_WEEKEND_FLAG",
 });
 
 export const AuditEntryElementRefs = Object.freeze({
@@ -111,6 +112,7 @@ export const AuditEntryElementRefs = Object.freeze({
     EMPTY_SHIFT: "audit-empty-shifts",
     MULTIPLE_NAMES: "MULTIPLE_NAMES",
     ON_CALL_MULTIPLE_NAMES: "ON_CALL_MULTIPLE_NAMES",
+    MISSING_WORKED_WEEKEND_FLAG: "audit-missing-weekend-flag",
 });
 
 export const AuditDescriptors = {
@@ -122,6 +124,7 @@ export const AuditDescriptors = {
     [AuditCode.EMPTY_SHIFT]: { icon: "🔲", header: "Empty Shifts" },
     [AuditCode.MULTIPLE_NAMES]: { icon: "x", header: "Multiple Names in Cell" },
     [AuditCode.ON_CALL_MULTIPLE_NAMES]: { icon: "x", header: "Multiple Names in On-Call" },
+    [AuditCode.MISSING_WORKED_WEEKEND_FLAG]: { icon: "🚩", header: `Incorrect "w/e" flags counted` },
 }
 
 /** @type {import("../types.d.ts").RowSemanticKind} */

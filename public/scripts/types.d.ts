@@ -69,7 +69,8 @@ export type AuditCode =
     | "MULTIPLE_NAMES"
     | "NOT_AVAILABLE"
     | "EMPTY_SHIFT"
-    | "ON_CALL_MULTIPLE_NAMES";
+    | "ON_CALL_MULTIPLE_NAMES"
+    | "MISSING_WORKED_WEEKEND_FLAG";
 
 export type AuditEntry = {
     code: AuditCode;
