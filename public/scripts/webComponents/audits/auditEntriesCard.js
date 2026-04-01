@@ -1,6 +1,6 @@
 /** @typedef {import("../types.d.ts").AuditEntriesSet } AuditEntriesSet */
 
-import { AuditEntryElementRefs } from "../data/constants.js";
+import { AuditEntryElementRefs } from "../../data/constants.js";
 
 export class AuditEntriesCard extends HTMLElement {
 

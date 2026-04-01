@@ -1,7 +1,7 @@
 /** @typedef {import("../types.d.ts").AuditEntry} AuditEntry */
 /** @typedef {import("../types.d.ts").Shift} Shift */
-import { MODAL_OPEN } from "../data/constants.js";
-import { capitalize } from "../utils.js";
+import { MODAL_OPEN } from "../../data/constants.js";
+import { capitalize } from "../../utils.js";
 
 export class AuditShiftConflict extends HTMLElement {
 

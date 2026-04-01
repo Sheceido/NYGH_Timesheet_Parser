@@ -1,6 +1,6 @@
 /** @typedef {import("../types.d.ts").AuditEntry} AuditEntry */
-import { MODAL_OPEN } from "../data/constants.js";
-import { capitalize } from "../utils.js";
+import { MODAL_OPEN } from "../../data/constants.js";
+import { capitalize } from "../../utils.js";
 
 export class AuditAvailability extends HTMLElement {
 
