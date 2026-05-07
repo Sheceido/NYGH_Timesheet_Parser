@@ -14,10 +14,6 @@ export class Renderer {
      */
     static updateElementValidationErrorField(id, header, validationErrors) {
         document.querySelectorAll(id).forEach(el => {
-            if (!el) {
-                console.error(`Provided id "${id}" does not correspond to a defined DOM element.`);
-                return
-            }
             const errMsgs = [
                 header,
                 ...validationErrors.map(err => `${err.code}: ${err.message}`),
@@ -46,7 +42,7 @@ export class Renderer {
         for (const [_, id] of Object.entries(ErrorFieldsId)) {
             document.querySelectorAll(id).forEach(el => {
                 if (!el) {
-                    console.error(`Expected element with id ${v}, found ${el} `);
+                    console.error(`Expected element with id ${id}, found ${el} `);
                     return;
                 }
                 el.innerHTML = "";
@@ -95,9 +91,7 @@ export class Renderer {
         renderContainer.appendChild(timesheetTable);
     }
 
-    /**
-     * @param {string} shiftId 
-     */
+    /** @param {string} shiftId */
     static highlightTimesheetIssue(shiftId) {
         const timesheetTable = document.querySelector("timesheet-table");
         if (!timesheetTable) {

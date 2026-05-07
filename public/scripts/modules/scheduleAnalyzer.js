@@ -1,40 +1,64 @@
 /** @typedef {import("../types.d.ts").Shift} Shift */
+/** @typedef {import("../types.d.ts").Roster} Roster */
 /** @typedef {import("../types.d.ts").Employee} Employee */
 /** @typedef {import("../types.d.ts").ShiftOrigin} ShiftOrigin */
 /** @typedef {import("../types.d.ts").RowSemantic} RowSemantic */
 /** @typedef {import("../types.d.ts").ScheduleRenderDataset} ScheduleRenderDataset */
 
 import { DAYS_OF_THE_WEEK, RowSemanticKind, ShiftCategory, categoryMap, locationMap, shiftTimeMap } from "../data/constants.js";
-import { CASUAL_ROSTER, ROSTER } from "../data/roster.js";
+import { FULL_ROSTER } from "../data/roster.js";
 
 export class ScheduleAnalyzer {
 
-    /** @type {string[]} weekdayHeader */
-    weekdayHeader;
-    /** @type {RowSemantic[]} rowSemanticList */
-    rowSemanticList;
+    /** @type {string[]} _weekdayHeader */
+    _weekdayHeader;
+    /** @type {RowSemantic[]} _rowSemanticList */
+    _rowSemanticList;
     /** @type {Shift[]} shiftList */
-    shiftList = [];
+    _shiftList;
     /** @type {ShiftOrigin} shiftOrigin */
-    shiftOrigin = new Map();
+    _shiftOrigin;
 
-    /** @param {string[][]} scheduleGrid */
-    constructor(scheduleGrid) {
-        this.weekdayHeader = this.extractWeekdayHeader(scheduleGrid);
-        this.rowSemanticList = this.extractRowSemantics(scheduleGrid);
-
-        const { shifts, shiftOrigin } = this.discoverShiftsAndOrigin(scheduleGrid);
-        this.shiftList = shifts;
-        this.shiftOrigin = shiftOrigin;
+    /** @type {string[]} _weekdayHeader */
+    get weekdayHeader() {
+        return this._weekdayHeader;
+    }
+    /** @type {RowSemantic[]} _rowSemanticList} */
+    get rowSemanticList() {
+        return this._rowSemanticList;
+    }
+    /** @type {Shift[]} shiftList */
+    get shiftList() {
+        return this._shiftList;
+    }
+    /** @type {ShiftOrigin} shiftOrigin */
+    get shiftOrigin() {
+        return this._shiftOrigin;
     }
 
-    /** @returns {ScheduleRenderDataset} */
-    get scheduleRenderDataset() {
+    /** @param {string[][]} scheduleGrid */
+    constructor() {
+        this._shiftList = null;
+        this._shiftOrigin = new Map();
+    }
+
+    /**
+     * @param {string[][]} scheduleGrid
+     * @returns {ScheduleRenderDataset}
+     */
+    analyze(scheduleGrid) {
+        this._weekdayHeader = this.extractWeekdayHeader(scheduleGrid);
+        this._rowSemanticList = this.extractRowSemantics(scheduleGrid);
+
+        const { shifts, shiftOrigin } = this.discoverShiftsAndOrigin(scheduleGrid);
+        this._shiftList = shifts;
+        this._shiftOrigin = shiftOrigin;
+
         return {
-            header: this.weekdayHeader,
-            rowSemantics: this.rowSemanticList,
-            shifts: this.shiftList,
-            shiftOrigin: this.shiftOrigin,
+            header: this._weekdayHeader,
+            rowSemantics: this._rowSemanticList,
+            shifts: this._shiftList,
+            shiftOrigin: this._shiftOrigin,
         }
     }
 
@@ -43,20 +67,18 @@ export class ScheduleAnalyzer {
      * @returns {string[]}
      */
     extractWeekdayHeader(scheduleGrid) {
-        /** @type {string[]} weekdayHeader */
+        /** @type {string[]} _weekdayHeader */
         let weekdayHeader = [];
 
         // Get headers if user copied the schedule properly from the first cell's known value
-        if (scheduleGrid[0][0] === "US - LESLIE") {
-            const BIWEEKLY = 14;
-            const row = 1;
+        const BIWEEKLY = 14;
+        const row = 1;
 
-            // truncate month header by omitting the -YY year ending
-            weekdayHeader.push(scheduleGrid[1][0].substring(0, 3));
+        // truncate month header by omitting the -YY year ending
+        weekdayHeader.push(scheduleGrid[1][0].substring(0, 3));
 
-            for (let i = 1; i <= BIWEEKLY; i++) {
-                weekdayHeader.push(scheduleGrid[row][i]);
-            }
+        for (let i = 1; i <= BIWEEKLY; i++) {
+            weekdayHeader.push(scheduleGrid[row][i]);
         }
         return weekdayHeader;
     }
@@ -66,16 +88,21 @@ export class ScheduleAnalyzer {
      * @returns {RowSemantic[]}
      */
     extractRowSemantics(scheduleGrid) {
-        /** @type {RowSemantic[]} rowSemanticList */
+        /** @type {RowSemantic[]} _rowSemanticList */
         const rowSemanticList = [];
 
         let currLocation = "GENERAL";
 
+        let lastKnownSemanticValue = "";
+
         for (let i = 0; i < scheduleGrid.length; i++) {
             let cellValue = scheduleGrid[i][0].trim().toUpperCase();
-
             // flag to determine if shiftTime will be inherited from prior row
             let shiftTimeInherited = false;
+
+            if (cellValue !== "") {
+                lastKnownSemanticValue = cellValue;
+            }
 
             // extract semantic Location for row
             const foundLocationChange = locationMap.get(cellValue)
@@ -87,12 +114,7 @@ export class ScheduleAnalyzer {
             if (cellValue == "") {
                 // if cellValue was empty, shift is considered to inherit a shift time from a preceding row
                 shiftTimeInherited = true;
-
-                // find preceding shiftTime
-                let j = i - 1;
-                while (cellValue == "" && j >= 0) {
-                    cellValue = scheduleGrid[j--][0].trim().toUpperCase();
-                }
+                cellValue = lastKnownSemanticValue; // Update last known value for current and subsequent empty rows
             }
 
             const foundShiftTime = shiftTimeMap.get(cellValue)
@@ -150,16 +172,17 @@ export class ScheduleAnalyzer {
         /** @type {ShiftOrigin} shiftOrigin */
         const shiftOrigin = new Map();
 
-        const firstShiftRow = this.rowSemanticList.find(rs => rs.kind === "SHIFT");
+        const firstShiftRow = this._rowSemanticList.find(rs => rs.kind === "SHIFT");
         if (!firstShiftRow) {
-            console.error("ERROR: unable to identify first shift row to discover shifts and origins!");
-            return;
+            throw new Error("unable to identify first shift row to discover shifts and origins!");
         }
         const firstRow = firstShiftRow.row;
 
         /** @type {Map<number, RowSemantic>} */
         const rowSemanticMap = new Map();
-        this.rowSemanticList.forEach(rs => rowSemanticMap.set(rs.row, rs));
+        this._rowSemanticList.forEach(rs => rowSemanticMap.set(rs.row, rs));
+
+        const employeeMap = this.getEmployeeMap(FULL_ROSTER);
 
         for (const [rowNum, row] of scheduleGrid.entries()) {
             if (rowNum < firstRow) continue; //ignore checking rows before the first shift time
@@ -169,8 +192,7 @@ export class ScheduleAnalyzer {
 
                 const rowSemantic = rowSemanticMap.get(rowNum);
                 if (!rowSemantic) {
-                    console.error("ERROR: Expected defined rowSemantic, got undefined in discoverShiftsAndOrigins() method");
-                    return;
+                    throw new Error("Expected defined rowSemantic, got undefined in discoverShiftsAndOrigins() method");
                 }
 
 
@@ -182,7 +204,10 @@ export class ScheduleAnalyzer {
                     category = ShiftCategory.HEADER;
                 }
 
-                const employee = this.matchEmployeeByRoster(names[names.length - 1])
+                let employee = null;
+                if (employeeMap.has(names[names.length - 1])) {
+                    employee = employeeMap.get(names[names.length - 1]);
+                }
 
                 shifts.push({
                     id: newUUID,
@@ -197,8 +222,7 @@ export class ScheduleAnalyzer {
                 });
 
                 if (shiftOrigin.has(newUUID)) {
-                    console.error(`ERROR: duplicate UUID found! ${newUUID}`);
-                    return;
+                    throw new Error(`ERROR: duplicate UUID found! ${newUUID}`);
                 }
                 shiftOrigin.set(newUUID, { row: rowNum, col: colNum, });
             }
@@ -244,55 +268,43 @@ export class ScheduleAnalyzer {
         // single letters are concat with prior name, e.g.~ ["Tom", "B"] => ["Tom B"]
         // two or more letters are treated as a name, e.g.~ ["Bo", "Peter"] => ["Bo", "Peter"]
         // single letter as first found value is undefined semantic, e.g.~ ["R", "ob"] => [] with warning
-        names.forEach((name, i) => {
-
+        for (let i = 0; i < names.length; i++) {
+            const name = names[i];
             if (name.length >= 2) {
                 finalNames.push(name);
             }
             else if (name.length == 1 && i != 0) {
                 finalNames.push(name.concat(" ", names[i - 1]));
             }
-            else if (name[0] === "X") { // "X" is used to mark an empty shift to be not-filled
-                return [];
+            else if (name[0] === "X") {
+                // If we hit 'X', we might want to break entirely if it signifies an empty shift
+                break;
             } else {
-                console.warn(`name ${name} from ${names} with length ${name.length}, index: ${i} is not a valid/expected state!`)
-                return [];
+                console.warn(`name ${name} from ${names} with length ${name.length}, index: ${i} is not a valid/expected state!`);
+                // If we break here, we skip processing the rest of the names array.
+                break;
             }
-        });
-
+        }
         return finalNames;
     }
 
-    /**
-     * @param {string} name 
-     * @return {Employee | null}
-     */
-    matchEmployeeByRoster(name) {
-        // try matching FTR roster list
-        for (const [_, employee] of Object.entries(ROSTER)) {
-            if (
-                employee.first_name === name ||
-                employee.str_alias === name ||
-                employee.abbrev === name
-            ) {
-                return employee;
-            }
-        }
-        // try matching casual roster list
-        for (const [_, employee] of Object.entries(CASUAL_ROSTER)) {
-            if (
-                employee.first_name === name ||
-                employee.str_alias === name ||
-                employee.abbrev === name
-            ) {
-                return employee;
-            }
-        }
-        return null;
+    /** @param {Roster} roster  */
+    getEmployeeMap(roster) {
+        // Create a look up table that matches first_name/str_alias/abbrev to their respective employee
+        const employeeMap = new Map(
+            [...Object.values(roster)]
+                .flatMap(emp =>
+                    [
+                        [emp.str_alias, emp],
+                        [emp.abbrev, emp],
+                    ]
+                )
+        );
+        return employeeMap;
     }
 
     getDate(col) {
-        return `${DAYS_OF_THE_WEEK[col - 1]} ${this.weekdayHeader[col]}`
+        return `${DAYS_OF_THE_WEEK[col - 1]} ${this._weekdayHeader[col]}`
     }
 
     /**
@@ -310,8 +322,7 @@ export class ScheduleAnalyzer {
                 case "F":
                     return "OCSC";
                 default:
-                    console.error(`Undefined Gender "${employee.gender}" for ${employee.str_alias}`);
-                    return;
+                    throw new Error(`Undefined Gender "${employee.gender}" for ${employee.str_alias}`);
             }
         }
     }

@@ -3,12 +3,6 @@
 
 /** @type {Roster} ROSTER */
 export const ROSTER = {
-    "Ayesha Ayub": {
-        "first_name": "AYESHA",
-        "str_alias": "AYESHA",
-        "abbrev": "AA",
-        "gender": "F"
-    },
     "Adrienne Chang": {
         "first_name": "ADRIENNE",
         "str_alias": "ADRIENNE",

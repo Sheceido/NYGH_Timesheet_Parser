@@ -57,53 +57,64 @@ export function auditSchedule(mode) {
     const scheduleStr = pasteArea.value;
     const holidayCount = holidays.value;
 
-    // Parse and validate schedule string
-    const parser = new ScheduleParser(scheduleStr);
-    const validator = new ScheduleValidator(parser.schedule);
+    try {
+        // Parse and validate schedule string
+        const parser = new ScheduleParser(scheduleStr);
+        const validator = new ScheduleValidator(parser.schedule);
 
-    if (validator.validationErrorList.length > 0) {
-        Renderer.updateElementValidationErrorField(
-            "#textAreaError",
-            "Invalid state of schedule grid:",
-            validator.validationErrorList,
-        );
+        if (validator.validationErrorList.length > 0) {
+            Renderer.updateElementValidationErrorField(
+                "#textAreaError",
+                "Invalid state of schedule grid:",
+                validator.validationErrorList,
+            );
+            return;
+        }
+
+        // Analyze -> scheduleMetrics -> scheduleValidation
+        const analyzer = new ScheduleAnalyzer();
+        const dataset = analyzer.analyze(parser.schedule);
+
+        const metrics = new ScheduleMetricsAuditor();
+        const auditor = new ScheduleValidationAuditor();
+
+        const ftrShiftMap = ShiftQueryUtils.getEmployeeShiftMap(ROSTER, dataset.shifts);
+        const casShiftMap = ShiftQueryUtils.getEmployeeShiftMap(CASUAL_ROSTER, dataset.shifts);
+
+        const ftrMetrics = metrics.calculateScheduleMetrics(ftrShiftMap);
+        const casMetrics = metrics.calculateScheduleMetrics(casShiftMap);
+
+        /** @type {ScheduleAuditReport} auditReport */
+        const auditReport = {
+            employeeMetrics: [...ftrMetrics, ...casMetrics],
+            validationIssues: auditor.auditSchedule(dataset.shifts, ftrShiftMap, casShiftMap, holidayCount),
+        }
+        console.log(auditReport);
+
+        // Begin rendering pipeline
+        Renderer.clearStaleContainer(mode);
+
+        // set schedule data to modal custom web component reactive rendering
+        scheduleSpreadsheet.data = dataset;
+
+        switch (mode) {
+            // Generate a timesheet and flag errors for specific employee
+            case AppMode.TIMESHEET:
+                generateTimesheet(mode, dataset.header, auditReport);
+                break;
+
+            // Generate Audit Entry containers on issues found for all employees
+            case AppMode.SCHEDULE_CHECK:
+                generateAudit(mode, auditReport);
+                break;
+
+            default:
+                console.error(`Unknown AppMode: ${mode}`);
+                return;
+        }
+    } catch (e) {
+        console.error(`auditSchedule failed: ${e.message || e}`);
         return;
-    }
-
-    // Analyze -> scheduleMetrics -> scheduleValidation
-    const analyzer = new ScheduleAnalyzer(parser.schedule);
-    const metrics = new ScheduleMetricsAuditor();
-    const auditor = new ScheduleValidationAuditor();
-
-    const ftrShiftMap = ShiftQueryUtils.getEmployeeShiftMap(ROSTER, analyzer.shiftList);
-    const casShiftMap = ShiftQueryUtils.getEmployeeShiftMap(CASUAL_ROSTER, analyzer.shiftList);
-
-    const ftrMetrics = metrics.calculateScheduleMetrics(ftrShiftMap);
-    const casMetrics = metrics.calculateScheduleMetrics(casShiftMap);
-
-    /** @type {ScheduleAuditReport} auditReport */
-    const auditReport = {
-        employeeMetrics: [...ftrMetrics, ...casMetrics],
-        validationIssues: auditor.auditSchedule(analyzer.shiftList, ftrShiftMap, casShiftMap, holidayCount),
-    }
-    console.log(auditReport);
-
-    // Begin rendering pipeline
-    Renderer.clearStaleContainer(mode);
-
-    // set schedule data to modal custom web component reactive rendering
-    scheduleSpreadsheet.data = analyzer.scheduleRenderDataset;
-
-    switch (mode) {
-        // Generate a timesheet and flag errors for specific employee
-        case AppMode.TIMESHEET:
-            generateTimesheet(mode, analyzer.weekdayHeader, auditReport);
-            break;
-
-        // Generate Audit Entry containers on issues found for all employees
-        case AppMode.SCHEDULE_CHECK:
-            generateAudit(mode, auditReport);
-            break;
     }
 }
 
@@ -111,6 +122,7 @@ export function auditSchedule(mode) {
  * @param {AppMode} mode 
  * @param {string[]} weekdayHeader 
  * @param {ScheduleAuditReport} auditReport 
+ * @returns {void}
  */
 function generateTimesheet(mode, weekdayHeader, auditReport) {
 

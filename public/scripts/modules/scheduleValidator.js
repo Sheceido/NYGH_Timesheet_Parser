@@ -36,6 +36,13 @@ export class ScheduleValidator {
             });
         }
 
+        if (scheduleGrid[0][0] !== "US - LESLIE") {
+            this._validationErrors.push({
+                code: this._errorCodes.MISSING_HEADER,
+                message: `[Error]: Missing required header data "US - LESLIE" in the first cell`,
+            });
+        }
+
         const over = [];
         const under = [];
 

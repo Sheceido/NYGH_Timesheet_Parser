@@ -24,7 +24,7 @@ export class AuditAvailability extends HTMLElement {
 
     this.innerHTML = `
       <div class="conflict-box conflict clickable">
-        <span class="conflict-box-badge conflict">Conflict</span>
+        <span class="conflict-box-badge conflict">Unavailable</span>
         <div class="shift-details flex-row">
           <div class="shift-detail-row flex-col">
             <span>${gender}</span>
@@ -32,14 +32,17 @@ export class AuditAvailability extends HTMLElement {
           </div>
           <div class="shift-detail-row flex-col">
             <span>📍</span>
+            <span class="detail-label">Location</span>
             <span>${shiftRef.location}</span>
           </div>
           <div class="shift-detail-row flex-col">
             <span>📅</span>
+            <span class="detail-label">Date</span>
             <span>${shiftRef.date}</span>
           </div>
           <div class="shift-detail-row flex-col">
             <span>🕐</span>
+            <span class="detail-label">Shift Time</span>
             <span>${shiftRef.shiftTime}</span>
           </div>
         </div>

@@ -35,7 +35,6 @@ export class ScheduleParser {
      *
      * - replaces any newlines within quotations as a space
      * - removes quotations
-     * - replaces a specific shift time name to something more standard (12:00-8:00pm)
      */
     cleanSchedule(scheduleStr) {
         const schedStrChars = [];

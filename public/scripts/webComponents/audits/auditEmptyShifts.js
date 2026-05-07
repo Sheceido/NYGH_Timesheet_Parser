@@ -1,4 +1,3 @@
-/** @typedef {import("../types.d.ts").AuditEntry} AuditEntry */
 /** @typedef {import("../types.d.ts").Shift} Shift */
 
 import { MODAL_OPEN } from "../../data/constants.js";
@@ -24,14 +23,17 @@ export class AuditEmptyShifts extends HTMLElement {
     container.innerHTML = `
       <div class="shift-detail-row flex-col">
         <span>📍</span>
+        <span class="detail-label">Location</span>
         <span>${s.location}</span>
       </div>
       <div class="shift-detail-row flex-col">
          <span>📅</span>
+        <span class="detail-label">Date</span>
          <span>${s.date}</span>
       </div>
       <div class="shift-detail-row flex-col">
          <span>🕐</span>
+        <span class="detail-label">Shift Time</span>
          <span>${s.shiftTime}</span>
       </div>
     `;
@@ -48,11 +50,11 @@ export class AuditEmptyShifts extends HTMLElement {
     const emptyShiftEntries = this._data.shifts.map(s => this.createEmptyShiftEntries(s));
 
     this.innerHTML = `
-      <div class="conflict-box existing clickable">
+      <div class="conflict-box clickable">
         <span class="conflict-box-badge conflict">${this._data.shifts.length} Empty Shifts Detected</span>
         <details class="clickable">
-          <div id="seeAllEmpty" class="shift-details">
-            See all empty shifts ➡️
+          <div id="seeAllEmpty" class="shift-details boxed-grid-item">
+            View Empty Shifts <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px"> <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
           <summary>Click to Expand</summary>
         </details>
