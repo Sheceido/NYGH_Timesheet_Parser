@@ -69,6 +69,12 @@ export const locationMap = new Map()
     .set("1100-7:00PM", "GENERAL")
     .set("CONSUMERS", "OCSC / CONSUMER")
     .set("AVAILABLE", "GENERAL")
+    .set("VACATION", "GENERAL")
+    .set("FLOAT", "GENERAL")
+    .set("LIEU TIME", "GENERAL")
+    .set("ABSENT", "GENERAL")
+    .set("NOT AVAILABLE", "GENERAL")
+    .set("ML", "GENERAL")
 
 export const cellColorSwatch = new Map()
     .set("BDC", {

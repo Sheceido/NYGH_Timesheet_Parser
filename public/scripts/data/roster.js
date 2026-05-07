@@ -81,12 +81,6 @@ export const ROSTER = {
         "abbrev": "LP",
         "gender": "M"
     },
-    "Mengling Chen": {
-        "first_name": "MENGLING",
-        "str_alias": "MENGLING",
-        "abbrev": "MC",
-        "gender": "F"
-    },
     "Millicent Brown": {
         "first_name": "MILLICENT",
         "str_alias": "MILLIE",
@@ -132,7 +126,7 @@ export const ROSTER = {
     "Wendy Wen": {
         "first_name": "WENDY",
         "str_alias": "WENDY",
-        "abbrev": "WW",
+        "abbrev": "ZW",
         "gender": "F"
     },
 };
@@ -202,6 +196,12 @@ export const CASUAL_ROSTER = {
         "first_name": "MANDY",
         "str_alias": "MANDY",
         "abbrev": "ML",
+        "gender": "F"
+    },
+    "Mengling Chen": {
+        "first_name": "MENGLING",
+        "str_alias": "MENGLING",
+        "abbrev": "MC",
         "gender": "F"
     },
     "Nadine Habboub": {
