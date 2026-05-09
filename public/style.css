@@ -203,6 +203,16 @@
       color: #888;
       letter-spacing: 0.03em;
     }
+
+    &>.audit-planner-switch {
+      cursor: pointer;
+      color: #888;
+      transition: color 150ms ease-in;
+
+      &:hover {
+        color: blue;
+      }
+    }
   }
 
   timesheet-table {

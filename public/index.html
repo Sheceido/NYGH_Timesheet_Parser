@@ -18,8 +18,19 @@
     <span class="dept">Medical Imaging</span>
     <span class="sep"></span>
     <span class="app-name">Ultrasound Schedule Auditor</span>
+    <span class="audit-planner-switch"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <!-- Top arrow -->
+        <path d="M16 3l4 4-4 4" />
+        <path d="M4 7h16" />
+        <!-- Bottom arrow -->
+        <path d="M8 21l-4-4 4-4" />
+        <path d="M20 17H4" />
+      </svg>
+    </span>
   </header>
-  <div class="container">
+  <div class="auditor container">
     <paste-area></paste-area>
     <pre id="textAreaError" class="error"></pre>
     <control-panel mode="#timesheetMakerMode"></control-panel>
@@ -30,9 +41,11 @@
     <div id="scheduleCheckerMode" class="not-visible"></div>
     <modal-schedule></modal-schedule>
   </div>
+  <div class="planner container">
+  </div>
   <footer></footer>
 
-  <script type="module" src="./scripts/main.js"></script>
+  <script type="module" src="./dist/scripts/main.js"></script>
 </body>
 
 </html>

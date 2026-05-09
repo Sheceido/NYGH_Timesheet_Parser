@@ -1,22 +1,19 @@
-/** custom web component definition imports for DOM instantiation */
-import { ModeSelectTab } from "./webComponents/modeSelectTab.js";
-import { PasteArea } from "./webComponents/pasteArea.js";
-import { EmployeeSelector } from "./webComponents/employeeSelector.js";
-import { ControlPanel } from "./webComponents/controlPanel.js";
-import { AuditEntriesCard } from "./webComponents/audits/auditEntriesCard.js";
-import { AuditEmployeeShiftCount } from "./webComponents/audits/auditEmployeeShiftCount.js";
-import { AuditAvailability } from "./webComponents/audits/auditAvailability.js";
-import { AuditMissingWeekendFlag } from "./webComponents/audits/auditMissingWeekendFlag.js";
-import { AuditEmptyShifts } from "./webComponents/audits/auditEmptyShifts.js";
-import { AuditShiftConflict, AuditShiftConflictCard } from "./webComponents/audits/auditShiftConflict.js";
-import { TimesheetTable } from "./webComponents/timesheetTable.js";
-import { ModalSchedule } from "./webComponents/modalSchedule.js";
-import { ScheduleSpreadsheet } from "./webComponents/scheduleSpreadsheet.js";
+// Side-effect only imports (custom element registration)
+import "./webComponents/modeSelectTab.js";
+import "./webComponents/pasteArea.js";
+import "./webComponents/employeeSelector.js";
+import "./webComponents/controlPanel.js";
+import "./webComponents/audits/auditEntriesCard.js";
+import "./webComponents/audits/auditEmployeeShiftCount.js";
+import "./webComponents/audits/auditAvailability.js";
+import "./webComponents/audits/auditMissingWeekendFlag.js";
+import "./webComponents/audits/auditEmptyShifts.js";
+import "./webComponents/audits/auditShiftConflict.js";
+import "./webComponents/timesheetTable.js";
+import "./webComponents/modalSchedule.js";
+import "./webComponents/scheduleSpreadsheet.js";
 
-/** @typedef {import('./types.d.ts').ScheduleAuditReport} ScheduleAuditReport */
-/** @typedef {import('./types.d.ts').AppMode} AppMode */
-/** @typedef {import('./types.d.ts').ScheduleRenderDataset} ScheduleRenderDataset */
-
+import type { ScheduleAuditReport, AppMode as AppModeType, ScheduleRenderDataset } from "./types.js";
 import { initDocumentEventListeners } from "./initEventListeners.js";
 import { ScheduleParser } from "./modules/scheduleParser.js";
 import { ScheduleValidator } from "./modules/scheduleValidator.js";
@@ -28,34 +25,32 @@ import { FULL_ROSTER, ROSTER, CASUAL_ROSTER } from "./data/roster.js";
 import { AppMode, AuditCode, AuditDescriptors } from "./data/constants.js";
 import { ShiftQueryUtils } from "./modules/shiftQueryUtils.js";
 
-
 // Initialize event listeners for interactivity between web components
 initDocumentEventListeners();
 
 /**
- * main function trigger when custom event "ANALYZE_SCHEDULE" is triggere
- * @param {AppMode} mode
+ * Main function triggered when custom event "ANALYZE_SCHEDULE" is fired.
+ * @param mode - The current application mode (timesheet or schedule checker).
  */
-export function auditSchedule(mode) {
-
-    const pasteArea = document.querySelector(".pasteArea");
+export function auditSchedule(mode: AppModeType): void {
+    const pasteArea = document.querySelector(".pasteArea") as HTMLTextAreaElement | null;
     if (!pasteArea) {
-        console.error(`Expected element paste-area, got ${pasteArea}`);
+        console.error(`Expected element .pasteArea, got ${pasteArea}`);
         return;
     }
-    const holidays = document.querySelector("#holidays");
+    const holidays = document.querySelector("#holidays") as HTMLInputElement | null;
     if (!holidays) {
         console.error(`Expected element #holidays, got ${holidays}`);
         return;
     }
-    const scheduleSpreadsheet = document.querySelector("schedule-spreadsheet");
+    const scheduleSpreadsheet = document.querySelector("schedule-spreadsheet") as HTMLElement & { data?: ScheduleRenderDataset } | null;
     if (!scheduleSpreadsheet) {
         console.error("schedule-spreadsheet element is undefined!");
         return;
     }
 
     const scheduleStr = pasteArea.value;
-    const holidayCount = holidays.value;
+    const holidayCount = parseInt(holidays.value, 10);
 
     try {
         // Parse and validate schedule string
@@ -84,49 +79,43 @@ export function auditSchedule(mode) {
         const ftrMetrics = metrics.calculateScheduleMetrics(ftrShiftMap);
         const casMetrics = metrics.calculateScheduleMetrics(casShiftMap);
 
-        /** @type {ScheduleAuditReport} auditReport */
-        const auditReport = {
+        const auditReport: ScheduleAuditReport = {
             employeeMetrics: [...ftrMetrics, ...casMetrics],
             validationIssues: auditor.auditSchedule(dataset.shifts, ftrShiftMap, casShiftMap, holidayCount),
-        }
+        };
         console.log(auditReport);
 
         // Begin rendering pipeline
         Renderer.clearStaleContainer(mode);
 
-        // set schedule data to modal custom web component reactive rendering
+        // Set schedule data to modal custom web component reactive rendering
         scheduleSpreadsheet.data = dataset;
 
         switch (mode) {
-            // Generate a timesheet and flag errors for specific employee
             case AppMode.TIMESHEET:
                 generateTimesheet(mode, dataset.header, auditReport);
                 break;
-
-            // Generate Audit Entry containers on issues found for all employees
             case AppMode.SCHEDULE_CHECK:
                 generateAudit(mode, auditReport);
                 break;
-
             default:
                 console.error(`Unknown AppMode: ${mode}`);
                 return;
         }
     } catch (e) {
-        console.error(`auditSchedule failed: ${e.message || e}`);
+        console.error(`auditSchedule failed: ${(e as Error).message || e}`);
         return;
     }
 }
 
 /**
- * @param {AppMode} mode 
- * @param {string[]} weekdayHeader 
- * @param {ScheduleAuditReport} auditReport 
- * @returns {void}
+ * Generates the timesheet view and renders issues for a specific employee.
+ * @param mode - Application mode (must be TIMESHEET).
+ * @param weekdayHeader - Array of date headers.
+ * @param auditReport - Complete audit report.
  */
-function generateTimesheet(mode, weekdayHeader, auditReport) {
-
-    const employeeSelector = document.querySelector("employee-selector");
+function generateTimesheet(mode: AppModeType, weekdayHeader: string[], auditReport: ScheduleAuditReport): void {
+    const employeeSelector = document.querySelector("employee-selector") as HTMLElement & { selected: string } | null;
     if (!employeeSelector) {
         console.error("Unexpected 'employee-selector' custom component to be undefined.");
         return;
@@ -138,34 +127,30 @@ function generateTimesheet(mode, weekdayHeader, auditReport) {
         return;
     }
 
-    const foundMetric = auditReport.employeeMetrics.find(metric => (
+    const foundMetric = auditReport.employeeMetrics.find(metric =>
         metric.employee.abbrev === selectedEmployee.abbrev &&
         metric.employee.str_alias === selectedEmployee.str_alias
-    ));
+    );
     if (!foundMetric) {
         console.error(`No metrics found for employee "${selectedEmployee.str_alias}".`);
         return;
     }
 
     const foundIssues = auditReport.validationIssues.filter(ae =>
-        ae.employees.some(e => (
+        ae.employees.some(e =>
             e && // null-check before field check
             e.abbrev === selectedEmployee.abbrev &&
             e.str_alias === selectedEmployee.str_alias
-        ))
+        )
     );
 
-    // render timesheet
-    Renderer.renderTimesheet(mode, weekdayHeader, foundMetric, foundIssues);
+    // Render timesheet
+    Renderer.renderTimesheet(mode, weekdayHeader, foundMetric);
 
-    // render issues found for specific employee
+    // Render issues found for this employee
     foundIssues.forEach(audit => {
-        // ignore multiple names warning
-        if (audit.code === AuditCode.MULTIPLE_NAMES) {
-            return;
-        }
+        if (audit.code === AuditCode.MULTIPLE_NAMES) return;
 
-        // highlight issues by querying class name based on a shift id 
         if (audit.code !== AuditCode.FTR_OVER_SCHEDULED &&
             audit.code !== AuditCode.FTR_UNDER_SCHEDULED) {
             audit.shifts.forEach(s => {
@@ -178,24 +163,20 @@ function generateTimesheet(mode, weekdayHeader, auditReport) {
             AuditDescriptors[audit.code].icon,
             AuditDescriptors[audit.code].header,
             [audit],
-        )
+        );
     });
 }
 
 /**
- * @param {AppMode} mode 
- * @param {ScheduleAuditReport} auditReport 
+ * Generates the audit view (schedule checker) showing all validation issues.
+ * @param mode - Application mode (must be SCHEDULE_CHECK).
+ * @param auditReport - Complete audit report.
  */
-function generateAudit(mode, auditReport) {
-
+function generateAudit(mode: AppModeType, auditReport: ScheduleAuditReport): void {
     for (const code of Object.values(AuditCode)) {
-        // Skip these for audit display
-        if (code === AuditCode.MULTIPLE_NAMES ||
-            code === AuditCode.ON_CALL_MULTIPLE_NAMES
-        ) {
+        if (code === AuditCode.MULTIPLE_NAMES || code === AuditCode.ON_CALL_MULTIPLE_NAMES) {
             continue;
         }
-
         Renderer.renderAuditEntriesCard(
             mode,
             AuditDescriptors[code].icon,
@@ -205,14 +186,13 @@ function generateAudit(mode, auditReport) {
     }
 }
 
-/** Programmatically updates footer to have current year */
-function footerDate() {
+/** Programmatically updates footer to have current year. */
+function footerDate(): void {
     const footer = document.querySelector("footer");
     if (!footer) {
         console.error("Footer not in DOM!");
         return;
     }
-
-    footer.textContent = `© ${(new Date()).getFullYear()} Leon Poon. All Rights Reserved.`;
+    footer.textContent = `© ${new Date().getFullYear()} Leon Poon. All Rights Reserved.`;
 }
 footerDate();

@@ -102,7 +102,7 @@ export type ScheduleAuditReport = {
 }
 
 export type TimesheetColumn = {
-    shiftId: number,
+    shiftId: string,
     shiftTime: string,
     standby: number,
     location: string,
